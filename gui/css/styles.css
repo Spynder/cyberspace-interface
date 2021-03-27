@@ -1,0 +1,232 @@
+body {
+	padding: 0;
+	margin: 0;
+	user-select: none;
+	height: 100%;
+	/overflow: hidden;
+}
+
+button {
+	outline: none;
+	z-index: 2;
+	/position: absolute;
+}
+
+canvas {
+	z-index: 1;
+}
+
+#startButton {
+	position: absolute;
+	top: 40%;
+	left: 50%;
+	transform: translate(-50%, 0);
+
+	background-color: #44c767;
+	border-radius: 5px;
+	border: 1px solid #18ab29;
+	display: inline-block;
+	cursor: pointer;
+	color: #fff;
+	font-family: 'Blinker', sans-serif;
+	font-size: 28px;
+	padding: 20px 40px;
+	text-decoration: none;
+}
+
+#startButton:hover {
+	background-color: #5cbf2a;
+}
+
+#startButton:active {
+	top: calc(40% + 1px);
+}
+
+#fuckGoBack {
+	position: absolute;
+	top: 40%;
+	left: 50%;
+	transform: translate(-50%, 0);
+}
+
+#shipsBlock, canvas, .jsonViewer {
+	display: inline-block;
+	vertical-align: top;
+}
+
+#shipsBlock {
+	/position: relative;
+	display: inline-flex;
+	flex-flow: column;
+	background: #555;
+	width: 20%;
+	height: 100vh;
+}
+
+#shipsContainer {
+	flex: 1 1 auto;
+	overflow-y: scroll;
+}
+
+.jsonViewer {
+	display: inline-flex;
+	flex-flow: column;
+	background: #555;
+	width: 20%;
+	height: 100vh;
+}
+
+h1, h2, p {
+	font-family: 'Blinker', sans-serif;
+	color: #EEE;
+	margin: 0;
+	padding: 0;
+}
+
+.ship {
+	height: 100px;
+	margin: 5px;
+	border: 1px black solid;
+	border-radius: 10px;
+	font-family: 'Blinker', sans-serif;
+	background: #555;
+}
+
+.ship:hover {
+	background: #484848;
+	cursor: pointer;
+}
+
+.ship:active {
+	background: #444;
+	position: relative;
+	top: 1px;
+}
+
+h1 {
+	margin: 5px 10px;
+}
+
+h2 {
+	font-family: 'Share Tech Mono', monospace;
+	font-size: 20px;
+	margin-top: 5px;
+	margin-bottom: 10px;
+}
+
+.iconBlock {
+	white-space: nowrap;
+	height: 100%;
+	float: left;
+}
+
+.helper {
+	display: inline-block;
+    height: 100%;
+    vertical-align: middle;
+}
+
+.shipIcon {
+	vertical-align: middle;
+	/height: 64px;
+	margin: 9px;
+}
+
+.shipInfo {
+	float: left;
+	margin-left: 16px;
+}
+
+.shipInfo img {
+	display: inline-block;
+	float: right;
+}
+
+.indicators {
+	display: flex;
+	flex-flow: column;
+	align-items: flex-end;
+	justify-content: right;
+	height: 100%;
+}
+
+.indicators img {
+	float: right;
+	width: 16px;
+	height: 16px;
+	margin: 8px 8px 0 0;
+}
+
+.indicators button {
+	width: 50px;
+	margin: 1px;
+	margin-top: auto;
+}
+
+.shipActivity:hover {
+	cursor: pointer;
+}
+
+.good {
+	color: #7D7;
+}
+
+.warning {
+	color: #F4C430;
+}
+
+.critical {
+	color: #E62014;
+}
+
+.unknown {
+	color: #DF73FF;
+}
+
+#disableAll {
+	position: relative;
+	bottom: 0;
+	width: 100%;
+	border: 0;
+	display: inline-block;
+	background-color: #444;
+	border-top: 2px solid #888;
+	cursor: pointer;
+	color: #ffffff;
+	font-size: 24px;
+	padding: 5px 0;
+	text-decoration: none;
+	font-family: 'Blinker', sans-serif;
+}
+
+#disableAll:hover {
+	background-color: #333;
+	border-top: 2px solid #777;
+}
+
+#disableAll:active {
+	background-color: #222;
+	border-top: 2px solid #777;
+}
+
+.buttonContainer {
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+	text-align: center;
+}
+
+#jsonText {
+	text-align: center;
+}
+
+#jsonClusterRenderer {
+	flex: 1 1 auto;
+	background: #444;
+	margin: 10px;
+	border: 1px solid #666;
+	border-radius: 10px;
+	overflow: auto;
+}
+/*font-family: 'Blinker', sans-serif;*/
+/*font-family: 'Share Tech Mono', monospace;*/

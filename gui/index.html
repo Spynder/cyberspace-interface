@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+	<script type="text/javascript" src="js/jquery-3.6.0.min.js"></script>
+	<script src="js/jquery.json-viewer.js"></script>
+	<link rel="stylesheet" href="css/jquery.json-viewer.css">
+	<script type="text/javascript" src="js/graphics.js"></script>
+	<script>if (window.module) module = window.module;</script>
+
+	<link rel="stylesheet" href="css/styles.css">
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css2?family=Blinker:wght@200;400;700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+	<title>CyberSpace</title>
+</head>
+<body>
+	<div id="container">
+		<div id="start">
+			<canvas id="startCanvas"></canvas>
+			<button id="startButton">Activate</button>
+		</div>
+		<div id="cluster">
+			<div id="shipsBlock">
+				<h1 id="shipsText">2 Ships (1 active): </h1>
+				<div id="shipsContainer">
+					<div class="ship" shipID="a7fj3nfg">
+						<div class="iconBlock">
+							<span class="helper"></span>
+							<img class="shipIcon" src="img/ship.png">
+						</div>
+						<div class="shipInfo">
+							<h2>A7FJ3NFG</h2>
+							<p class="fuelText">Fuel: <span class="good">10/10</span></p>
+							<p class="balanceText">Balance: <span class="critical">74854</span></p>
+							<p class="systemText">System: <span class="warning">Pi-1 Pegasi</span></p>
+						</div>
+						<div class="indicators">
+							<img class="indicator" src="img/icon.png">
+							<button class="shipActivity">On</button>
+						</div>
+					</div>
+				</div>
+				<button id="disableAll"></button>
+			</div><canvas id="clusterCanvas">
+			</canvas><div class="jsonViewer">
+				<h1 id="jsonText">JSON memory view:</h1>
+				<pre id="jsonClusterRenderer"></pre>
+			</div>
+			<button id="fuckGoBack">Fuck go back</button>
+		</div>
+	</div>
+</body>
+
+</html>
