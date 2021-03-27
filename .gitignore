@@ -107,3 +107,6 @@ dist
 Old versions
 code/logs
 code/tests
+
+# Secret config
+code/libs/config.js
