@@ -19,6 +19,14 @@ $(document).ready(function() {
 	var SHIPS_ACTIVE = "Park all ships (Safe exit)";
 	var SHIPS_UNACTIVE = "Activate all ships";
 
+	var SHIPSTATE_OFF = 1;
+	var SHIPSTATE_WAIT = 2;
+	var SHIPSTATE_ON = 3;
+	var SHIPSTATE_PARK = 4;
+
+	var SHIPACTIVITY_ONLINE = "shipOnline";
+	var SHIPACTIVITY_OFFLINE = "shipOffline";
+
 	var JSON_RENDER_OPTIONS = {
 		collapsed: false,
 		rootCollapsable: true,
@@ -37,16 +45,16 @@ $(document).ready(function() {
 	startButtonColor = "#47ab50";
 	startButtonStroke = "#444";
 
-	var ships = [	{hullLevel: 1, ID: "a7fj3nfg", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat"},
-					{hullLevel: 4, ID: "jf73jsxm", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi"},
-					{hullLevel: 1, ID: "a7fj3nfg", fuel: 3, /*fuelMax: 10,*/ balance: 2432, system: "Scheat"},
-					{hullLevel: 4, ID: "jf73jsxm", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi"},
-					{hullLevel: 1, ID: "a7fj3nfg", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat"},
-					{hullLevel: 4, ID: "jf73jsxm", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi"},
-					{hullLevel: 1, ID: "a7fj3nfg", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat"},
-					{hullLevel: 4, ID: "jf73jsxm", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi"},
-					{hullLevel: 1, ID: "a7fj3nfg", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat"},
-					{hullLevel: 4, ID: "jf73jsxm", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi"}];
+	var ships = [	{hullLevel: 1, ID: "a7fj3nfg", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat", 		state: SHIPSTATE_OFF,	active: false},
+					{hullLevel: 4, ID: "jf73jsxm", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_WAIT,	active: false},
+					{hullLevel: 1, ID: "a7fj3nf1", fuel: 3, 			 balance: 2432, system: "Scheat", 		state: SHIPSTATE_ON,	active: true},
+					{hullLevel: 4, ID: "jf73jsx8", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_PARK,	active: false},
+					{hullLevel: 1, ID: "a7fj3nf2", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat", 		state: SHIPSTATE_OFF,	active: false},
+					{hullLevel: 4, ID: "jf73jsx7", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_WAIT,	active: false},
+					{hullLevel: 1, ID: "a7fj3nfg", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat", 		state: SHIPSTATE_ON,	active: false},
+					{hullLevel: 4, ID: "jf73jsx6", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_PARK,	active: false},
+					{hullLevel: 1, ID: "a7fj3nf4", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat", 		state: SHIPSTATE_WAIT,	active: false},
+					{hullLevel: 4, ID: "jf73jsx5", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_OFF,	active: false}];
 
 	//var shipsElements = [];
 	var enabledShips = 0;
@@ -109,6 +117,21 @@ $(document).ready(function() {
 		var fuelText = generateShipFuel(shipStruct.fuel, shipStruct.fuelMax);
 		var balanceText = generateShipBalance(shipStruct.balance);
 		var systemText = generateShipSystem(shipStruct.system);
+		var label = "Off";
+		switch(shipStruct.state) {
+			case SHIPSTATE_OFF:
+				label = "Off";
+				break;
+			case SHIPSTATE_WAIT:
+				label = "Wait";
+				break;
+			case SHIPSTATE_ON:
+				label = "On";
+				break;
+			case SHIPSTATE_PARK:
+				label = "Park";
+				break;
+		}
 		return `<div class="ship" shipID=${shipStruct.ID}>
 					<div class="iconBlock">
 						<span class="helper"></span>
@@ -121,8 +144,8 @@ $(document).ready(function() {
 						${systemText}
 					</div>
 					<div class="indicators">
-						<img class="indicator" src="img/icon.png">
-						<button class="shipActivity">On</button>
+						<img class="indicator" src="img/Label${label}.png">
+						<button class="shipActivity ${shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE}"></button>
 					</div>
 				</div>`;
 	}
@@ -132,11 +155,17 @@ $(document).ready(function() {
 		ships.forEach(function(ship) {
 			var item = $(generateShipHtml(ship));
 			$("#shipsContainer").append(item);
+			var shipStruct = ships.find(obj => obj.ID == item.attr("shipID"));
 			item.click(function() { // TODO: bug - double click on one item, then click on item above. It doesn't click
-				renderJson(ships.find(obj => obj.ID == item.attr("shipID")));
+				renderJson(shipStruct);
 			});
-			item.find(".indicators").find(".shipActivity").click(function(event) {
+			var btn = item.find(".indicators").find(".shipActivity");
+			btn.click(function(event) {
 				event.stopPropagation();
+				shipStruct = ships.find(obj => obj.ID == item.attr("shipID")); // TODO: Since then element might have been updated
+				btn.removeClass(shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
+				ships[ships.indexOf(shipStruct)].active = !shipStruct.active;
+				btn.addClass(shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
 			})
 		});
 	}
