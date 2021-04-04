@@ -113,15 +113,14 @@ h2 {
 }
 
 .iconBlock {
-	white-space: nowrap;
 	height: 100%;
 	float: left;
 }
 
 .helper {
+	vertical-align: middle;
 	display: inline-block;
     height: 100%;
-    vertical-align: middle;
 }
 
 .shipIcon {
@@ -143,56 +142,37 @@ h2 {
 	display: flex;
 	flex-flow: column;
 	align-items: flex-end;
-	justify-content: right;
 	height: 100%;
 }
 
 .indicators img {
 	float: right;
-	/margin: 8px 8px 0 0;
 	margin: 4px;
 }
 
 .shipActivity {
-	/width: 50px;
 	margin: 4px;
 	margin-top: auto;
 	height: 24px;
-	width: 96px;
+	width: 72px;
 	border: 0;
 }
 
 .shipOnline	 { background: url('../img/ButtonOn.png'); 	}
-
 .shipOffline { background: url('../img/ButtonOff.png'); }
 
 .shipActivity:hover { cursor: pointer; }
-
 .shipOnline:hover { background: url('../img/ButtonOnHover.png'); }
-
 .shipOffline:hover { background: url('../img/ButtonOffHover.png'); }
 
 .shipActivity:active { position: relative; top: 1px; }
-
 .shipOnline:active { background: url('../img/ButtonOnPress.png'); }
-
 .shipOffline:active { background: url('../img/ButtonOffPress.png'); }
 
-.good {
-	color: #7D7;
-}
-
-.warning {
-	color: #F4C430;
-}
-
-.critical {
-	color: #E62014;
-}
-
-.unknown {
-	color: #DF73FF;
-}
+.good { color: #7D7; }
+.warning { color: #F4C430; }
+.critical { color: #E62014; }
+.unknown { color: #DF73FF; }
 
 #disableAll {
 	position: relative;
@@ -208,6 +188,7 @@ h2 {
 	padding: 5px 0;
 	text-decoration: none;
 	font-family: 'Blinker', sans-serif;
+	height: 40px;
 }
 
 #disableAll:hover {
@@ -218,6 +199,7 @@ h2 {
 #disableAll:active {
 	background-color: #222;
 	border-top: 2px solid #777;
+	height: 39px;
 }
 
 .buttonContainer {
@@ -239,5 +221,44 @@ h2 {
 	border-radius: 10px;
 	overflow: auto;
 }
+
+#goInside {
+	position: absolute;
+	bottom: 0;
+	left: 50%;
+	transform: translate(-50%, 0);
+
+	height: 50px;
+	background-color: #444;
+	border: 2px solid #888;
+	border-bottom: 0;
+	border-radius: 5px 5px 0 0;
+	cursor: pointer;
+	color: #ffffff;
+	font-size: 24px;
+	padding: 0 10px;
+	text-decoration: none;
+	font-family: 'Blinker', sans-serif;
+}
+
+#goInside:hover {
+	background-color: #333;
+	border: 2px solid #777;
+	border-bottom: 0;
+}
+
+#goInside:active {
+	background-color: #222;
+	border: 2px solid #777;
+	border-bottom: 0;
+	height: 48px;
+}
+
+#goInside:disabled {
+	background-color: #181818;
+	border: 2px solid #555;
+	border-bottom: 0;
+}
+
 /*font-family: 'Blinker', sans-serif;*/
 /*font-family: 'Share Tech Mono', monospace;*/

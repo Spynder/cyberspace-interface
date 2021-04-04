@@ -1,159 +1,90 @@
+const {ipcRenderer} = require('electron');
+require("./js/graphicsConstants");
+var gh = require("./js/graphicHelpers");
+
 $(document).ready(function() {
 	var canvas = document.getElementById("startCanvas");
 	var ctx = canvas.getContext("2d");
-	var fps = 60;
-
-	var SCREEN_START = "start";
-	var SCREEN_CLUSTER = "cluster";
-	var SCREEN_SYSTEM = "system";
-
-	var STAT_GOOD = "good";
-	var STAT_WARNING = "warning";
-	var STAT_CRITICAL = "critical";
-	var STAT_UNKNOWN = "unknown";
-
-	var BALANCE_WARNING = 4000;
-	var BALANCE_CRITICAL = 20000;
-	var HIGH_SEC_SYSTEMS = ["Scheat", "Sadalbari", "Matar", "Salm", "Sadalpheris"];
-
-	var SHIPS_ACTIVE = "Park all ships (Safe exit)";
-	var SHIPS_UNACTIVE = "Activate all ships";
-
-	var SHIPSTATE_OFF = 1;
-	var SHIPSTATE_WAIT = 2;
-	var SHIPSTATE_ON = 3;
-	var SHIPSTATE_PARK = 4;
-
-	var SHIPACTIVITY_ONLINE = "shipOnline";
-	var SHIPACTIVITY_OFFLINE = "shipOffline";
-
-	var JSON_RENDER_OPTIONS = {
-		collapsed: false,
-		rootCollapsable: true,
-		withQuotes: false,
-		withLinks: true,
-	};
 
 	var currScreen = SCREEN_START;
 
 	var width = canvas.width; // Width of the canvas
 	var height = canvas.height; // Height of the canvas
 
-	bgColor = "#222";
-	textColor = "#EEE";
-	textColorSecondary = "#BBB";
-	startButtonColor = "#47ab50";
-	startButtonStroke = "#444";
-
 	var ships = [	{hullLevel: 1, ID: "a7fj3nfg", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat", 		state: SHIPSTATE_OFF,	active: false},
 					{hullLevel: 4, ID: "jf73jsxm", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_WAIT,	active: false},
-					{hullLevel: 1, ID: "a7fj3nf1", fuel: 3, 			 balance: 2432, system: "Scheat", 		state: SHIPSTATE_ON,	active: true},
+					{hullLevel: 1, ID: "a7fj3nf1", fuel: 3, 			 balance: 2432, system: "Scheat", 		state: SHIPSTATE_ON,	active: true },
 					{hullLevel: 4, ID: "jf73jsx8", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_PARK,	active: false},
 					{hullLevel: 1, ID: "a7fj3nf2", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat", 		state: SHIPSTATE_OFF,	active: false},
 					{hullLevel: 4, ID: "jf73jsx7", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_WAIT,	active: false},
-					{hullLevel: 1, ID: "a7fj3nfg", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat", 		state: SHIPSTATE_ON,	active: false},
+					{hullLevel: 1, ID: "a7fj3nfa", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat", 		state: SHIPSTATE_ON,	active: false},
 					{hullLevel: 4, ID: "jf73jsx6", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_PARK,	active: false},
 					{hullLevel: 1, ID: "a7fj3nf4", fuel: 3, fuelMax: 10, balance: 2432, system: "Scheat", 		state: SHIPSTATE_WAIT,	active: false},
-					{hullLevel: 4, ID: "jf73jsx5", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_OFF,	active: false}];
+					{hullLevel: 4, ID: "jf73jsx5", fuel: 5, fuelMax: 10, balance: 88544, system: "Pi-1 Pegasi",	state: SHIPSTATE_OFF,	active: false},
+					{hullLevel: 2, ID: "abcdefgh", fuel: 3, fuelMax: 150, balance: 4624, system: "Sadalbari",	state: SHIPSTATE_OFF,	active: false},];
 
-	//var shipsElements = [];
 	var enabledShips = 0;
+
+	// TODO: replace all $("x") to pointers
+
+	var currSelectedSystem = "";
+
+	function isMouseInsideSystemIcon(event) {
+		var mousePos = gh.getMousePos(canvas, event);
+
+		for(system of SYSTEMS) {
+			if (gh.isInside(mousePos, gh.getSystemIconHitbox(system, width, height))) {
+				return system;
+				break;
+			}
+		}
+		return false;
+	}
+
+	function updateGoInsideButton(system) {
+		currSelectedSystem = system ? system : "";
+		var noSystem = currSelectedSystem == "";
+		var noInfo = getShipsInSystem(currSelectedSystem).length == 0;
+		$("#goInside").prop("disabled", noSystem || noInfo);
+		console.log()
+		var text = GOINSIDE_OK;
+		if(noSystem) {
+			text = GOINSIDE_NULL;
+		} else if(noInfo) { // If we're here, we are sure system is valid (not null) and don't need to check for that.
+			text = GOINSIDE_INFO;
+		}
+		$("#goInside").text(text);
+	}
+
+	function checkSystemClicks(event) {
+		var result = isMouseInsideSystemIcon(event);
+		updateGoInsideButton(result.hasOwnProperty("name") ? result.name : "");
+	}
 
 	function changeScreen(screen) {
 		currScreen = screen;
 		$("#container").children().css("display", "none");
 		$("#" + currScreen).css("display", "block");
+
+		if(currScreen != SCREEN_CLUSTER) { // We do it before we override canvas
+			canvas.removeEventListener("click", checkSystemClicks, false);
+		}
+
 		canvas = document.getElementById(currScreen + "Canvas");
 		ctx = canvas.getContext("2d");
 		if(currScreen == SCREEN_CLUSTER) {
 			generateShipList();
+			canvas.addEventListener('click', checkSystemClicks, false);
 		}
+		
 		canvasResize();
 		draw();
-	}
-
-	function generateShipFuel(fuel, fuelMax) {
-		var fuelStat = STAT_GOOD;
-		var finText = `${fuel}/${fuelMax}`;
-		if(fuel == undefined || fuelMax == undefined) {
-			fuelStat = STAT_UNKNOWN;
-			finText = "?";
-		} else if(fuel == 0) {
-			fuelStat = STAT_CRITICAL;
-		} else if(fuel/fuelMax <= 0.4) {
-			fuelStat = STAT_WARNING;
-		}
-
-		return `<p class="fuelText">Fuel: <span class="${fuelStat}">${finText}</span></p>`;
-	}
-
-	function generateShipBalance(balance) {
-		var balanceStat = STAT_GOOD;
-		if(balance == undefined) {
-			balanceStat = STAT_UNKNOWN;
-			balance = "?";
-		} else if(balance >= BALANCE_CRITICAL) {
-			balanceStat = STAT_CRITICAL;
-		} else if(balance >= BALANCE_WARNING) {
-			balanceStat = STAT_WARNING;
-		}
-
-		return `<p class="balanceText">Balance: <span class="${balanceStat}">${balance}</span></p>`;
-	}
-
-	function generateShipSystem(system) {
-		var systemStat = STAT_GOOD;
-		if(system == undefined) {
-			systemStat = STAT_UNKNOWN;
-			system = "?";
-		} else if(HIGH_SEC_SYSTEMS.indexOf(system) == -1) {
-			systemStat = STAT_WARNING;
-		}
-
-		return `<p class="systemText">System: <span class="${systemStat}">${system}</span></p>`;
-	}
-
-	function generateShipHtml(shipStruct) {
-		var fuelText = generateShipFuel(shipStruct.fuel, shipStruct.fuelMax);
-		var balanceText = generateShipBalance(shipStruct.balance);
-		var systemText = generateShipSystem(shipStruct.system);
-		var label = "Off";
-		switch(shipStruct.state) {
-			case SHIPSTATE_OFF:
-				label = "Off";
-				break;
-			case SHIPSTATE_WAIT:
-				label = "Wait";
-				break;
-			case SHIPSTATE_ON:
-				label = "On";
-				break;
-			case SHIPSTATE_PARK:
-				label = "Park";
-				break;
-		}
-		return `<div class="ship" shipID=${shipStruct.ID}>
-					<div class="iconBlock">
-						<span class="helper"></span>
-						<img class="shipIcon" src="img/ship.png">
-					</div>
-					<div class="shipInfo">
-						<h2>${shipStruct.ID.toUpperCase()}</h2>
-						${fuelText}
-						${balanceText}
-						${systemText}
-					</div>
-					<div class="indicators">
-						<img class="indicator" src="img/Label${label}.png">
-						<button class="shipActivity ${shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE}"></button>
-					</div>
-				</div>`;
 	}
 
 	function generateShipList() {
 		$("#shipsContainer").empty();
 		ships.forEach(function(ship) {
-			var item = $(generateShipHtml(ship));
+			var item = $(gh.generateShipHtml(ship));
 			$("#shipsContainer").append(item);
 			var shipStruct = ships.find(obj => obj.ID == item.attr("shipID"));
 			item.click(function() { // TODO: bug - double click on one item, then click on item above. It doesn't click
@@ -163,15 +94,23 @@ $(document).ready(function() {
 			btn.click(function(event) {
 				event.stopPropagation();
 				shipStruct = ships.find(obj => obj.ID == item.attr("shipID")); // TODO: Since then element might have been updated
-				btn.removeClass(shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
 				ships[ships.indexOf(shipStruct)].active = !shipStruct.active;
-				btn.addClass(shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
+				//alert()
+				updateShipItem(shipStruct.ID);
 			})
 		});
 	}
 
 	function findShipItemByID(ID) {
-		return $(`.shipInfo h2:contains(${ID})`).parent().parent();
+		return $(`.ship[shipID = '${ID}']`);
+	}
+
+	function getShipStructByID(ID) {
+		return ships[getShipIndexByID(ID)];
+	}
+
+	function getShipIndexByID(ID) {
+		return ships.findIndex(ship => ship.ID == ID);
 	}
 
 	function getRandomInt(min, max) {
@@ -180,22 +119,36 @@ $(document).ready(function() {
 		return Math.floor(Math.random() * (max - min)) + min;
 	}
 
-	function updateShipItem(shipStruct, totalShips, activeShips) {
-		var item = findShipItemByID(shipStruct).find(".shipInfo");
-
-		item.find(".fuelText").replaceWith(generateShipFuel(getRandomInt(1, 10), 10));
-		item.find(".balanceText");
+	function updateShipItem(shipID, ignoreShipTextUpdate) {
+		var shipStruct = getShipStructByID(shipID);
+		var item = findShipItemByID(shipStruct.ID);
+		item.find(".fuelText").replaceWith(gh.generateShipFuel(getRandomInt(1, 10), 10));
+		item.find(".balanceText").replaceWith(gh.generateShipBalance(shipStruct.balance));
 		item.find(".systemText");
-		updateShipText(totalShips, activeShips);
+
+		var btn = item.find(".indicators").find(".shipActivity");
+		btn.removeClass(shipStruct.active ? SHIPACTIVITY_OFFLINE : SHIPACTIVITY_ONLINE);
+		btn.addClass(shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
+
+		if(!ignoreShipTextUpdate) {
+			updateShipText();
+		}
 	}
 
-	function updateShipText(totalShips, activeShips) {
-		enabledShips = activeShips;
-		$("#disableAll").text(activeShips == 0 ? SHIPS_UNACTIVE : SHIPS_ACTIVE);
-		if(totalShips != ships.length) {
+	ipcRenderer.on('shipItemUpdate', (event, arg) => {
+		var id = "jf73jsxm";
+		//ships[getShipIndexByID(id)] = {hullLevel: 4, ID: "jf73jsxm", fuel: 5, fuelMax: 10, balance: arg, system: "Pi-1 Pegasi", state: arg, active: false};
+		//updateShipItem(id);
+	})
+
+	function updateShipText() {
+		enabledShips = ships.filter(item => item.active).length;
+		//enabledShips = ships.filter(item => item.active).length;
+		$("#disableAll").text(enabledShips == 0 ? SHIPS_UNACTIVE : SHIPS_ACTIVE);
+		/*if($("shipsContainer").children().length != ships.length) {
 			generateShipList(); // TODO
-		}
-		$("#shipsText").text(`${totalShips} ships (${activeShips} total): `);
+		}*/
+		$("#shipsText").text(`${ships.length} ships (${enabledShips} active): `);
 
 	}
 
@@ -211,28 +164,80 @@ $(document).ready(function() {
 				canvas.width = $(window).width() * 0.8;
 				break;
 		}
-    	canvas.height = window.innerHeight;
+		canvas.height = window.innerHeight;
 		width = canvas.width;
 		height = canvas.height;
 	}
 
 	$(window).resize(canvasResize); // When window is resized, always resize the canvas to it.
 
-	function drawText(size, color, text, x, y, align) {
-	    ctx.font = size + "px Blinker";
-	    ctx.fillStyle = color;
-	    if(align) {
-	    	ctx.textAlign = align;
-	    }
-	    ctx.fillText(text, x, y);
+	function drawText(size, color, text, x, y, align, font) {
+		if(font) {
+			ctx.font = size + "px " + font;
+		} else {
+			ctx.font = size + "px Blinker";
+		}
+		ctx.fillStyle = color;
+		if(align) {
+			ctx.textAlign = align;
+		}
+		ctx.fillText(text, x, y);
 	}
 
-	function drawRectangle(x, y, w, h, color) {
+	function drawRectangle(x, y, w, h, color, stroke) {
 		ctx.beginPath();
 		ctx.rect(x, y, w, h);
-		ctx.fillStyle = color;
-		ctx.fill();
+		if(stroke) {
+			ctx.strokeStyle = color;
+			ctx.stroke();
+		} else {
+			ctx.fillStyle = color;
+			ctx.fill();
+		}
 		ctx.closePath();
+	}
+
+	function drawSystemIcon(system) {
+		ctx.beginPath();
+		var coords = gh.getSystemIconCircle(system, width, height);
+		ctx.arc(coords.x, coords.y, SYSTEM_RADIUS, 0, 2*Math.PI);
+		ctx.fillStyle = COLOR_SYSTEM_FILL;
+		ctx.strokeStyle = COLOR_SYSTEM_STROKE;
+		ctx.lineWidth = 3;
+		ctx.fill();
+		ctx.stroke();
+	}
+
+	function getShipsInSystem(sys) {
+		return ships.filter((ship) => ship.system == sys);
+	}
+
+	function drawSystemList() {
+		var system = currSelectedSystem;
+		var systemStruct = SYSTEMS.find((sys) => sys.name == system);
+		var list = getShipsInSystem(system);
+
+		if(list.length) {
+			var listOffset = (TEXT_SIZE_SMALL + TEXT_LINE_MARGIN_SMALL) * list.length + SYSTEM_BOX_OFFSET;
+			var coords = gh.getSystemIconCircle(systemStruct, width, height);
+			var textFont = "Share Tech Mono";
+			ctx.font = TEXT_SIZE_SMALL + "px " + textFont;
+			var textWidth = ctx.measureText(list[0].ID).width;
+			var listMargin = 8;
+
+			var rx = coords.x - (textWidth/2) - listMargin;
+			var ry = coords.y - listOffset - TEXT_SIZE_SMALL - listMargin;
+			var rw = textWidth + listMargin*2;
+			var rh = (TEXT_SIZE_SMALL + TEXT_LINE_MARGIN_SMALL) * list.length - TEXT_LINE_MARGIN_SMALL + listMargin*2;
+
+			drawRectangle(rx, ry, rw, rh, COLOR_STROKE, true);
+			drawRectangle(rx, ry, rw, rh, COLOR_BG_DARK);
+
+			list.forEach(function(ship, i) {			
+				var shipRelativePos = (TEXT_SIZE_SMALL + TEXT_LINE_MARGIN_SMALL) * i - TEXT_LINE_MARGIN_SMALL;
+				drawText(TEXT_SIZE_SMALL, COLOR_TEXT_SECONDARY, ship.ID, coords.x, coords.y - listOffset + shipRelativePos, "center", textFont);
+			});
+		}
 	}
 
 	function draw() {
@@ -251,15 +256,24 @@ $(document).ready(function() {
 	}
 
 	function drawStart() {
-		drawRectangle(0, 0, width, height, bgColor);
-		drawText(72, textColor, "CyberSpace", width/2, height*0.2, "center");
-		drawText(36, textColorSecondary, "A GUI interface for manipulating the fleet.", width/2, height * 0.2 + 36 + 18, "center");
+		drawRectangle(0, 0, width, height, COLOR_BG);
+		drawText(TEXT_SIZE_BIG, COLOR_TEXT_MAIN, "CyberSpace", width/2, height*0.2, "center");
+		drawText(TEXT_SIZE_MEDIUM, COLOR_TEXT_SECONDARY, "A GUI interface for manipulating the fleet.", width/2, height * 0.2 + TEXT_SIZE_MEDIUM + TEXT_LINE_MARGIN_MEDIUM, "center");
 	}
 
 	function drawCluster() {
-		drawRectangle(0, 0, width, height, bgColor);
-		drawText(72, textColor, "Xddddddddd", width/2, height*0.2, "center");
-		//updateShipItem("jf73jsxm");
+		drawRectangle(0, 0, width, height, COLOR_BG);
+		drawText(TEXT_SIZE_BIG, COLOR_TEXT_MAIN, "Cluster Pegasus", width/2, 72, "center");
+
+		// Draw all planets
+
+		SYSTEMS.forEach(function(system) {
+			drawSystemIcon(system);
+		});
+
+		drawText(TEXT_SIZE_MEDIUM, COLOR_TEXT_SECONDARY, currSelectedSystem, width/2, 72*2, "center");
+		drawSystemList();
+
 	}
 
 	function drawSystem() {
@@ -271,14 +285,21 @@ $(document).ready(function() {
 		renderJson();
 	});
 
-	$("#fuckGoBack").click(function() {
-		changeScreen(SCREEN_START);
-	});
-
-
-
 	$("#disableAll").click(function() {
-
+		enabledShips = ships.filter(item => item.active).length;
+		ships.forEach(function(ship, i) {
+			ship.active = (enabledShips == 0);
+			ships[i] = ship;
+			console.log(i);
+			updateShipItem(ship.ID, true);
+		});
+		updateShipText();
+		/*ships = ships.map(function(item) {
+			var changed = item;
+			changed.active = enabledShips == 0;
+			updateShipItem(changed.ID);
+			return changed;
+		}); // TODO*/
 	});
 
 	function renderJson(json) {
@@ -286,9 +307,10 @@ $(document).ready(function() {
 	}
 
 	changeScreen(SCREEN_START);
+	updateGoInsideButton();
 	drawingInterval = setInterval(draw, 1000/fps);
 
-	setInterval(function() {
+	/*setInterval(function() {
 		updateShipText(10, getRandomInt(0, 3));
-	}, 500);
+	}, 500);*/
 });

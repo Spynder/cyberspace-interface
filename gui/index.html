@@ -4,12 +4,12 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-	<script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
-	<script type="text/javascript" src="js/jquery-3.6.0.min.js"></script>
+	
+	<!--<script type="text/javascript" src="js/jquery-3.6.0.min.js"></script>-->
+	<script>window.$ = window.jQuery = require('./js/jquery-3.6.0.min.js');</script>
 	<script src="js/jquery.json-viewer.js"></script>
 	<link rel="stylesheet" href="css/jquery.json-viewer.css">
 	<script type="text/javascript" src="js/graphics.js"></script>
-	<script>if (window.module) module = window.module;</script>
 
 	<link rel="stylesheet" href="css/styles.css">
 	<link rel="preconnect" href="https://fonts.gstatic.com">
@@ -40,18 +40,18 @@
 							<p class="systemText">System: <span class="warning">Pi-1 Pegasi</span></p>
 						</div>
 						<div class="indicators">
-							<img class="indicator" src="img/icon.png">
+							<img class="indicator" src="img/LabelOff.png">
 							<button class="shipActivity">On</button>
 						</div>
 					</div>
 				</div>
-				<button id="disableAll"></button>
+				<button id="disableAll">Activate all ships</button>
 			</div><canvas id="clusterCanvas">
 			</canvas><div class="jsonViewer">
 				<h1 id="jsonText">JSON memory view:</h1>
 				<pre id="jsonClusterRenderer"></pre>
 			</div>
-			<button id="fuckGoBack">Fuck go back</button>
+			<button id="goInside" disabled>Go inside the selected system</button>
 		</div>
 	</div>
 </body>

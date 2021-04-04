@@ -1,7 +1,7 @@
 const {ipcRenderer} = require('electron')
 
  // Synchronous message emmiter and handler
-console.log(ipcRenderer.sendSync('synchronous-message', 'sync ping')) 
+/*console.log(ipcRenderer.sendSync('synchronous-message', 'sync ping')) 
 
 // Async message handler
 ipcRenderer.on('asynchronous-reply', (event, arg) => {
@@ -13,4 +13,4 @@ ipcRenderer.on('asynchronous-reply', (event, arg) => {
 
 function sendMessage() {
 	ipcRenderer.send('asynchronous-message', 'async ping')
-}
+}*/

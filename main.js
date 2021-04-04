@@ -6,11 +6,16 @@ function createWindow () {
 		height: 600,
 		webPreferences: {
 			nodeIntegration: true,
-			contextIsolation: true,
+			//contextIsolation: true,
+			//enableRemoteModule: true,
 		}
 	});
 	win.loadFile('gui/index.html')
 	win.maximize()
+
+	setInterval(function() {
+		win.webContents.send('shipItemUpdate', 3)
+	}, 2000);
 }
 
 app.whenReady().then(createWindow);
@@ -27,6 +32,14 @@ app.on('activate', () => {
 	}
 });
 
+
+
+
+
+
+
+
+/*
 // Event handler for asynchronous incoming messages
 ipcMain.on('asynchronous-message', (event, arg) => {
 	console.log(arg)
@@ -41,4 +54,4 @@ ipcMain.on('synchronous-message', (event, arg) => {
 
 	// Synchronous event emmision
 	event.returnValue = 'sync pong'
-});
+});*/
