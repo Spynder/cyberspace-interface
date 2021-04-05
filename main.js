@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, webContents, ipcMain } = require('electron');
 
 function createWindow () {
 	const win = new BrowserWindow({
@@ -10,12 +10,14 @@ function createWindow () {
 			//enableRemoteModule: true,
 		}
 	});
-	win.loadFile('gui/index.html')
-	win.maximize()
+	win.loadFile('gui/index.html');
+	win.maximize();
 
-	setInterval(function() {
-		win.webContents.send('shipItemUpdate', 3)
-	}, 2000);
+	require("./code/libs/update");
+
+	/*setInterval(function() {
+		win.webContents.send('shipItemUpdate', 3);
+	}, 2000);*/
 }
 
 app.whenReady().then(createWindow);

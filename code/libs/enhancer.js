@@ -62,12 +62,12 @@ sdk.Ship.prototype.execRole = async function(account) {
 
 // Start of safe functions
 
-sdk.Account.prototype.safeAssembly = async function() {
+sdk.Account.prototype.safeAssemble = async function() {
 	try {
-		await this.assembly();
+		await this.assemble();
 		loggerConsole.trace("Assembled new ship!");
 	} catch(e) {
-		loggerConsole.debug("Error occured when tried to assembly: " + e.message);
+		loggerConsole.debug("Error occured when tried to assemble: " + e.message);
 	}
 	await delay(ACTION_DELAY);
 }

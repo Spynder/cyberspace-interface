@@ -3,6 +3,7 @@ var sdk = require("./libs/enhancer");
 const delay = require("delay");
 const mafs = require("./libs/mafs");
 const config = require("./libs/config.js");
+const {ipcMain} = require("electron");
 var dbManager = sdk.dbManager;
 
 /* 	Log levels
@@ -18,7 +19,7 @@ global.multiLoop = {flyingFor: {}, localMemory: {}, deals: {}, noDealsFlying: {}
 
 const actionDelay = 300;
 var loop = async function(account, ships) {
-	await account.safeAssembly();
+	await account.safeAssemble();
 	
 	for(var ship of ships) {
 		await shipLoop(account, ship);
@@ -50,8 +51,10 @@ var shipLoop = async function(account, instance) {
 
 var start = async function() {
 	loggerConsole.trace("Starting system, logging in the account.");
+	console.log(sdk.Account);
 	var account = await sdk.Account.connect();
-	await account.signin('abasov2009@yandex.ru', 'NiceGameTho');
+
+	await account.signin(config.accountUsername, config.accountPassword);
 	loggerConsole.trace("Login successful!");
 	await delay(actionDelay);
 	//global.quadrant = await sdk.Sector.connect(sdk.Quadrants.FEDERATION);
@@ -61,6 +64,10 @@ var start = async function() {
 	while(true) {
 		try {
 			var objects = await account.objects(9999); // all objects ever
+
+			var mappedIDs = objects;/*.map();*/ // something
+
+
 			var ships = objects.filter((instance) => instance.type === 'Ship');
 			await delay(actionDelay);
 			await loop(account, ships).catch((e) => {
