@@ -53,9 +53,9 @@ module.exports = {
 
 		console.log(memory.homeSystem, ship.getFuel(), ship.getMaxFuel(), ship.details.parent.uuid, (ship.getLocalMemory()).location);
 
-		var hullTrade = ship.getBestTrade("HULL", 4, true);
-		var engineTrade = ship.getBestTrade("ENGINE", 4, true);
-		var tankTrade = ship.getBestTrade("TANK", 4, true);
+		var hullTrade = ship.getBestTrade("HULL", 3, true);
+		var engineTrade = ship.getBestTrade("ENGINE", 3, true);
+		var tankTrade = ship.getBestTrade("TANK", 3, true);
 		//console.log(tankTrade);
 
 		/*if(ship.getHold() > ship.getMaxHold()) {
@@ -64,13 +64,17 @@ module.exports = {
 			console.log(ship.details.nodes);
 		}*/
 		//console.log(hullTrade)
+
+		console.log(engineTrade);
+
+		//console.log(ship.getBestTrade("HULL", 3, true));
 		
-		if(ship.getBodyCargo("hull").body.gen == 1 && !ship.hasMinerals() && ship.details.body.balance >= 2000 && ship.getCurrentSystem() == HOME_SYSTEM) {
+		if(ship.getBodyCargo("hull").body.gen == 1 && !ship.hasMinerals()/* && ship.details.body.balance >= 2000 */&& ship.getCurrentSystem() == HOME_SYSTEM) {
 			console.log("WANT NEW HULL");
 			var hulls = ship.hasCargo("HULL");
 			console.log(hulls);
 			console.log(hullTrade);
-			if(hulls.length > 1 && hullTrade && hullTrade.price <= MINIMAL_BODY_COST) {
+			if(hulls.length > 1 /*&& hullTrade && hullTrade.price <= MINIMAL_BODY_COST*/) {
 				var betterHull = hulls.find((hull) => hull.body.gen > 1);
 				if(betterHull) {
 					if(ship.details.body.balance == HULL_CHANGE_COST) {
@@ -131,7 +135,7 @@ module.exports = {
 			
 		}
 
-		/*else if(ship.getBodyCargo("engine").body.gen == 1) {
+		else if(ship.getBodyCargo("hull").body.gen != 1 && ship.getBodyCargo("engine").body.gen == 1) {
 			console.log("WANT NEW ENGINE")
 			var hulls = ship.hasCargo("HULL");
 			var badHull = hulls.find((hull) => hull.body.gen == 1);
@@ -141,7 +145,7 @@ module.exports = {
 
 
 			var engines = ship.hasCargo("ENGINE");
-console.log(engineTrade);
+			console.log(engineTrade);
 			if(engines.length > 1) {
 				var betterEngine = engines.find((engine) => engine.body.gen > 1);
 				if(betterEngine) {
@@ -172,17 +176,20 @@ console.log(engineTrade);
 							ship.setPlanetDeals(planetInfo);
 						}
 					}
+					return;
 				} else {
 					console.log(ship.details.body.balance, engineTrade.price)
-					if(ship.details.body.balance != engineTrade.price) {
+					if(ship.details.body.balance != engineTrade.price && ship.getCurrentSystem() == HOME_SYSTEM) {
 						loggerShip.warn("Operating 1000! 1");
 						await ship.operateMoney(engineTrade.price);
+						return;
 					}
 				}
-			}
-			return;
-		}
 
+			}
+			
+		}
+/*
 		else if(ship.getBodyCargo("tank").body.gen == 1) {
 			console.log("WANT NEW TANK")
 
@@ -240,8 +247,13 @@ console.log(engineTrade);
 
 		var bestMineralTrade = ship.getBestMineralTrade();
 		console.log(bestMineralTrade);
+		console.log(ship.getBestMineralTradeInConstellation());
 
-		if(currLocation) {
+		if(ship.getFuel() < ship.getMaxFuel() && ship.getLocalMemory().location != dest) {
+			await ship.parkAtNearbyPlanet();
+			await ship.safeFuel();
+		}
+		else if(currLocation) {
 			loggerShip.info("Warping " + (ship.getLocalMemory()).location + " > " + currLocation);
 			await ship.safeEscape();
 			var coords = WARPS[(ship.getLocalMemory()).location][currLocation];
@@ -310,7 +322,7 @@ console.log(engineTrade);
 			}
 		}
 
-		else if(planet) {
+		else if(!immediatePark && planet) {
 			loggerShip.debug("Initiating \"No deals\".");
 			/*var noDealsObjects = [];
 			for(noDeal of noDeals) {
@@ -438,5 +450,7 @@ console.log(engineTrade);
 					break;
 			}
 		}
+
+		
 	}
 }

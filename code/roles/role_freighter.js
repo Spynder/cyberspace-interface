@@ -18,15 +18,15 @@ module.exports = {
 		console.log("FREIGHTER");
 		console.log("FREIGHTER");
 		
-		var returningBack = ship.getHold() > 500;
-		returningBack = true;
+		var returningBack = ship.getHold() > 300;
+		//returningBack = true;
 
-		await ship.parkAtNearbyLandable();
-		return;
+		/*await ship.parkAtNearbyLandable();
+		return;*/
 
 		var home = SYSTEM_SCHEAT;
-		var dest = SYSTEM_PI1_PEGASI;
-		var planetName = "Droebos";
+		var dest = SYSTEM_IOTA_PEGASI;
+		var planetName = "Tilia";
 
 		var currLocation;
 		if(!returningBack) {
@@ -43,15 +43,15 @@ module.exports = {
 
 
 
-		else if(ship.getFuel() < ship.getMaxFuel() && ship.getLocalMemory().location != SYSTEM_ALGENIB && !ship.hasMinerals()) {
+		else if(ship.getFuel() < ship.getMaxFuel() && ship.getLocalMemory().location != dest && !ship.hasMinerals()) {
 			console.log("landing at nearby")
 			await ship.parkAtNearbyLandable();
 		}
 
 
 
-		else if(ship.details.body.balance > 400 + ship.getMaxHold() && !ship.hasMinerals() && (ship.getLocalMemory()).location == SYSTEM_SCHEAT) {
-			await ship.operateMoney(400 + ship.getMaxHold());
+		else if(ship.details.body.balance > 500 + ship.getMaxHold() && !ship.hasMinerals() && (ship.getLocalMemory()).location == SYSTEM_SCHEAT) {
+			await ship.operateMoney(500 + ship.getMaxHold());
 		}
 
 		/*else if(ship.getBodyCargo("hull")) {

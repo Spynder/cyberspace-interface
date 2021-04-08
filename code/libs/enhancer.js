@@ -57,6 +57,16 @@ sdk.Ship.prototype.execRole = async function(account) {
 		var moduleRequire = require(moduleName);
 		delete require.cache[require.resolve(moduleName)];
 		await moduleRequire.run(this, account, sdk);
+
+		var struct = {	hullLevel: this.getBodyCargo("hull").body.gen,
+						ID: this.details.uuid,
+						fuel: this.getFuel(),
+						fuelMax: this.getMaxFuel(),
+						role: role,
+						balance: this.details.body.balance,
+						system: this.getCurrentSystem()};
+
+		console.log(struct);
 	}
 }
 
@@ -584,6 +594,51 @@ sdk.Ship.prototype.getBestTrade = function(type, gen, higher) {
 		return {planet: best.planet[0], price: best.price, uuid: best.uuid[0]};
 	}
 
+}
+
+sdk.Ship.prototype.getBestMineralTradeInConstellation = function() {
+	var best = {system: "", planet: [], price: 0, uuid: []};
+
+	for(const [system, planets] of Object.entries(multiLoop.deals)) {
+		var bestInSystem = {planet: [], price: 0, uuid: []};
+		//console.log(system);
+		//console.log(planets);
+		for(const [planet, deals] of Object.entries(planets)) {
+			var typedDeals = {};
+			typedDeals = deals.deals.filter((deal) => deal.type == "BUY" && deal.expected == "MINERALS");
+			var sortedDeals = typedDeals.sort((a, b) => b.price - a.price);
+			if(sortedDeals.length) {
+				if(sortedDeals[0].price > bestInSystem.price) {
+					bestInSystem = {planet: [planet], price: sortedDeals[0].price, uuid: [sortedDeals[0].uuid]};
+				} else if(sortedDeals[0].price == bestInSystem.price) {
+					bestInSystem.planet.push(planet);
+					bestInSystem.uuid.push(sortedDeals[0].uuid);
+				}
+			}
+		}
+		
+		if(bestInSystem.price >= HIGHEST_MINERAL_TRADE_COST) {
+			best = bestInSystem;
+			best.system = system;
+			break;
+		} else {
+			if(bestInSystem.price > best.price) {
+				best = bestInSystem;
+				best.system = system;
+			}
+		}
+	}
+
+	if(best.planet.length > 1) {
+		var closestPlanet = this.getClosestPlanet(best.planet);
+		var index = best.planet.indexOf(closestPlanet.uuid);
+		return {system: best.system, planet: closestPlanet.uuid, price: best.price, uuid: best.uuid[index]};
+	} else if(best.planet.length == 0) {
+		return undefined;
+	} else {
+		return {system: best.system, planet: best.planet[0], price: best.price, uuid: best.uuid[0]};
+	}
+	//console.log(multiLoop.deals);
 }
 
 sdk.Ship.prototype.getBestMineralTrade = function() {

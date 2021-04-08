@@ -28,6 +28,7 @@ global.SYSTEM_SIRRAH = "Sirrah";
 global.SYSTEM_PI1_PEGASI = "Pi-1 Pegasi";
 global.SYSTEM_SADALPHERIS = "Sadalpheris";
 global.SYSTEM_ALGENIB = "Algenib";
+global.SYSTEM_IOTA_PEGASI = "Iota Pegasi";
 
 global.HOME_SYSTEM = SYSTEM_SCHEAT;
 
@@ -48,6 +49,7 @@ global.MIN_TRADE_EXPIRE_TIME = 1000 * 60 * 5; // 5 minutes
 
 global.MINIMAL_BODY_COST = 1000;
 global.HULL_CHANGE_COST = 1000;
+global.HIGHEST_MINERAL_TRADE_COST = 50;
 
 // not as constant but still
 global.WARPS = {};
@@ -62,6 +64,12 @@ addPath(SYSTEM_SADALBARI, SYSTEM_SCHEAT, {x: -5057, y: -6199});
 
 addPath(SYSTEM_SCHEAT, SYSTEM_SADALPHERIS, {x: 5352, y: 5946});
 addPath(SYSTEM_SADALPHERIS, SYSTEM_SCHEAT, {x: -5352, y: -5946});
+
+addPath(SYSTEM_SADALBARI, SYSTEM_SADALPHERIS, {x: 6074, y: 5206});
+addPath(SYSTEM_SADALPHERIS, SYSTEM_SADALBARI, {x: -6074, y: -5206});
+
+addPath(SYSTEM_SADALPHERIS, SYSTEM_IOTA_PEGASI, {x: 7854, y: -1520});
+addPath(SYSTEM_IOTA_PEGASI, SYSTEM_SADALPHERIS, {x: -7854, y: 1520});
 
 addPath(SYSTEM_SCHEAT, SYSTEM_MATAR, {x: 7235, y: -3413});
 addPath(SYSTEM_MATAR, SYSTEM_SCHEAT, {x: -7235, y: 3413});
@@ -103,7 +111,27 @@ global.ROLES = [
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SALM,
+		homeSystem: SYSTEM_MATAR,
+	},
+	{
+		role: ROLE_COLONIZER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALBARI,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALPHERIS,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
 	},
 	{
 		role: ROLE_MINER,

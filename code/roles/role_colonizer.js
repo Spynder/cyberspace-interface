@@ -3,7 +3,7 @@ var mafs = require("../libs/mafs");
 module.exports = {
 	run: async function(ship, account, sdk) {
 		// 1. Check if we have any planets ready for colonization
-		// 2. If so, get N * 10000 + 200 (for fuel) from Baker Plasa
+		// 2. If so, get N * 10000 + 4400 (for fuel) from Baker Plasa
 		// 3. Buy embryo (and virus if needed)
 		// 4. Warp to correct system
 		// 5. Land on wanted planet
@@ -21,12 +21,41 @@ module.exports = {
 		console.log("COLONIZER");
 		console.log("COLONIZER");
 
+		var home = SYSTEM_SCHEAT;
+		var dest = SYSTEM_IOTA_PEGASI;
+		var planetName = "Tilia";
+
+		console.log("For the sake of god, just sit here. I'm scared.");
+
+		var owned = await account.getPlanet(planetName);
+		var ownedDetails = await owned.explore();
+		console.log(ownedDetails);
+		console.log(ownedDetails.nodes);
+		owned.dispose();
+
+		return;
 		//await ship.safeEquip("artifact1", ship.hasCargo("ARTIFACT")[0].uuid);
 		//await ship.safeEquip("artifact2", ship.hasCargo("ARTIFACT")[1].uuid);
 
 		/*if(details.body.artifact1.uuid && details.body.artifact2.uuid) {
 			await ship.safeEscape();
 		}*/
+
+		/*await ship.parkAtNearbyLandable();
+		return;*/
+
+
+
+
+		if(ship.getLocationName() == planetName) {
+			var owned = await account.getPlanet(planetName);
+			var ownedDetails = await owned.explore();
+			console.log(ownedDetails);
+			console.log(ownedDetails.nodes);
+			owned.dispose();
+			return;
+		}
+
 
 		if(ship.hasCargo("embryo")) {
 			await ship.safeEquip("artifact1", ship.hasCargo("embryo")[0].uuid);
@@ -35,12 +64,8 @@ module.exports = {
 			await ship.safeEquip("artifact2", ship.hasCargo("virus")[0].uuid);
 		}
 
-		var home = SYSTEM_SCHEAT;
-		var dest = SYSTEM_PI1_PEGASI;
-		var planetName = "Droebos"
-
 		/*console.log(ship.details.parent.uuid);*/
-		if(ship.getLocation() == LOCATION_SYSTEM && ship.details.parent.uuid == SYSTEM_PI1_PEGASI) {
+		if(ship.getLocation() == LOCATION_SYSTEM && ship.details.parent.uuid == dest) {
 			loggerShip.warn("Landing on owned");
 			var planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
 			var planet = planets.find((pla) => pla.uuid == planetName);
@@ -73,9 +98,6 @@ module.exports = {
 			//console.log(ship.details.nodes);
 		}
 
-		var home = SYSTEM_SCHEAT;
-		var dest = SYSTEM_PI1_PEGASI;
-
 		var currLocation;
 		currLocation = mafs.findWarpDestination((ship.getLocalMemory()).location, dest);
 
@@ -102,7 +124,7 @@ module.exports = {
 			await ship.safeFuel();
 		}
 
-		else if(currLocation && ship.hasCargo("embryo") && ship.hasCargo("virus")) {
+		else if(currLocation && ship.hasCargo("embryo")/* && ship.hasCargo("virus")*/) {
 			loggerShip.info("Warping " + (ship.getLocalMemory()).location + " > " + currLocation);
 			await ship.safeEscape();
 			var coords = WARPS[(ship.getLocalMemory()).location][currLocation];
@@ -156,9 +178,10 @@ module.exports = {
 		if(((ship.getLocalMemory()).location == SYSTEM_SCHEAT || ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation") && !ship.hasCargo("embryo")) {
 			console.log("In");
 			console.log(details.body.balance);
-			if(details.body.balance != 24400) {
+			var requiredMoney = 10000 +/* 10000 +*/ 400;
+			if(details.body.balance != requiredMoney) {
 				console.log("Operating");
-				await ship.operateMoney(24400);
+				await ship.operateMoney(requiredMoney);
 			} else {
 				console.log("Getting artifacts");
 				await ship.safeEscape();
@@ -167,7 +190,7 @@ module.exports = {
 					await ship.safeMove(sciStation.body.vector.x, sciStation.body.vector.y);
 					await ship.safeLanding(sciStation.uuid);
 					await ship.safeApply("GET_EMBRYO");
-					await ship.safeApply("GET_VIRUS");
+					//await ship.safeApply("GET_VIRUS");
 				}
 			}
 		}

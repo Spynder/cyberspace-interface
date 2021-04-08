@@ -10,6 +10,7 @@
         "@cyberspace-dev/sdk": "^0.0.56",
         "async-retry": "^1.3.1",
         "better-sqlite3": "^7.1.4",
+        "lodash": "^4.17.21",
         "log4js": "^6.3.0"
     },
     "devDependencies": {

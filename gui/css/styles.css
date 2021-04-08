@@ -3,7 +3,7 @@ body {
 	margin: 0;
 	user-select: none;
 	height: 100%;
-	/overflow: hidden;
+	overflow: hidden;
 }
 
 button {
@@ -13,6 +13,11 @@ button {
 
 canvas {
 	z-index: 1;
+}
+
+#container {
+	height: 100%;
+	width: 100%;
 }
 
 #startButton {
@@ -126,6 +131,8 @@ h2 {
 .shipIcon {
 	vertical-align: middle;
 	margin: 9px;
+	width: 64px;
+	height: 64px;
 }
 
 .shipInfo {
@@ -158,16 +165,16 @@ h2 {
 	border: 0;
 }
 
-.shipOnline	 { background: url('../img/ButtonOn.png'); 	}
-.shipOffline { background: url('../img/ButtonOff.png'); }
+.shipOnline	 { background: url('../img/buttons/ButtonOn.png'); 	}
+.shipOffline { background: url('../img/buttons/ButtonOff.png'); }
 
 .shipActivity:hover { cursor: pointer; }
-.shipOnline:hover { background: url('../img/ButtonOnHover.png'); }
-.shipOffline:hover { background: url('../img/ButtonOffHover.png'); }
+.shipOnline:hover { background: url('../img/buttons/ButtonOnHover.png'); }
+.shipOffline:hover { background: url('../img/buttons/ButtonOffHover.png'); }
 
 .shipActivity:active { position: relative; top: 1px; }
-.shipOnline:active { background: url('../img/ButtonOnPress.png'); }
-.shipOffline:active { background: url('../img/ButtonOffPress.png'); }
+.shipOnline:active { background: url('../img/buttons/ButtonOnPress.png'); }
+.shipOffline:active { background: url('../img/buttons/ButtonOffPress.png'); }
 
 .good { color: #7D7; }
 .warning { color: #F4C430; }
@@ -209,11 +216,11 @@ h2 {
 	text-align: center;
 }
 
-#jsonText {
+.jsonText {
 	text-align: center;
 }
 
-#jsonClusterRenderer {
+#jsonClusterRenderer, #jsonSystemRenderer {
 	flex: 1 1 auto;
 	background: #444;
 	margin: 10px;

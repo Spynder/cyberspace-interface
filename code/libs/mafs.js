@@ -175,7 +175,9 @@ module.exports = {
 		if(current == SYSTEM_PI1_PEGASI && destination == SYSTEM_SCHEAT) 		return SYSTEM_MATAR;
 		if(current == SYSTEM_PI1_PEGASI && destination == SYSTEM_MATAR) 		return SYSTEM_MATAR;
 		if(current == SYSTEM_MATAR 		&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
+		if(current == SYSTEM_SALM 		&& destination == SYSTEM_MATAR) 		return SYSTEM_SCHEAT;
 		if(current == SYSTEM_SALM 		&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
+		if(current == SYSTEM_SALM 		&& destination == SYSTEM_MATAR) 		return SYSTEM_SCHEAT;
 		if(current == SYSTEM_SADALBARI 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
 
 		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_ALGENIB) 		return SYSTEM_SALM;
@@ -183,5 +185,24 @@ module.exports = {
 		if(current == SYSTEM_ALGENIB 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SALM;
 		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
 
+		if(current == SYSTEM_SCHEAT		&& destination == SYSTEM_IOTA_PEGASI)	return SYSTEM_SADALPHERIS;
+		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_IOTA_PEGASI)	return SYSTEM_SADALPHERIS;
+		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_IOTA_PEGASI)	return SYSTEM_IOTA_PEGASI;
+		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SCHEAT)		return SYSTEM_SADALBARI;
+		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_SCHEAT)		return SYSTEM_SADALBARI;
+		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_SCHEAT)		return SYSTEM_SCHEAT;
+
+		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SCHEAT)		return SYSTEM_SADALBARI;
+		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_SCHEAT)		return SYSTEM_SADALBARI;
+		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_SCHEAT)		return SYSTEM_SCHEAT;
+		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_MATAR)			return SYSTEM_SADALBARI;
+		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_MATAR)			return SYSTEM_SADALBARI;
+		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_MATAR)			return SYSTEM_SCHEAT;
+		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SALM)			return SYSTEM_SADALBARI;
+		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_SALM)			return SYSTEM_SADALBARI;
+		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_SALM)			return SYSTEM_SCHEAT;
+		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SADALBARI)		return SYSTEM_SADALBARI;
+		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_SADALBARI)		return SYSTEM_SADALBARI;
+		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SADALPHERIS)	return SYSTEM_SADALPHERIS;
 	}
 }

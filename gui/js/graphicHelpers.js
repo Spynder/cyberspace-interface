@@ -1,9 +1,12 @@
 module.exports = {
-	getMousePos: function(canvas, event) {
+	getMousePos: function(canvas, event, translation, scaling) {
 		var rect = canvas.getBoundingClientRect();
+		if(!translation) translation = {x: 0, y: 0};
+		if(!scaling) scaling = 1;
+		console.log(translation);
 		return {
-			x: event.clientX - rect.left,
-			y: event.clientY - rect.top
+			x: (event.clientX - rect.left - (translation.x * scaling)) * (1/scaling),
+			y: (event.clientY - rect.top - (translation.y * scaling)) * (1/scaling)
 		};
 	},
 
@@ -49,12 +52,13 @@ module.exports = {
 		return `<p class="systemText">System: <span class="${systemStat}">${system}</span></p>`;
 	},
 
-	generateShipHtml: function(shipStruct) {
-		var fuelText = this.generateShipFuel(shipStruct.fuel, shipStruct.fuelMax);
-		var balanceText = this.generateShipBalance(shipStruct.balance);
-		var systemText = this.generateShipSystem(shipStruct.system);
+	generateShipRole: function(role) {
+		return `<img class="shipIcon" src="img/roles/role${role ? role : "Unknown"}.png">`;
+	},
+
+	generateShipLabel: function(state) {
 		var label = "Off";
-		switch(shipStruct.state) {
+		switch(state) {
 			case SHIPSTATE_OFF:
 				label = "Off";
 				break;
@@ -67,11 +71,22 @@ module.exports = {
 			case SHIPSTATE_PARK:
 				label = "Park";
 				break;
-		}
+		}	
+
+		return `<img class="indicator" src="img/labels/Label${label}.png">`;	
+	},
+
+	generateShipHtml: function(shipStruct) {
+		console.log(shipStruct);
+		var fuelText = this.generateShipFuel(shipStruct.fuel, shipStruct.fuelMax);
+		var balanceText = this.generateShipBalance(shipStruct.balance);
+		var systemText = this.generateShipSystem(shipStruct.system);
+		var roleImg = this.generateShipRole(shipStruct.role);
+		var labelImg = this.generateShipLabel(shipStruct.label);
 		return `<div class="ship" shipID=${shipStruct.ID}>
 					<div class="iconBlock">
 						<span class="helper"></span>
-						<img class="shipIcon" src="img/ship.png">
+						${roleImg}
 					</div>
 					<div class="shipInfo">
 						<h2>${shipStruct.ID.toUpperCase()}</h2>
@@ -80,7 +95,7 @@ module.exports = {
 						${systemText}
 					</div>
 					<div class="indicators">
-						<img class="indicator" src="img/Label${label}.png">
+						${labelImg}
 						<button class="shipActivity ${shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE}"></button>
 					</div>
 				</div>`;
@@ -95,14 +110,49 @@ module.exports = {
 	},
 
 	getSystemIconHitbox: function(system, w, h) {
-		return {x: system.x + (w * SYSTEM_OFFSET.xp),
-				y: system.y + (h * SYSTEM_OFFSET.yp),
+		return {x: (system.x + (w * SYSTEM_OFFSET.xp)) * SYSTEM_DISTANCE_MULTIPLIER,
+				y: (system.y + (h * SYSTEM_OFFSET.yp)) * SYSTEM_DISTANCE_MULTIPLIER,
 				width: SYSTEM_RADIUS*2,
 				height: SYSTEM_RADIUS*2};
 	},
 
+	getPlanetHitbox: function(planet) {
+		var planetRadius = planet.radius ? planet.radius : SYSTEM_PLANET_RADIUS;
+		return {x: planet.body.vector.x - planetRadius,
+				y: planet.body.vector.y - planetRadius,
+				width: planetRadius * 2,
+				height: planetRadius * 2};
+	},
+
+	getCargoHitbox: function(cargo) {
+		return {x: cargo.body.vector.x - SYSTEM_CARGO_RADIUS,
+				y: cargo.body.vector.y - SYSTEM_CARGO_RADIUS,
+				width: SYSTEM_CARGO_RADIUS * 2,
+				height: SYSTEM_CARGO_RADIUS * 2};
+	},
+
 	getSystemIconCircle: function(system, w, h) {
-		return {x: system.x + SYSTEM_RADIUS + (w * SYSTEM_OFFSET.xp),
-				y: system.y + SYSTEM_RADIUS + (h * SYSTEM_OFFSET.yp)};
+		return {x: (system.x + (w * SYSTEM_OFFSET.xp)) * SYSTEM_DISTANCE_MULTIPLIER + SYSTEM_RADIUS,
+				y: (system.y + (h * SYSTEM_OFFSET.yp)) * SYSTEM_DISTANCE_MULTIPLIER + SYSTEM_RADIUS};
+	},
+
+	getPlanetsFromData: function(radarData) {
+		return radarData.nodes.filter(item => item.type == "Planet");
+	},
+
+	getMineralsFromData: function(radarData) {
+		return radarData.nodes.filter(item => item.type == "Cargo" && item.body.type == "MINERALS");
+	},
+
+	getNonMineralsFromData: function(radarData) {
+		return radarData.nodes.filter(item => item.type == "Cargo" && item.body.type != "MINERALS");
+	},
+
+	getPlanetOrbitRadius: function(planet) {
+		return Math.hypot(planet.body.vector.x, planet.body.vector.y);
+	},
+
+	getPlanetAngleOnOrbit: function(x, y) {
+		return (Math.atan2(y, x));
 	}
 }

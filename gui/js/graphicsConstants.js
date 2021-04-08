@@ -18,7 +18,7 @@ global.STAT_UNKNOWN = "unknown";
 
 global.BALANCE_WARNING = 4000;
 global.BALANCE_CRITICAL = 20000;
-global.HIGH_SEC_SYSTEMS = ["Scheat", "Sadalbari", "Matar", "Salm", "Sadalpheris"];
+global.HIGH_SEC_SYSTEMS = ["Scheat", "Matar", "Sadalbari", "Sadalpheris", "Salm"];
 
 global.SHIPS_ACTIVE = "Park all ships (Safe exit)";
 global.SHIPS_UNACTIVE = "Activate all ships";
@@ -44,11 +44,25 @@ global.COLOR_TEXT_SECONDARY = "#BBB";
 global.COLOR_START_BUTTON_FILL = "#47ab50";
 global.COLOR_START_BUTTON_STROKE = "#444";
 global.COLOR_SYSTEM_STROKE = "#EEE";
-global.COLOR_SYSTEM_FILL = "#FF9D2E";
+global.COLOR_SYSTEM_FILL_SAFE = "#FF9D2E";
+global.COLOR_SYSTEM_FILL_UNSAFE = "#FF542E";
+global.COLOR_SYSTEM_SAFETY_RIM = "#A3FC7E";
+global.COLOR_SYSTEM_PLANET = "#A88";
+global.COLOR_SYSTEM_PLANET_TRAIL = "#888";
+global.COLOR_SYSTEM_ASTRAL_BODY_RIM = "#CCC";
+global.COLOR_SYSTEM_MINERAL = "#669";
 
-global.SYSTEM_RADIUS = 20;
-global.SYSTEM_OFFSET = {xp: 0.2, yp: 0.4};
+global.SYSTEM_RADIUS = 10;
+global.SYSTEM_OFFSET = {xp: 0.1, yp: 0.1};
+global.SYSTEM_DISTANCE_MULTIPLIER = 1.5;
 global.SYSTEM_BOX_OFFSET = 16;
+global.SYSTEM_SAFETY_RIM_RADIUS = 100;
+global.SYSTEM_PLANET_RADIUS = 150;
+global.SYSTEM_CARGO_RADIUS = 50;
+
+global.SCALE_SENSITIVITY = 0.003;
+global.SYSTEM_START_ZOOM = 0.1;
+
 
 global.TEXT_LINE_MARGIN_MEDIUM = 18;
 global.TEXT_LINE_MARGIN_SMALL = 4;
@@ -57,7 +71,17 @@ global.TEXT_SIZE_BIG = 72;
 global.TEXT_SIZE_MEDIUM = 36;
 global.TEXT_SIZE_SMALL = 20;
 
-global.SYSTEMS = [	{x: 0,	 	y: 0, 		name: "Scheat"},
-					{x: 100, 	y: 100, 	name: "Sadalbari"},
-					{x: 300, 	y: 155,		name: "Pi-1 Pegasi"},
-					{x: 250,	y: 25, 	name: "Matar"}];
+global.SYSTEMS = [	{x: 217,	y: 136,		name: "Scheat"},
+					{x: 270, 	y: 111, 	name: "Matar"},
+					{x: 348, 	y: 82,		name: "Pi-1 Pegasi"},
+					{x: 248, 	y: 174,		name: "Sadalbari"},
+					{x: 262, 	y: 186, 	name: "Sadalpheris"},
+					{x: 355, 	y: 168, 	name: "Iota Pegasi"},
+					{x: 414, 	y: 161, 	name: "Jih"},
+					{x: 174, 	y: 181, 	name: "Salm"},
+					{x: 61, 	y: 111, 	name: "Sirrah"},
+					{x: 24, 	y: 261, 	name: "Algenib"},
+					{x: 208, 	y: 277, 	name: "Markab"},
+					{x: 270, 	y: 327, 	name: "Homam"},
+					{x: 354, 	y: 378, 	name: "Baham"},
+					{x: 428, 	y: 333, 	name: "Enif"}];
