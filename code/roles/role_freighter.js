@@ -19,10 +19,14 @@ module.exports = {
 		console.log("FREIGHTER");
 		
 		var returningBack = ship.getHold() > 300;
-		//returningBack = true;
+		returningBack = true;
+		var immediatePark = true;
 
-		/*await ship.parkAtNearbyLandable();
-		return;*/
+		if(immediatePark) {
+			loggerShip.info("Parking at nearby landable by command.");
+			await ship.parkAtNearbyLandable();
+			return;
+		}
 
 		var home = SYSTEM_SCHEAT;
 		var dest = SYSTEM_IOTA_PEGASI;
@@ -30,65 +34,46 @@ module.exports = {
 
 		var currLocation;
 		if(!returningBack) {
-			currLocation = mafs.findWarpDestination((ship.getLocalMemory()).location, dest);
+			currLocation = mafs.findWarpDestination(ship.getLocationName(), dest);
 		} else {
-			currLocation = mafs.findWarpDestination((ship.getLocalMemory()).location, home);
+			currLocation = mafs.findWarpDestination(ship.getLocationName(), home);
 		}
 
 		var bestMineralTrade = ship.getBestMineralTrade();
+		var mineralAmount = (ship.getMaxHold() * 0.7) - ship.getHold();
+		var requiredBalance = 5000;
+		console.log(ship.getBestMineralTradeInConstellation());
 		console.log(bestMineralTrade);
-		if(!((ship.getLocalMemory()).location)) {
+
+		if(!ship.getCurrentSystem()) {
 			await ship.safeEscape();
 		}
 
-
-
-		else if(ship.getFuel() < ship.getMaxFuel() && ship.getLocalMemory().location != dest && !ship.hasMinerals()) {
+		else if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != dest) {
 			console.log("landing at nearby")
 			await ship.parkAtNearbyLandable();
+			await ship.safeFuel(); // todo? maybe fuel is included in first func
+			return;
 		}
 
-
-
-		else if(ship.details.body.balance > 500 + ship.getMaxHold() && !ship.hasMinerals() && (ship.getLocalMemory()).location == SYSTEM_SCHEAT) {
-			await ship.operateMoney(500 + ship.getMaxHold());
+		else if(ship.getFuel() == ship.getMaxFuel() && ship.getCurrentSystem() != (returningBack ? home : dest)) {
+			await ship.safeEscape();
 		}
 
-		/*else if(ship.getBodyCargo("hull")) {
-
-		}*/
+		if(ship.details.body.balance > requiredBalance && !ship.hasMinerals() && ship.getCurrentSystem() == SYSTEM_SCHEAT) {
+			await ship.operateMoney(requiredBalance);
+		}
 
 		else if(currLocation) {
-			loggerShip.info("Warping " + (ship.getLocalMemory()).location + " > " + currLocation);
+			loggerShip.info("Warping " + ship.getLocationName() + " > " + currLocation);
 			await ship.safeEscape();
 			var coords = WARPS[(ship.getLocalMemory()).location][currLocation];
 			await ship.safeMove(coords.x, coords.y);
 			await ship.safeWarp(currLocation);
 		}
 
-		/*else if(ship.getLocalMemory().location == SYSTEM_SCHEAT) {
-			await ship.parkAtNearbyLandable();
-		}*/
-
-		else if((ship.getLocalMemory()).location == home && returningBack && ship.hasMinerals() && bestMineralTrade) {
+		else if(ship.getCurrentSystem() == home && returningBack && ship.hasMinerals() && bestMineralTrade) {
 			loggerShip.info("I have minerals on the board, so I'm flying to planet and try to sell them.");
-			/*if(ship.getLocation() != LOCATION_SYSTEM && ship.getLocation() != LOCATION_PLANET) {
-				await ship.safeEscape();
-			}
-			var planets = radarData.nodes.filter((node => node.type == "Planet")); // Get all planets
-			var sortedPlanets = mafs.sortByDistance(new mafs.Pos(details.body.vector.x, details.body.vector.y), planets); // Sort planets by proximity.
-			var planet = sortedPlanets[0];
-			var vect = new mafs.Line(	new mafs.Pos(	ship.details.body.vector.x,
-														ship.details.body.vector.y),
-										new mafs.Pos(	planet.body.vector.x,
-														planet.body.vector.y)
-									);
-			var extended = mafs.extendLine(vect, 40);
-			await ship.safeMove(extended.p2.x, extended.p2.y);
-			await ship.safeLanding(planet.uuid);
-			var a = new mafs.Pos(ship.details.body.vector.x, ship.details.body.vector.y);
-			var b = new mafs.Pos(planet.body.vector.x, planet.body.vector.y);
-			console.log(mafs.lineLength(new mafs.Line(a, b)));*/
 
 			var deal = bestMineralTrade;
 			await ship.parkAtSpecifiedPlanet(deal.planet);
@@ -100,9 +85,11 @@ module.exports = {
 				//console.log(planetInfo.nodes);
 				//console.log(planetInfo.body.deals);
 				ship.setPlanetDeals(planetInfo);
-				var buyTrade = planetInfo.body.deals.find((deal) => deal.type == "BUY" && deal.expected == "MINERALS"); //filter
+				//var buyTrade = planetInfo.body.deals.find((deal) => deal.type == "BUY" && deal.expected == "MINERALS"); //filter
 				// find best trade
+				var buyTrade = planetInfo.body.deals.find(item => item.uuid == deal.uuid);
 				if(buyTrade) {
+					console.log(buyTrade.uuid);
 					await ship.safeAccept(buyTrade.uuid);
 					await ship.safeFuel();
 
@@ -114,7 +101,7 @@ module.exports = {
 		}
 
 		
-		else if((ship.getLocalMemory()).location == dest && !returningBack && ship.getLocation() == LOCATION_SYSTEM) {
+		else if(ship.getCurrentSystem() == dest && !returningBack && ship.getLocation() == LOCATION_SYSTEM) {
 			loggerShip.warn("Landing on " + planetName)
 			var planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
 			var planet = planets.find((pla) => pla.uuid == planetName);
@@ -125,7 +112,6 @@ module.exports = {
 									);
 			var extended = mafs.extendLine(vect, 40);
 			await ship.safeMove(extended.p2.x, extended.p2.y);
-			//await ship.safeMove(planet.body.vector.x, planet.body.vector.y);
 			await ship.safeLanding(planet.uuid);
 			await ship.safeFuel();
 		}
@@ -133,18 +119,21 @@ module.exports = {
 		else if(ship.getLocation() == LOCATION_PLANET && ship.getLocationName() == planetName) {
 			var owned = await account.getPlanet(planetName);
 			var ownedDetails = await owned.explore();
-			delay(500);
-			var mineralAmount = (ship.getMaxHold() * 0.5) - ship.getHold();
+			await delay(500);
 			console.log(ownedDetails.nodes);
-			var mineralCount = ownedDetails.nodes.find((node) => node.uuid == "a844a44726").body.size;
+			var mineralsID = "03cc566c55";
+			mineralsID = ownedDetails.nodes.find(node => node.type == "Cargo").uuid;
+			var mineralCount = ownedDetails.nodes.find((node) => node.uuid == mineralsID).body.size;
 			console.log(mineralCount);
+
+			//ship.safeTransfer("in",); // CANT SPECIFY AMOUNT
 			var sellTrades = ownedDetails.body.deals.filter((deal) => deal.type == "BUY");
 			if(sellTrades.length > 0) {
 				await owned.close(sellTrades[0].uuid);
-				delay(ACTION_DELAY);
+				await delay(ACTION_DELAY);
 			}
 			
-			/*if(ship.details.body.balance < mineralAmount && ownedDetails.body.deals.length == 0 && ship.getHold() < 700) {
+			if(ship.details.body.balance < mineralAmount && ownedDetails.body.deals.length == 0 && ship.getHold() < 700) {
 				loggerShip.warn("Creating a deal for the ship to get money!");
 				owned.buy("MINERALS", mineralAmount+400, 1);
 				await delay(ACTION_DELAY);
@@ -157,7 +146,7 @@ module.exports = {
 					//await owned.close(buyTrade.uuid);
 					await ship.safeFuel();	
 				}
-			}*/
+			}
 			if(ship.details.body.balance < mineralAmount && ownedDetails.body.deals.length == 1 && ship.getHold() < 700) {
 				loggerShip.warn("Executing a deal!");
 				console.log(ownedDetails.body.deals);
@@ -170,16 +159,15 @@ module.exports = {
 				}
 			}
 
-			else if(ownedDetails.body.deals.length == 0 && ship.getHold() < 700 /*&& ship.details.body.balance > mineralAmount*/) {
+			else if(ownedDetails.body.deals.length == 0 && ship.getHold() < 700) {
 				loggerShip.warn("Creating a deal!");
-				var resultOfSell = await owned.sell("a844a44726", 1);
+				await owned.sell(mineralsID, 1); // TODO search for cargo not hardcode it
 				await delay(ACTION_DELAY);
 				loggerShip.warn("Executing a deal!");
 				console.log(ownedDetails.body.deals);
 				var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "SELL");
 				if(buyTrade) {
 					await ship.safeAccept(buyTrade.uuid, Math.min(ship.details.body.balance, mineralAmount, mineralCount));
-					//await owned.close(buyTrade.uuid);
 					await ship.safeFuel();
 				}
 			} else {
@@ -192,7 +180,9 @@ module.exports = {
 					await ship.safeFuel();
 				}
 			}
-			if(ownedDetails.body.balance > 0 && ship.hasMinerals()) {
+
+			// IMPORTANT
+			/*if(ownedDetails.body.balance > 0 && ship.hasMinerals()) {
 				await delay(500);
 				loggerShip.warn("Clearing planet balance!");
 				owned.buy("MINERALS", ownedDetails.body.balance, 1);
@@ -209,7 +199,7 @@ module.exports = {
 					//await owned.close(buyTrade.uuid);
 					await ship.safeFuel();
 				}
-			}
+			}*/
 			owned.dispose();
 		}
 

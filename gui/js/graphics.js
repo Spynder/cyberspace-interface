@@ -13,8 +13,9 @@ $(document).ready(function() {
 	var height = canvas.height; // Height of the canvas
 
 	var ships = [];
+	var planets = [];
 
-	var enabledShips = 0;
+	var enabledShips = 0; // TODO replace to a function
 
 	// TODO: replace all $("x") to pointers
 
@@ -59,7 +60,7 @@ $(document).ready(function() {
 		$("#" + currScreen).css("display", "block");
 
 		if(currScreen != SCREEN_CLUSTER) { // We do it before we override canvas
-			canvas.removeEventListener("click", checkSystemClicks, false);
+			canvas.removeEventListener("click", checkSystemClicks, false); // change to checkClusterClicks TODO
 		}
 		if(currScreen != SCREEN_SYSTEM) {
 			canvas.removeEventListener("click", checkPlanetClicks, false);
@@ -81,19 +82,22 @@ $(document).ready(function() {
 	function generateShipList() {
 		if($("shipsContainer").children().length != ships.length) { // TODO: they might be different, but same value: [a, b] => [a] => [a, c]
 			$("#shipsContainer").empty();
+			planets.forEach(function(planet) {
+				
+			});
+
 			ships.forEach(function(ship) {
 				var item = $(gh.generateShipHtml(ship));
 				$("#shipsContainer").append(item);
 				var shipStruct = ships.find(obj => obj.ID == item.attr("shipID"));
-				item.click(function() { // TODO: bug - double click on one item, then click on item above. It doesn't click
+				item.click(function() {
 					renderJson(ships[getShipIndexByID(shipStruct.ID)]);
 				});
-				var btn = item.find(".indicators").find(".shipActivity");
-				btn.click(function(event) {
+				var activityBtn = item.find(".indicators").find(".shipActivity");
+				activityBtn.click(function(event) {
 					event.stopPropagation();
 					shipStruct = ships.find(obj => obj.ID == item.attr("shipID")); // TODO: Since then element might have been updated
 					ships[ships.indexOf(shipStruct)].active = !shipStruct.active;
-					//alert()
 					updateShipItem(shipStruct.ID);
 				})
 			});
@@ -110,6 +114,10 @@ $(document).ready(function() {
 
 	function getShipIndexByID(ID) {
 		return ships.findIndex(ship => ship.ID == ID);
+	}
+
+	function getPlanetIndexByID(ID) {
+		return planets.findIndex(planet => planet.ID == ID);
 	}
 
 	function getRandomInt(min, max) {
@@ -131,42 +139,48 @@ $(document).ready(function() {
 		var btn = item.find(".indicators").find(".shipActivity");
 		btn.removeClass(shipStruct.active ? SHIPACTIVITY_OFFLINE : SHIPACTIVITY_ONLINE);
 		btn.addClass(shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
+		ipcRenderer.send("shipActivity", {ID: shipStruct.ID, active: shipStruct.active});
 
 		if(!ignoreShipTextUpdate) {
 			updateShipText();
 		}
 	}
 
-	ipcRenderer.on("shipItemUpdate", (event, arg) => {
-		var id = "jf73jsxm";
-		//ships[getShipIndexByID(id)] = {hullLevel: 4, ID: "jf73jsxm", fuel: 5, fuelMax: 10, balance: arg, system: "Pi-1 Pegasi", state: arg, active: false};
-		//updateShipItem(id);
-	});
-
 	ipcRenderer.on("shipInfo", (event, arg) => {
 		var id = arg.ID;
 		var itemID = getShipIndexByID(id);
 		if(itemID == -1) {
+			arg.active = false;
 			ships.push(arg);
 			generateShipList();
 		} else {
+			copy = ships[itemID];
 			ships[itemID] = arg;
+			ships[itemID].active = copy.active;
 		}
 		updateShipItem(id);
 	});
 
-	ipcRenderer.on("allShipIDs", (event, arg) => {
-		arg.forEach(function(shipID) {
-			if(getShipIndexByID(shipID) == -1) {
-				ships.push({ID: shipID});	
+	ipcRenderer.on("allObjects", (event, arg) => {
+		var newShips = [];
+		arg.forEach(function(object) {
+			if(object.type == "Ship") {
+				if(getShipIndexByID(object.uuid) == -1) {
+					newShips.push({ID: object.uuid});
+				} else {
+					newShips.push(getShipStructByID(object.uuid));
+				}
+			}	
+			else if(object.type == "Planet" && getPlanetIndexByID(object.uuid) == -1) {
+				planets.push({ID: object.uuid});
 			}
-		})
+		});
+		ships = newShips;
 		generateShipList();
 	});
 
 	function updateShipText() {
 		enabledShips = ships.filter(item => item.active).length;
-		//enabledShips = ships.filter(item => item.active).length;
 		$("#disableAll").text(enabledShips == 0 ? SHIPS_UNACTIVE : SHIPS_ACTIVE);
 		/*if($("shipsContainer").children().length != ships.length) {
 			generateShipList(); // TODO
@@ -293,13 +307,11 @@ $(document).ready(function() {
 		currCursorLocation = {x: event.pageX, y: event.pageY};
 	});
 
-	$("#container").on("mousemove", function(event) {
-		lastX = event.pageX;
-		lastY = event.pageY;
+	$(document).on("mousemove", function(event) {
 		if(currScreen != SCREEN_SYSTEM || !isCursorDown) return;
 		var currX = event.pageX;
 		var currY = event.pageY;
-		translateSystemCanvas((currX - currCursorLocation.x) * (1/scaling), (currY - currCursorLocation.y) * (1/scaling));
+		translateSystemCanvas((currX - currCursorLocation.x), (currY - currCursorLocation.y));
 		currCursorLocation = {x: currX, y: currY};
 	});
 
@@ -321,30 +333,33 @@ $(document).ready(function() {
 
 	function zoomSystemCanvas(scale) {
 		scaling *= scale;
-		var transl = _.cloneDeep(translation);
 		ctx.scale(scale, scale);
 	}
 
-	/*document.addEventListener("wheel", (event) => { // Zoom
+	$("#systemCanvas").on("wheel", (event) => { // Zoom
 		if(currScreen == SCREEN_SYSTEM) {
-
-			var scaleValue = 1 + (-event.deltaY * SCALE_SENSITIVITY);
+			var scaleValue = 1 + (-event.originalEvent.deltaY * SCALE_SENSITIVITY);
 			zoomSystemCanvas(scaleValue);
 		}
-	});*/
+	});
 
 	function isMouseInsideBody(event) {
 		var mousePos = gh.getMousePos(canvas, event, translation, scaling);
 
-		for(planetStruct of gh.getPlanetsFromData(radarData)) {
-			console.log(planetStruct);
-			if(gh.isInside(mousePos, gh.getPlanetHitbox(planetStruct, width, height))) {
+		for(planetStruct of gh.getPlanetsFromData(radarData)) { // Planets
+			if(gh.isInside(mousePos, gh.getPlanetHitbox(planetStruct))) {
 				return planetStruct;
 			}
 		}
 
-		if(gh.isInside(mousePos, {x: -300, y: -300, width: 600, height: 600})) {
+		if(gh.isInside(mousePos, {x: -SYSTEM_SUN_RADIUS, y: -SYSTEM_SUN_RADIUS, width: SYSTEM_SUN_RADIUS*2, height: SYSTEM_SUN_RADIUS*2})) { // Sun
 			return radarData;
+		}
+
+		for(cargoStruct of gh.getCargoFromData(radarData)) { // Cargo
+			if(gh.isInside(mousePos, gh.getCargoHitbox(cargoStruct))) {
+				return cargoStruct;
+			}
 		}
 		return false;
 	}
@@ -354,6 +369,9 @@ $(document).ready(function() {
 		if(result) renderJson(result);
 		else renderJson();
 	}
+
+	var shipImg = new Image();
+	shipImg.src = "./img/ship.png";
 
 	function draw() {
 		ctx.clearRect(-width, -height, width*10, height*10);
@@ -378,7 +396,7 @@ $(document).ready(function() {
 
 	function drawCluster() {
 		drawRectangle(0, 0, width, height, COLOR_BG);
-		drawText(TEXT_SIZE_BIG, COLOR_TEXT_MAIN, "Cluster Pegasus", width/2, 72, "center");
+		drawText(TEXT_SIZE_BIG, COLOR_TEXT_MAIN, "Constellation Pegasus", width/2, 72, "center");
 
 		// Draw all planets
 
@@ -400,43 +418,31 @@ $(document).ready(function() {
 
 	var radarData = {"type":"System","uuid":"Scheat","owner":"","body":{"vector":{"x":217,"y":136,"a":0},"view":3},"nodes":[{"type":"ScientificStation","uuid":"Dominion","owner":"1","body":{"vector":{"x":700,"y":700,"a":0},"view":1},"nodes":[]},{"type":"BusinessStation","uuid":"Baker Plaza","owner":"1","body":{"vector":{"x":0,"y":4000,"a":0},"view":1},"nodes":[]},{"type":"Planet","uuid":"Mayvel","owner":"1","body":{"vector":{"x":-1726,"y":1010,"a":2.6123291622912217},"view":103},"nodes":[]},{"type":"Planet","uuid":"Drewsa","owner":"1","body":{"vector":{"x":2898,"y":1962,"a":0.5951616200810167},"view":114},"nodes":[]},{"type":"Planet","uuid":"Roebe","owner":"1","body":{"vector":{"x":511,"y":-4974,"a":4.814842848614438},"view":125},"nodes":[]},{"type":"Planet","uuid":"Headsbing","owner":"1","body":{"vector":{"x":6414,"y":-1054,"a":6.120335003372804},"view":212},"nodes":[]},{"type":"Cargo","uuid":"20633f671b","owner":"","body":{"vector":{"x":-1552.881,"y":-209.169,"a":1.068},"view":1,"type":"HULL"},"nodes":[]},{"type":"Cargo","uuid":"657be0bace","owner":"","body":{"vector":{"x":-32.728,"y":3069.377,"a":0.833},"view":1,"type":"HULL"},"nodes":[]},{"type":"Cargo","uuid":"5fd0c7a7a4","owner":"","body":{"vector":{"x":-3177.784,"y":-2402.863,"a":0.285},"view":1,"type":"HULL"},"nodes":[]},{"type":"Ship","uuid":"885023cf11","owner":"a678ea674c","body":{"vector":{"x":-7.715,"y":6868.684,"a":-1.574},"view":13},"nodes":[]},{"type":"Ship","uuid":"49c6db1f86","owner":"a678ea674c","body":{"vector":{"x":-40.07,"y":6948.772,"a":3.087},"view":39},"nodes":[]},{"type":"Cargo","uuid":"66734c40cd","owner":"","body":{"vector":{"x":28.462,"y":6829.162,"a":0},"view":204,"type":"MINERALS"},"nodes":[]},{"type":"Cargo","uuid":"0d047aba3d","owner":"","body":{"vector":{"x":3.35,"y":7025.154,"a":0},"view":206,"type":"MINERALS"},"nodes":[]},{"type":"Ship","uuid":"7e1375451c","owner":"a678ea674c","body":{"vector":{"x":32.538,"y":6829.873,"a":2.871},"view":20},"nodes":[]},{"type":"Ship","uuid":"fdabc07988","owner":"a678ea674c","body":{"vector":{"x":-6.185,"y":6865.651,"a":1.899},"view":17},"nodes":[]},{"type":"Ship","uuid":"d07f579a7a","owner":"a329b17604","body":{"vector":{"x":-1615.32,"y":83.092,"a":-1.449},"view":1},"nodes":[]},{"type":"Asteroid","uuid":"a8b2f435fe","owner":"","body":{"vector":{"x":5026.6,"y":4667.929,"a":0},"view":9},"nodes":[]},{"type":"Cargo","uuid":"5e69c4f55e","owner":"","body":{"vector":{"x":-46.302,"y":6947.742,"a":0},"view":201,"type":"MINERALS"},"nodes":[]}]};
 
-	function drawSystem() {
-		//var scaleMod = 0.999;
-		//var translateMod = {x: 0.5, y: 0.5};
-		//ctx.scale(scaleMod, scaleMod);
-		//ctx.translate(translateMod.x, translateMod.y);
-		var scaleMod = 1/scaling;
-		/*ctx.translate(0, 0);
-		ctx.scale(scaleMod, scaleMod);
-		ctx.translate(-translation.x, -translation.y);
-		drawRectangle(0, 0, width, height, COLOR_BG);
-		ctx.translate(translation.x, translation.y);
-		ctx.scale(scaling, scaling);*/
-		
-		//ctx.scale(scaleMod, scaleMod)
-		//ctx.translate(-translation.x, -translation.y)
-		var transl = _.cloneDeep(translation);
-		var scaleFactor = scaling;
-		//zoomSystemCanvas(1/scaleFactor);
-		translateSystemCanvas(-transl.x, -transl.y);
+	function drawImage(image, x, y, scale, rotation) {
+		ctx.setTransform(scaling, 0, 0, scaling, translation.x + (x * scaling), translation.y + (y * scaling)); // sets scale and origin
+		ctx.rotate(rotation);
+		ctx.drawImage(image, -image.width / 2, -image.height / 2);
+	} 
 
-		drawRectangle(0, 0, width*scaleMod, height*scaleMod, COLOR_BG);
-		drawRectangle(0, 0, width*scaleMod, height*scaleMod, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 10);
-		
-		translateSystemCanvas(transl.x, transl.y);
+	function drawSystem() {
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		drawRectangle(0, 0, width, height, COLOR_BG);
+
+		ctx.save();
+		ctx.translate(translation.x, translation.y);
+		ctx.scale(scaling, scaling);
 
 		// Sun
 		var color = HIGH_SEC_SYSTEMS.indexOf(currSelectedSystem) == -1 ? COLOR_SYSTEM_FILL_UNSAFE : COLOR_SYSTEM_FILL_SAFE;
-		drawCircle(0, 0, 300, color);
-		drawCircle(0, 0, 300, COLOR_SYSTEM_STROKE, true, 10);
-
+		drawCircle(0, 0, SYSTEM_SUN_RADIUS, color);
+		drawCircle(0, 0, SYSTEM_SUN_RADIUS, COLOR_SYSTEM_STROKE, true, 10);
 
 		// Planets
-		gh.getPlanetsFromData(radarData).forEach(function(item) {
+		gh.getPlanetsFromData(radarData).forEach(function(planet) {
 
 			// Planet's trail
-			var angle = gh.getPlanetAngleOnOrbit(item.body.vector.x, item.body.vector.y);
-			var arcRad = gh.getPlanetOrbitRadius(item);
+			var angle = gh.getPlanetAngleOnOrbit(planet.body.vector.x, planet.body.vector.y);
+			var arcRad = gh.getPlanetOrbitRadius(planet);
 			ctx.beginPath();
 			ctx.arc(0, 0, arcRad, angle, angle - (Math.PI * 0.75), true);
 			ctx.strokeStyle = COLOR_SYSTEM_PLANET_TRAIL;
@@ -444,19 +450,23 @@ $(document).ready(function() {
 			ctx.closePath();
 
 			// Planet itself
-			var planetRadius = item.radius ? item.radius : SYSTEM_PLANET_RADIUS;
-			drawCircle(item.body.vector.x, item.body.vector.y, planetRadius, COLOR_SYSTEM_PLANET);
-			drawCircle(item.body.vector.x, item.body.vector.y, planetRadius, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 7);
+			var planetRadius = planet.radius ? planet.radius : SYSTEM_PLANET_RADIUS;
+			drawCircle(planet.body.vector.x, planet.body.vector.y, planetRadius, COLOR_SYSTEM_PLANET);
+			drawCircle(planet.body.vector.x, planet.body.vector.y, planetRadius, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 7);
 		});
 
-		gh.getMineralsFromData(radarData).forEach(function(item) {
-			console.log(item);
-			drawCircle(item.body.vector.x, item.body.vector.y, SYSTEM_CARGO_RADIUS, COLOR_SYSTEM_MINERAL);
-			drawCircle(item.body.vector.x, item.body.vector.y, SYSTEM_CARGO_RADIUS, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 5);
+		gh.getCargoFromData(radarData).forEach(function(cargo) { // Cargo
+			drawCircle(cargo.body.vector.x, cargo.body.vector.y, SYSTEM_CARGO_RADIUS, cargo.body.type == "MINERALS" ? COLOR_SYSTEM_MINERAL : COLOR_SYSTEM_BODYPART);
+			drawCircle(cargo.body.vector.x, cargo.body.vector.y, SYSTEM_CARGO_RADIUS, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 5);
 		});
+
+		gh.getShipsFromData(radarData).forEach(function(ship) { // Ships
+			drawImage(shipImg, ship.body.vector.x, ship.body.vector.y, scaling, ship.body.vector.a);
+		})
 
 		// TODO go back btn
 
+		ctx.restore();
 	}
 
 	$("#startButton").click(function() {
@@ -476,10 +486,15 @@ $(document).ready(function() {
 
 	$("#goInside").click(function() {
 		changeScreen(SCREEN_SYSTEM);
-		//translateSystemCanvas(width/2, height/2);
-		//zoomSystemCanvas(SYS);
+		translateSystemCanvas(width/2*scaling, height/2*scaling);
 		zoomSystemCanvas(SYSTEM_START_ZOOM);
 		renderJson(radarData)
+	});
+
+	$("#goBack").click(function() {
+		zoomSystemCanvas(1/SYSTEM_START_ZOOM);
+		translateSystemCanvas(-width/2*scaling, -height/2*scaling);
+		changeScreen(SCREEN_CLUSTER);
 	});
 
 	function renderJson(json) {

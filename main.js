@@ -13,7 +13,8 @@ function createWindow () {
 	win.loadFile('gui/index.html');
 	win.maximize();
 
-	require("./code/libs/update");
+	//require("./code/libs/update");
+	require("./code/code.js");
 
 	/*setInterval(function() {
 		win.webContents.send('shipItemUpdate', 3);
@@ -24,7 +25,7 @@ app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
 	if (process.platform !== 'darwin') {
-		app.quit()
+		app.quit();
 	}
 });
 

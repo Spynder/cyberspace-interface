@@ -1,34 +1,28 @@
 var sdk = require("@cyberspace-dev/sdk");
-const mafs = require("./mafs");
+var mafs = require("./mafs");
 const delay = require("delay");
 const retry = require("async-retry");
 
 const role_miner = "../roles/role_miner";
 const role_colonizer = "../roles/role_colonizer";
 const role_freighter = "../roles/role_freighter";
+const role_planet = "../roles/role_planet";
 
 require("./constants");
 delete require.cache[require.resolve("./constants")];
 
 sdk.dbManager = require("./dbmanager");
 
-sdk.something = function() {
-	return true;
-}
-
 sdk.Ship.prototype.selfScan = async function() {
-	
 	this.details = await retry(async bail => {
-		var exp = await this.explore();
+		var exp = await sdk.profileTime(this.explore.bind(this));
 		return exp;
 	}, {retries: 5});
-	await delay(ACTION_DELAY);
 
 	this.radarData = await retry(async bail => {
-		var rad = await this.safeRadar(); 
+		var rad = await this.safeRadar();
 		return rad;
 	}, {retries: 5});
-	await delay(ACTION_DELAY);
 
 	if(this.getLocation() == LOCATION_SYSTEM) {
 		this.setLocalMemory("location", this.details.parent.uuid);
@@ -38,6 +32,7 @@ sdk.Ship.prototype.selfScan = async function() {
 }
 
 sdk.Ship.prototype.execRole = async function(account) {
+	await this.selfScan();
 	var memory = this.memory;
 	var role = memory.role;
 	loggerShip.info("Executing role \"" + role + "\".");
@@ -56,6 +51,8 @@ sdk.Ship.prototype.execRole = async function(account) {
 	if(moduleName) {
 		var moduleRequire = require(moduleName);
 		delete require.cache[require.resolve(moduleName)];
+		mafs = require("./mafs");
+		delete require.cache[require.resolve("./mafs")];	
 		await moduleRequire.run(this, account, sdk);
 
 		var struct = {	hullLevel: this.getBodyCargo("hull").body.gen,
@@ -64,215 +61,282 @@ sdk.Ship.prototype.execRole = async function(account) {
 						fuelMax: this.getMaxFuel(),
 						role: role,
 						balance: this.details.body.balance,
-						system: this.getCurrentSystem()};
+						system: this.getCurrentSystem(),
+						hold: this.getHold(),
+						holdMax: this.getMaxHold(),
+						currentHP: this.getCurrentHP(),
+						details: this.details,
+						radarData: this.radarData,
+						memory: this.memory};
 
-		console.log(struct);
+		//console.log(struct);
+		sendInfo("shipInfo", struct);
 	}
+}
+
+sdk.Planet.prototype.gatherInfo = async function(account) {
+	var moduleName = role_planet;
+	var moduleRequire = require(moduleName);
+	delete require.cache[require.resolve(moduleName)];
+
+	await moduleRequire.run(this, account, sdk);
 }
 
 // Start of safe functions
 
-sdk.Account.prototype.safeAssemble = async function() {
+
+/* 
+*   This function lets measure time between start and finish of given function, and if it's delta more
+*   than [ACTION_DELAY] ms (required pause between calls by CyberSpace API) then it wouldsn't add another
+*   [ACTION_DELAY] ms on top, slowing down the cycle. On average, this function increases cycle speed by 25%.
+*/
+sdk.profileTime = async function(profilingFunc) {
 	try {
-		await this.assemble();
-		loggerConsole.trace("Assembled new ship!");
+		var startTime = new Date().getTime();
+		var functionResult = await profilingFunc();
+		var deltaTime = (new Date().getTime()) - startTime;
+		var subtractedTime = ACTION_DELAY - deltaTime;
+		if(subtractedTime > 0) {
+			console.log("Wow!");
+			await delay(subtractedTime);
+		}
+		console.log(profilingFunc.name, subtractedTime);
+		return functionResult;
 	} catch(e) {
-		loggerConsole.debug("Error occured when tried to assemble: " + e.message);
+		loggerConsole.debug("Error occured when tried to profile time: " + e.message);
 	}
-	await delay(ACTION_DELAY);
+}
+
+sdk.Account.prototype.safeAssemble = async function() {
+	await sdk.profileTime(async function() {
+		try {
+			await this.assemble();
+			loggerConsole.trace("Assembled new ship!");
+		} catch(e) {
+			loggerConsole.debug("Error occured when tried to assemble: " + e.message);
+		}
+	}.bind(this));
 }
 
 sdk.Ship.prototype.safeMove = async function(x, y) {
-	//if(this.getLocation() != LOCATION_SYSTEM) return;
-	var selfPos = new mafs.Pos(this.details.body.vector.x, this.details.body.vector.y);
-	var destinationPos = new mafs.Pos(x, y);
-	var pathFinder = mafs.pathFind(selfPos, destinationPos);
-	if(pathFinder == ERR_TOO_CLOSE_TO_SUN) {
-		loggerShip.error("Can't move, destination is too close to sun!");
-		return;
-	}
-	else {
-		try {
-			await this.move(pathFinder.x, pathFinder.y);
-			loggerShip.trace("Performing safe movement into spot (" + pathFinder.x + "; " + pathFinder.y + ")");
-			await delay(ACTION_DELAY);
-		} catch(e) {
-			loggerShip.debug("Error occured when tried to move: " + e.message);
+	await sdk.profileTime(async function() {
+		//if(this.getLocation() != LOCATION_SYSTEM) return;
+		var selfPos = new mafs.Pos(this.details.body.vector.x, this.details.body.vector.y);
+		var destinationPos = new mafs.Pos(x, y);
+		var pathFinder = mafs.pathFind(selfPos, destinationPos);
+		if(pathFinder == ERR_TOO_CLOSE_TO_SUN) {
+			loggerShip.error("Can't move, destination is too close to sun!");
+			return;
 		}
-	}
+		else {
+			try {
+				await this.move(pathFinder.x, pathFinder.y);
+				loggerShip.trace("Performing safe movement into spot (" + pathFinder.x + "; " + pathFinder.y + ")");
+			} catch(e) {
+				loggerShip.debug("Error occured when tried to move: " + e.message);
+			}
+		}
+	}.bind(this));
 }
 
 sdk.Ship.prototype.safeDrop = async function(item) {
-	// Getting uuid
-	var uuid;
-	var name;
-	if(typeof item === "string") {
-		uuid = item;
-	} else if(typeof item === "object" && item.hasOwnProperty("uuid")) {
-		uuid = item.uuid;
-		if(item.hasOwnProperty("body") && item.body.hasOwnProperty("type")) {
-			name = item.body.type;
-		}
-	} else {
-		loggerShip.error("Error while dropping item - invalid item passed!");
-		return;
-	}
-	//console.log(typeof item);
-
-	try {
-		await this.drop(uuid);
-		if(name) {
-			loggerShip.trace("Dropped item " + name + " (uuid: " + uuid + ").");
+	await sdk.profileTime(async function() {
+		// Getting uuid
+		var uuid;
+		var name;
+		if(typeof item === "string") {
+			uuid = item;
+		} else if(typeof item === "object" && item.hasOwnProperty("uuid")) {
+			uuid = item.uuid;
+			if(item.hasOwnProperty("body") && item.body.hasOwnProperty("type")) {
+				name = item.body.type;
+			}
 		} else {
-			loggerShip.trace("Dropped item with uuid: " + uuid + ".");
+			loggerShip.error("Error while dropping item - invalid item passed!");
+			return;
 		}
-	} catch(e) {
-		loggerShip.debug("Error occured when tried to drop: " + e.message);
-	}
-	await delay(ACTION_DELAY);
+		//console.log(typeof item);
+
+		try {
+			await this.drop(uuid);
+			if(name) {
+				loggerShip.trace("Dropped item " + name + " (uuid: " + uuid + ").");
+			} else {
+				loggerShip.trace("Dropped item with uuid: " + uuid + ".");
+			}
+		} catch(e) {
+			loggerShip.debug("Error occured when tried to drop: " + e.message);
+		}
+	}.bind(this));
 }
 
 sdk.Ship.prototype.safeEquip = async function(slot, item) {
-	await this.equip(slot, item).catch((e) => {
-		loggerShip.debug("Error occured when tried to equip: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+	await sdk.profileTime(async function() {
+		await this.equip(slot, item).catch((e) => {
+			loggerShip.debug("Error occured when tried to equip: " + e.message);
+		});
+	}.bind(this));
 }
 
 sdk.Ship.prototype.safeUnequip = async function(item) {
-	await this.unequip(item).catch((e) => {
-		loggerShip.debug("Error occured when tried to unequip: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+	await sdk.profileTime(async function() {
+		await this.unequip(item).catch((e) => {
+			loggerShip.debug("Error occured when tried to unequip: " + e.message);
+		});
+	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeEscape = async function() {
 	if(this.getLocation() == LOCATION_SYSTEM) return;
 
-	try {
-		await this.escape();
-		this.setLocalMemory("parked", false);
-	} catch(e) {
-		loggerShip.debug("Error occured tried to escape: " + e.message);
-	}
-	await delay(ACTION_DELAY);
+	await sdk.profileTime(async function() {
+
+		var result;
+
+		try {
+			await this.escape();
+			this.setLocalMemory("parked", false);
+			result = RESULT_OK;
+			// experimental
+		} catch(e) {
+			loggerShip.debug("Error occured tried to escape: " + e.message);
+			result = -1;
+		}
+
+		if(result == RESULT_OK) {
+			this.details.parent.type = LOCATION_SYSTEM;
+		}
+	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeLanding = async function(planet) {
 	//if(this.getLocation() != LOCATION_SYSTEM) return;
 
-	// check distance
-	var result;
-	//console.log("hey");
-	try {
-		await this.landing(planet);
-		result = RESULT_OK;
-	} catch(e) {
-		loggerShip.debug("Error occured tried to land: " + e.message);
-		result = -1;
-	}
+	await sdk.profileTime(async function() {
 
-	// experimental
-	if(result == RESULT_OK) {
-		if(planet == BUSINESS_STATION_NAME) {
-			this.details.parent.type = LOCATION_BUSINESS_STATION;
-		} else if(planet == SCIENTIFIC_STATION_NAME) {
-			this.details.parent.type = LOCATION_SCIENTIFIC_STATION;
-		} else {
-			this.details.parent.type = LOCATION_PLANET;
+		// check distance
+		var result;
+		//console.log("hey");
+		try {
+			await this.landing(planet);
+			result = RESULT_OK;
+		} catch(e) {
+			loggerShip.debug("Error occured tried to land: " + e.message);
+			result = -1;
 		}
-		this.details.parent.uuid = planet;
-	}
-	// experimental
 
-	await delay(ACTION_DELAY);
+		// experimental
+		if(result == RESULT_OK) {
+			if(planet == BUSINESS_STATION_NAME) {
+				this.details.parent.type = LOCATION_BUSINESS_STATION;
+			} else if(planet == SCIENTIFIC_STATION_NAME) {
+				this.details.parent.type = LOCATION_SCIENTIFIC_STATION;
+			} else {
+				this.details.parent.type = LOCATION_PLANET;
+			}
+			this.details.parent.uuid = planet;
+		}
+		// experimental
+	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeWarp = async function(uuid) {
 	//if(this.getLocation() != LOCATION_SYSTEM) return;
-	
-	loggerShip.trace("Safe warping: " + uuid);
-	await this.warp(uuid).catch((e) => { // if not in coords
-		loggerShip.debug("Error occured tried to warp: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+
+	await sdk.profileTime(async function() {
+		
+		loggerShip.trace("Safe warping: " + uuid);
+		await this.warp(uuid).catch((e) => { // if not in coords
+			loggerShip.debug("Error occured tried to warp: " + e.message);
+		});
+	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeRadar = async function() {
-	var result = await this.radar().catch((e) => {
-		loggerShip.debug("Error occured tried to radar: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+	var result = await sdk.profileTime(async function() {
+		return await this.radar().catch((e) => {
+			loggerShip.debug("Error occured tried to radar: " + e.message);
+		});
+	}.bind(this));
 	return result;
 } // enhance
 
 sdk.Ship.prototype.safeScan = async function(uuid) {
-	var result = await this.scan(uuid).catch((e) => {
-		loggerShip.debug("Error occured tried to scan: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+	var result = await sdk.profileTime(async function() {
+		return await this.scan(uuid).catch((e) => {
+			loggerShip.debug("Error occured tried to scan: " + e.message);
+		});
+	}.bind(this));
 	return result;
 } // enhance
 
 sdk.Ship.prototype.safeAccept = async function(uuid, count) {
 	if(this.getLocation() == LOCATION_SYSTEM) return;
 
-	await this.accept(uuid, count).catch((e) => {
-		loggerShip.debug("Error occured tried to accept: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+	await sdk.profileTime(async function() {
+
+		await this.accept(uuid, count).catch((e) => {
+			loggerShip.debug("Error occured tried to accept: " + e.message);
+		});
+	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeApply = async function(commandType, payload) {
 	//if(this.getLocation() == LOCATION_SYSTEM) return;
+	await sdk.profileTime(async function() {
 
-	await this.apply(commandType, payload).catch((e) => {
-		loggerShip.debug("Error occured tried to apply: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+		await this.apply(commandType, payload).catch((e) => {
+			loggerShip.debug("Error occured tried to apply: " + e.message);
+		});
+	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeAttack = async function(target, weapons) {
 	if(this.getLocation() != LOCATION_SYSTEM) return;
 
-	// check distance
+	await sdk.profileTime(async function() {
 
-	await this.attack(target, weapons).catch((e) => {
-		loggerShip.debug("Error occured tried to attack: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+		// check distance
+
+		await this.attack(target, weapons).catch((e) => {
+			loggerShip.debug("Error occured tried to attack: " + e.message);
+		});
+	}.bind(this));
 } // enhance
 
 
 sdk.Ship.prototype.safeGrab = async function(uuid) {
 	//if(this.getLocation() != LOCATION_SYSTEM) return;
 
-	// check distance
-
-	await this.grab(uuid).catch((e) => {
-		loggerShip.debug("Error occured tried to grab: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+	await sdk.profileTime(async function() {
+		// check distance
+		await this.grab(uuid).catch((e) => {
+			loggerShip.debug("Error occured tried to grab: " + e.message);
+		});
+	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeFuel = async function() {
+	console.log("Safe fuel")
 	if(this.getLocation() == LOCATION_SYSTEM) return;
+	if(this.getFuel() == this.getMaxFuel()) return;
 
-	await this.fuel().catch((e) => {
-		loggerShip.debug("Error occured tried to fuel: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+	await sdk.profileTime(async function() {
+		await this.fuel().catch((e) => {
+			loggerShip.debug("Error occured tried to fuel: " + e.message);
+		});
+	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeTransfer = async function(uuid, type) {
 
 	// "out" MEANS TO THE PLANET
 	// "in" MEANS TO THE SHIP
-
-	await this.transfer(uuid, type).catch((e) => {
-		loggerShip.debug("Error occured tried to transfer: " + e.message);
-	});
-	await delay(ACTION_DELAY);
+	await sdk.profileTime(async function() {
+		await this.transfer(uuid, type).catch((e) => {
+			loggerShip.debug("Error occured tried to transfer: " + e.message);
+		});
+	}.bind(this));
 } // enhance
 
 // End of safe functions
@@ -305,7 +369,11 @@ sdk.Ship.prototype.getHold = function() {
 }
 
 sdk.Ship.prototype.getMaxHold = function() {
-	return this.details.nodes.find((node) => node.uuid == this.details.body.hull.uuid).body.mods.find((mod) => mod.name == "total_hp").value;
+	return this.details.nodes.find((node) => node.uuid == this.details.body.hull.uuid).body.mods.find((mod) => mod.name == "total_hp").value; // Total HP = Total Hold
+}
+
+sdk.Ship.prototype.getCurrentHP = function() {
+	return this.details.nodes.find((node) => node.uuid == this.details.body.hull.uuid).body.mods.find((mod) => mod.name == "current_hp").value;
 }
 
 sdk.Ship.prototype.getLocation = function() {
@@ -511,14 +579,18 @@ sdk.Ship.prototype.setUpdatedDealsForPlanet = function(planet) {
 	}
 }
 
-sdk.Ship.prototype.getBestTrade = function(type, gen, higher) {
-	if(!this.getCurrentSystem()) return 0;
+sdk.Ship.prototype.getBestTrade = function(type, gen, higher, system) {
 
+	if(!system) {
+		if(!this.getCurrentSystem()) return 0;
+		system = this.getCurrentSystem();
+	}
+	
 	var best = {planet: [], price: 0, uuid: []};
 
-	multiLoop.deals[this.getCurrentSystem()] = multiLoop.deals[this.getCurrentSystem()] || {};
+	multiLoop.deals[system] = multiLoop.deals[system] || {};
 
-	for (const [key, value] of Object.entries(multiLoop.deals[this.getCurrentSystem()])) {
+	for (const [key, value] of Object.entries(multiLoop.deals[system])) {
 		//console.log(key)
 		//console.log(value.deals.filter((deal) => deal.type == "BUY" && deal.expected == type));
 		var typedDeals;
@@ -555,7 +627,7 @@ sdk.Ship.prototype.getBestTrade = function(type, gen, higher) {
 		} else {
 			sortedDeals = typedDeals.sort((a, b) => a.price - b.price);
 		}
-		if(gen && higher) {
+		if(type != "MINERALS" && gen && higher) {
 			var samePrice = sortedDeals.filter((item) => item.price == sortedDeals[0].price);
 			var sortedByGen = samePrice.sort(function(a, b) {
 				var cargoA = value.nodes.find((node) => node.uuid == a.target);
@@ -584,7 +656,7 @@ sdk.Ship.prototype.getBestTrade = function(type, gen, higher) {
 			}
 		}
 	}
-	if(best.planet.length > 1) {
+	if(best.planet.length > 1 && !system) {
 		var closestPlanet = this.getClosestPlanet(best.planet);
 		var index = best.planet.indexOf(closestPlanet.uuid);
 		return {planet: closestPlanet.uuid, price: best.price, uuid: best.uuid[index]};
@@ -600,6 +672,16 @@ sdk.Ship.prototype.getBestMineralTradeInConstellation = function() {
 	var best = {system: "", planet: [], price: 0, uuid: []};
 
 	for(const [system, planets] of Object.entries(multiLoop.deals)) {
+		var systemBest = this.getBestTrade("MINERALS", 1, false, system);
+		if(!systemBest) continue;
+		if(best.price < systemBest.price) {
+			best = systemBest;
+			best.system = system;
+		}
+	}
+	return best;
+
+	/*for(const [system, planets] of Object.entries(multiLoop.deals)) {
 		var bestInSystem = {planet: [], price: 0, uuid: []};
 		//console.log(system);
 		//console.log(planets);
@@ -637,7 +719,7 @@ sdk.Ship.prototype.getBestMineralTradeInConstellation = function() {
 		return undefined;
 	} else {
 		return {system: best.system, planet: best.planet[0], price: best.price, uuid: best.uuid[0]};
-	}
+	}*/
 	//console.log(multiLoop.deals);
 }
 
@@ -690,12 +772,13 @@ sdk.Ship.prototype.parkAtNearbyLandable = async function() {
 								);
 
 		var extended = mafs.extendLine(vect, 40);
+		await this.safeLanding(landable.uuid);
 		if(landable.type == "Planet") {
 			await this.safeMove(extended.p2.x, extended.p2.y);
 		} else {
 			await this.safeMove(landable.body.vector.x, landable.body.vector.y);
 		}
-		await this.safeLanding(landable.uuid);
+		
 		result = FLYING_TO_LANDABLE;
 	}
 	await this.safeFuel();
@@ -718,8 +801,8 @@ sdk.Ship.prototype.parkAtNearbyPlanet = async function() {
 								);
 
 		var extended = mafs.extendLine(vect, 40);
-		await this.safeMove(extended.p2.x, extended.p2.y);
 		await this.safeLanding(planet.uuid);
+		await this.safeMove(extended.p2.x, extended.p2.y);
 		result = FLYING_TO_LANDABLE;
 	}
 	await this.safeFuel();
@@ -795,11 +878,96 @@ sdk.Ship.prototype.operateMoney = async function(keep) {
 	return result;
 }
 
+sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, maxCost) {
+	bodypart = bodypart.toLowerCase();
+	let bodypartCargo = bodypart.toUpperCase();
+	var bpTrade = this.getBestTrade(bodypartCargo, minGen, true);
+	// Update to support weapons
+	let isHull = (bodypart == "hull");
+	let parts = this.hasCargo(bodypartCargo);
+	
+	if(this.hasMinerals()) return SHIP_HAS_MINERALS;
+	if(isHull && this.getCurrentSystem() != SYSTEM_SCHEAT) return NOT_IN_SCHEAT;
+
+	if(parts.length > 1) {
+		var oldPart = parts.find((part) => part.body.gen == 1);
+		if(this.getLocation() != LOCATION_SYSTEM) {
+			await this.safeEscape();
+		}
+		await this.safeDrop(oldPart.uuid);
+	}
+
+	if(this.getBodyCargo(bodypart).body.gen == 1) {
+		
+		console.log(parts);
+		console.log(bpTrade);
+		if(parts.length > 1) {
+			var betterPart = parts.find((part) => part.body.gen > 1);
+			if(betterPart) {
+				if(isHull && this.getCurrentSystem() == HOME_SYSTEM) {
+					if(this.details.body.balance == HULL_CHANGE_COST) {
+						loggerShip.info("Flying to scientific station to change hull!");
+						var sciStation = this.radarData.nodes.find((instance) => instance.type == "ScientificStation");
+						console.log(betterPart);
+						if(this.getLocation() != LOCATION_SCIENTIFIC_STATION) {
+							await this.safeEscape();
+						}
+						if(sciStation) {
+							await this.safeMove(sciStation.body.vector.x, sciStation.body.vector.y);
+							await this.safeLanding(sciStation.uuid);
+							await this.safeApply("CHANGE_HULL", betterPart.uuid);
+						}
+					} else {
+						loggerShip.info("Getting " + HULL_CHANGE_COST + " for hull change.");
+						await this.operateMoney(HULL_CHANGE_COST);
+					}
+				} else {
+					var oldPart = parts.find((part) => part.body.gen == 1);
+					await this.safeUnequip(oldPart.uuid);
+					await this.safeEquip(bodypart, betterPart.uuid);
+					await ship.safeDrop(oldPart.uuid);
+				}
+			}
+			return CHANGING_BODY_PART;
+		}
+
+		else if(bpTrade && bpTrade.price <= maxCost) {
+			let requiredBalance = bpTrade.price + (isHull ? HULL_CHANGE_COST : 0);
+			if(this.details.body.balance == requiredBalance) {
+				console.log(bpTrade)
+				await this.parkAtSpecifiedPlanet(bpTrade.planet);
+
+				var planetInfo = await this.safeScan(bpTrade.planet);
+				if(planetInfo) {
+					this.setPlanetDeals(planetInfo);
+					var buyTrade = planetInfo.body.deals.find((deal) => deal.uuid == bpTrade.uuid);
+					if(buyTrade) {
+						await this.safeAccept(buyTrade.uuid);
+						await this.safeFuel();
+						planetInfo = await this.safeScan(bpTrade.planet);
+						this.setPlanetDeals(planetInfo);
+					}
+				}
+			} else if(this.getCurrentSystem() == SYSTEM_SCHEAT) {
+				loggerShip.info("Operating " + requiredBalance + " for " + bodypart + " change.");
+				await this.operateMoney(requiredBalance);
+			} else {
+				return NOT_ENOUGH_MONEY;
+			}
+			return BUYING_BODY_PART;
+		}
+	}
+	return BODY_PART_UPGRADED;
+}
+
+
+
 sdk.Ship.prototype.getClosestPlanet = function(planetArray) {
 	var planets = [];
 	for(planet of planetArray) {
 		planets.push(this.radarData.nodes.find((node) => node.type == "Planet" && node.uuid == planet));
 	}
+	//if(planets[0] == undefined) return
 	var sortedPlanets = mafs.sortByDistance(new mafs.Pos(this.details.body.vector.x, this.details.body.vector.y), planets); // Sort planets by proximity.
 	return sortedPlanets[0];
 }

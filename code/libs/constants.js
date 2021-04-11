@@ -1,6 +1,6 @@
 // Sun collision and pathfinder
-global.SUN_FAR_RADIUS = 425; // fly to
-global.SUN_CLOSE_RADIUS = 350; // if intersect
+global.SUN_FAR_RADIUS = 450; // fly to
+global.SUN_CLOSE_RADIUS = 400; // if intersect
 
 
 global.KEEP_MINIMUM = 100;
@@ -114,7 +114,7 @@ global.ROLES = [
 		homeSystem: SYSTEM_MATAR,
 	},
 	{
-		role: ROLE_COLONIZER,
+		role: ROLE_FREIGHTER,
 		homeSystem: HOME_SYSTEM,
 	},
 	{
@@ -130,12 +130,28 @@ global.ROLES = [
 		homeSystem: HOME_SYSTEM,
 	},
 	{
+		role: ROLE_FREIGHTER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
 		role: ROLE_MINER,
 		homeSystem: HOME_SYSTEM,
 	},
 	{
 		role: ROLE_MINER,
 		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALPHERIS,
 	},
 	/*{
 		role: ROLE_FREIGHTER,
@@ -176,3 +192,12 @@ global.BUSINESS_STATION_NOT_FOUND = 0;
 global.FLYING_TO_BUSINESS_STATION = 1;
 global.CURRENTLY_DEPOSITING = 2;
 global.CLOSED_DEPOSIT = 3;
+
+// upgradeBodyPart
+global.CHANGING_BODY_PART = 0;
+global.BUYING_BODY_PART = 1;
+global.BODY_PART_UPGRADED = 2;
+global.SHIP_HAS_MINERALS = 3;
+global.NOT_IN_SCHEAT = 4;
+global.NO_DEALS = 5;
+global.NOT_ENOUGH_MONEY = 6;

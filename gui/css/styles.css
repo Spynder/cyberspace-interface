@@ -267,5 +267,39 @@ h2 {
 	border-bottom: 0;
 }
 
+#goBack {
+	position: absolute;
+	top: 0;
+	left: 0;
+
+	height: 50px;
+	background-color: #444;
+	border: 2px solid #888;
+	border-top: 0;
+	border-left: 0;
+	border-radius: 0 0 5px 0;
+	cursor: pointer;
+	color: #ffffff;
+	font-size: 24px;
+	padding: 0 10px;
+	text-decoration: none;
+	font-family: 'Blinker', sans-serif;
+}
+
+#goBack:hover {
+	background-color: #333;
+	border: 2px solid #777;
+	border-top: 0;
+	border-left: 0;
+}
+
+#goBack:active {
+	background-color: #222;
+	border: 2px solid #777;
+	border-top: 0;
+	border-left: 0;
+	height: 48px;
+}
+
 /*font-family: 'Blinker', sans-serif;*/
 /*font-family: 'Share Tech Mono', monospace;*/

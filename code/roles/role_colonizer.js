@@ -1,4 +1,5 @@
 var mafs = require("../libs/mafs");
+var delay = require("delay");
 
 module.exports = {
 	run: async function(ship, account, sdk) {
@@ -23,17 +24,28 @@ module.exports = {
 
 		var home = SYSTEM_SCHEAT;
 		var dest = SYSTEM_IOTA_PEGASI;
-		var planetName = "Tilia";
+		var planetName = "Thailara";//"Tilia";
 
-		console.log("For the sake of god, just sit here. I'm scared.");
+		/*if(ship.getBodyCargo("hull").body.gen == 8) {
+			await ship.parkAtNearbyLandable();
+			console.log("IM LANDING");
+			console.log("IM LANDING");
+			console.log("IM LANDING");
+			return;
+		}*/
 
-		var owned = await account.getPlanet(planetName);
+		
+
+
+		/*var owned = await account.getPlanet(planetName);
 		var ownedDetails = await owned.explore();
 		console.log(ownedDetails);
 		console.log(ownedDetails.nodes);
-		owned.dispose();
+		console.log(ship.details);
+		await ship.safeFuel();
+		owned.dispose();*/
 
-		return;
+		//return;
 		//await ship.safeEquip("artifact1", ship.hasCargo("ARTIFACT")[0].uuid);
 		//await ship.safeEquip("artifact2", ship.hasCargo("ARTIFACT")[1].uuid);
 
@@ -47,14 +59,16 @@ module.exports = {
 
 
 
-		if(ship.getLocationName() == planetName) {
-			var owned = await account.getPlanet(planetName);
-			var ownedDetails = await owned.explore();
-			console.log(ownedDetails);
-			console.log(ownedDetails.nodes);
-			owned.dispose();
+
+
+		/*var requiredMoney = 5000;
+		if(details.body.balance != requiredMoney) {
+			console.log("Operating");
+			await ship.operateMoney(requiredMoney);
 			return;
-		}
+		}*/
+
+		console.log(ship.getBestMineralTradeInConstellation());
 
 
 		if(ship.hasCargo("embryo")) {
@@ -98,6 +112,16 @@ module.exports = {
 			//console.log(ship.details.nodes);
 		}
 
+		if(ship.getLocationName() == planetName) {
+			await ship.safeFuel();
+			var owned = await account.getPlanet(planetName);
+			var ownedDetails = await owned.explore();
+			console.log(ownedDetails);
+			console.log(ownedDetails.nodes);
+			owned.dispose();
+			return;
+		}
+
 		var currLocation;
 		currLocation = mafs.findWarpDestination((ship.getLocalMemory()).location, dest);
 
@@ -124,7 +148,7 @@ module.exports = {
 			await ship.safeFuel();
 		}
 
-		else if(currLocation && ship.hasCargo("embryo")/* && ship.hasCargo("virus")*/) {
+		else if(currLocation && ship.hasCargo("embryo") && ship.hasCargo("virus")) {
 			loggerShip.info("Warping " + (ship.getLocalMemory()).location + " > " + currLocation);
 			await ship.safeEscape();
 			var coords = WARPS[(ship.getLocalMemory()).location][currLocation];
@@ -132,53 +156,12 @@ module.exports = {
 			await ship.safeWarp(currLocation);
 		}
 
-
-
-
-		/*if((ship.getLocation() == LOCATION_SYSTEM && ship.details.parent.uuid == HOME_SYSTEM) && details.body.artifact1.uuid && details.body.artifact2.uuid) {
-			loggerShip.info("Warping to the Matar!");
-			await ship.safeEscape();
-			var coords = WARPS[SYSTEM_SCHEAT][SYSTEM_MATAR];
-			await ship.safeMove(coords.x, coords.y);
-			await ship.safeWarp(SYSTEM_MATAR);
-			return;
-		}
-		if((ship.getLocation() == LOCATION_SYSTEM && ship.details.parent.uuid == SYSTEM_MATAR) && details.body.artifact1.uuid && details.body.artifact2.uuid) {
-			loggerShip.info("Warping to the Pi-1 Pegasi!");
-			await ship.safeEscape();
-			var coords = WARPS[SYSTEM_MATAR][SYSTEM_PI1_PEGASI];
-			await ship.safeMove(coords.x, coords.y);
-			await ship.safeWarp(SYSTEM_PI1_PEGASI);
-			return;
-		}
-
-		if((ship.getLocation() == LOCATION_SYSTEM && ship.details.parent.uuid == SYSTEM_PI1_PEGASI) && !details.body.artifact1.uuid && !details.body.artifact2.uuid) {
-			loggerShip.info("Returning to the Matar!");
-			await ship.safeEscape();
-			var coords = WARPS[SYSTEM_PI1_PEGASI][SYSTEM_MATAR];
-			await ship.safeMove(coords.x, coords.y);
-			await ship.safeWarp(SYSTEM_MATAR);
-			return;
-		}
-		if((ship.getLocation() == LOCATION_SYSTEM && ship.details.parent.uuid == SYSTEM_MATAR) && !details.body.artifact1.uuid && !details.body.artifact2.uuid) {
-			loggerShip.info("Returning to the Scheat!");
-			await ship.safeEscape();
-			var coords = WARPS[SYSTEM_MATAR][SYSTEM_SCHEAT];
-			await ship.safeMove(coords.x, coords.y);
-			await ship.safeWarp(SYSTEM_SCHEAT);
-			return;
-		}*/
-		//console.log((ship.getLocation() == LOCATION_SYSTEM && ship.details.parent.uuid == HOME_SYSTEM), ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation", ship.details.parent.uuid, !details.body.artifact1.uuid && !details.body.artifact2.uuid);
-		
-
-
-
-
+		//return;
 
 		if(((ship.getLocalMemory()).location == SYSTEM_SCHEAT || ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation") && !ship.hasCargo("embryo")) {
 			console.log("In");
 			console.log(details.body.balance);
-			var requiredMoney = 10000 +/* 10000 +*/ 400;
+			var requiredMoney = 10000 + 10000 + 400;
 			if(details.body.balance != requiredMoney) {
 				console.log("Operating");
 				await ship.operateMoney(requiredMoney);
@@ -190,7 +173,7 @@ module.exports = {
 					await ship.safeMove(sciStation.body.vector.x, sciStation.body.vector.y);
 					await ship.safeLanding(sciStation.uuid);
 					await ship.safeApply("GET_EMBRYO");
-					//await ship.safeApply("GET_VIRUS");
+					await ship.safeApply("GET_VIRUS");
 				}
 			}
 		}

@@ -3,10 +3,10 @@ module.exports = {
 		var rect = canvas.getBoundingClientRect();
 		if(!translation) translation = {x: 0, y: 0};
 		if(!scaling) scaling = 1;
-		console.log(translation);
+
 		return {
-			x: (event.clientX - rect.left - (translation.x * scaling)) * (1/scaling),
-			y: (event.clientY - rect.top - (translation.y * scaling)) * (1/scaling)
+			x: (event.clientX - rect.left - translation.x) * (1/scaling),
+			y: (event.clientY - rect.top - translation.y) * (1/scaling)
 		};
 	},
 
@@ -77,7 +77,6 @@ module.exports = {
 	},
 
 	generateShipHtml: function(shipStruct) {
-		console.log(shipStruct);
 		var fuelText = this.generateShipFuel(shipStruct.fuel, shipStruct.fuelMax);
 		var balanceText = this.generateShipBalance(shipStruct.balance);
 		var systemText = this.generateShipSystem(shipStruct.system);
@@ -140,12 +139,16 @@ module.exports = {
 		return radarData.nodes.filter(item => item.type == "Planet");
 	},
 
-	getMineralsFromData: function(radarData) {
-		return radarData.nodes.filter(item => item.type == "Cargo" && item.body.type == "MINERALS");
+	getCargoFromData: function(radarData) {
+		return radarData.nodes.filter(item => item.type == "Cargo");
 	},
 
-	getNonMineralsFromData: function(radarData) {
-		return radarData.nodes.filter(item => item.type == "Cargo" && item.body.type != "MINERALS");
+	getShipsFromData: function(radarData) {
+		return radarData.nodes.filter(item => item.type == "Ship");
+	},
+
+	getStationsFromData: function(radarData) {
+		return radarData.nodes.filter(item => item.type == "ScientificStation" || item.type == "BusinessStation");
 	},
 
 	getPlanetOrbitRadius: function(planet) {

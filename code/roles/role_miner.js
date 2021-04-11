@@ -18,6 +18,10 @@ module.exports = {
 
 		var immediatePark = true;
 
+		// TODO: Change all required 'var's to 'let's
+
+		//console.log(sdk.profileTime(ship.getMaxFuel));
+
 		/*if(ship.details.body.balance > 50000) {
 			await ship.operateMoney(2000);
 			return;
@@ -53,6 +57,8 @@ module.exports = {
 
 		console.log(memory.homeSystem, ship.getFuel(), ship.getMaxFuel(), ship.details.parent.uuid, (ship.getLocalMemory()).location);
 
+		//console.log(await sdk.profileTime(ship.getMaxFuel.bind(ship)));
+
 		var hullTrade = ship.getBestTrade("HULL", 3, true);
 		var engineTrade = ship.getBestTrade("ENGINE", 3, true);
 		var tankTrade = ship.getBestTrade("TANK", 3, true);
@@ -67,179 +73,15 @@ module.exports = {
 
 		console.log(engineTrade);
 
-		//console.log(ship.getBestTrade("HULL", 3, true));
-		
-		if(ship.getBodyCargo("hull").body.gen == 1 && !ship.hasMinerals()/* && ship.details.body.balance >= 2000 */&& ship.getCurrentSystem() == HOME_SYSTEM) {
-			console.log("WANT NEW HULL");
-			var hulls = ship.hasCargo("HULL");
-			console.log(hulls);
-			console.log(hullTrade);
-			if(hulls.length > 1 /*&& hullTrade && hullTrade.price <= MINIMAL_BODY_COST*/) {
-				var betterHull = hulls.find((hull) => hull.body.gen > 1);
-				if(betterHull) {
-					if(ship.details.body.balance == HULL_CHANGE_COST) {
-						loggerShip.warn("Flying to scientific station!");
-						console.log(betterHull);
-						if(ship.getLocation() != LOCATION_SCIENTIFIC_STATION) {
-							await ship.safeEscape();
-						}
-						var sciStation = ship.radarData.nodes.find((instance) => instance.type == "ScientificStation"); // replace to find
-						if(sciStation) {
-							await ship.safeMove(sciStation.body.vector.x, sciStation.body.vector.y);
-							await ship.safeLanding(sciStation.uuid);
-							await ship.safeApply("CHANGE_HULL", betterHull.uuid);
-						}
-					} else {
-						if(ship.details.body.balance != HULL_CHANGE_COST) {
-							loggerShip.warn("Operating 1000! 3");
-							await ship.operateMoney(HULL_CHANGE_COST);
-						}
-					}
-				}
-				return;
-			}
+		let upgradedParts = [{part: "HULL", gen: 3}, {part: "ENGINE", gen: 3}];
 
-
-
-			else if(hullTrade && hullTrade.price <= MINIMAL_BODY_COST) {
-				if(ship.details.body.balance == (HULL_CHANGE_COST + hullTrade.price)) {
-					loggerShip.warn("Parking!");
-					console.log(hullTrade)
-					console.log(ship.getLocationName());
-					await ship.parkAtSpecifiedPlanet(hullTrade.planet);
-
-					var planetInfo = await ship.safeScan(hullTrade.planet);
-					if(planetInfo) {
-						loggerShip.warn("Buying!");
-						ship.setPlanetDeals(planetInfo);
-						var buyTrade = planetInfo.body.deals.find((deal) => deal.uuid == hullTrade.uuid);
-						//console.log(hullTrade.uuid);
-						//console.log(planetInfo.body.deals);
-						if(buyTrade) {
-							await ship.safeAccept(buyTrade.uuid);
-							await ship.safeFuel();
-
-							planetInfo = await ship.safeScan(hullTrade.planet);
-							ship.setPlanetDeals(planetInfo);
-							//loggerShip.info("Trade successfully accepted!");
-						}
-					}
-				} else {
-					if(ship.details.body.balance != HULL_CHANGE_COST + hullTrade.price) {
-						loggerShip.warn("Operating 2000! 2");
-						await ship.operateMoney(HULL_CHANGE_COST + hullTrade.price);
-					}
-				}
-				return;
-			}
-			
+		for(let partStruct of upgradedParts) {
+			let result = await ship.upgradeBodyPart(partStruct.part, partStruct.gen, MINIMAL_BODY_COST);
+			console.log(result);
+			if(result == CHANGING_BODY_PART || result == BUYING_BODY_PART) return; // Don't do anything else until BP is upgraded, or skip if ship has minerals.
 		}
 
-		else if(ship.getBodyCargo("hull").body.gen != 1 && ship.getBodyCargo("engine").body.gen == 1) {
-			console.log("WANT NEW ENGINE")
-			var hulls = ship.hasCargo("HULL");
-			var badHull = hulls.find((hull) => hull.body.gen == 1);
-			if(badHull) {
-				await ship.safeDrop(badHull.uuid);
-			}
-
-
-			var engines = ship.hasCargo("ENGINE");
-			console.log(engineTrade);
-			if(engines.length > 1) {
-				var betterEngine = engines.find((engine) => engine.body.gen > 1);
-				if(betterEngine) {
-					var badEngine = engines.find((engine) => engine.body.gen == 1);
-					await ship.safeUnequip(badEngine.uuid);
-					await ship.safeEquip("engine", betterEngine.uuid);
-				}
-			}
-
-			else if(engineTrade && engineTrade.price <= MINIMAL_BODY_COST) {
-				console.log(ship.details.body.balance);
-				if(ship.details.body.balance == engineTrade.price) {
-					loggerShip.warn("Parking!");
-					console.log(engineTrade)
-					console.log(ship.getLocationName());
-					await ship.parkAtSpecifiedPlanet(engineTrade.planet);
-
-					var planetInfo = await ship.safeScan(engineTrade.planet);
-					if(planetInfo) {
-						loggerShip.warn("Buying!");
-						ship.setPlanetDeals(planetInfo);
-						var buyTrade = planetInfo.body.deals.find((deal) => deal.uuid == engineTrade.uuid);
-						if(buyTrade) {
-							await ship.safeAccept(buyTrade.uuid);
-							await ship.safeFuel();
-
-							planetInfo = await ship.safeScan(engineTrade.planet);
-							ship.setPlanetDeals(planetInfo);
-						}
-					}
-					return;
-				} else {
-					console.log(ship.details.body.balance, engineTrade.price)
-					if(ship.details.body.balance != engineTrade.price && ship.getCurrentSystem() == HOME_SYSTEM) {
-						loggerShip.warn("Operating 1000! 1");
-						await ship.operateMoney(engineTrade.price);
-						return;
-					}
-				}
-
-			}
-			
-		}
-/*
-		else if(ship.getBodyCargo("tank").body.gen == 1) {
-			console.log("WANT NEW TANK")
-
-
-			var tanks = ship.hasCargo("TANK");
-
-			if(tanks.length > 1) {
-				var betterTank = tanks.find((tank) => tank.body.gen > 1);
-				if(betterTank) {
-					var badTank = tanks.find((tank) => tank.body.gen == 1);
-					await ship.safeUnequip(badTank.uuid);
-					await ship.safeEquip("tank", betterTank.uuid);
-				}
-			}
-
-			else if(tankTrade && tankTrade.price <= MINIMAL_BODY_COST) {
-				console.log(ship.details.body.balance);
-				if(ship.details.body.balance == tankTrade.price) {
-					loggerShip.warn("Parking!");
-					console.log(tankTrade)
-					console.log(ship.getLocationName());
-					await ship.parkAtSpecifiedPlanet(tankTrade.planet);
-
-					var planetInfo = await ship.safeScan(tankTrade.planet);
-					if(planetInfo) {
-						loggerShip.warn("Buying!");
-						ship.setPlanetDeals(planetInfo);
-						var buyTrade = planetInfo.body.deals.find((deal) => deal.uuid == tankTrade.uuid);
-						if(buyTrade) {
-							await ship.safeAccept(buyTrade.uuid);
-							await ship.safeFuel();
-
-							planetInfo = await ship.safeScan(tankTrade.planet);
-							ship.setPlanetDeals(planetInfo);
-						}
-					}
-				} else {
-					if(ship.details.body.balance != tankTrade.price) {
-						loggerShip.warn("Operating 1000!");
-						await ship.operateMoney(tankTrade.price);
-					}
-				}
-			}
-			return;
-		}*/
-
-		/*if(hullTrade && hullTrade.price <= 1000 && ship.getBodyCargo("hull").body.gen < 4) {
-			console.log("I would like to buy a new hull.");
-		}*/
-
+		console.log("IM ALIVE PAST THAT")
 		
 		var home = SYSTEM_SCHEAT;
 		var dest = memory.homeSystem;
@@ -249,7 +91,11 @@ module.exports = {
 		console.log(bestMineralTrade);
 		console.log(ship.getBestMineralTradeInConstellation());
 
-		if(ship.getFuel() < ship.getMaxFuel() && ship.getLocalMemory().location != dest) {
+		if(ship.details.body.balance < KEEP_MINIMUM && ship.getCurrentSystem() == SYSTEM_SCHEAT) {
+			loggerShip.info("Operating " + KEEP_MINIMUM + " for safe warping.");
+			await ship.operateMoney(KEEP_MINIMUM);
+			return;
+		} else if(ship.getFuel() < ship.getMaxFuel() && ship.getLocalMemory().location != dest) {
 			await ship.parkAtNearbyPlanet();
 			await ship.safeFuel();
 		}
@@ -284,7 +130,10 @@ module.exports = {
 		
 
 		var sortedCargos = mafs.sortByDistance(new mafs.Pos(details.body.vector.x, details.body.vector.y), cargos);
-		if(ship.hasMinerals() && (ship.getMaxHold() - ship.getHold() < 15 || sortedCargos.length == 0) && bestMineralTrade) {
+
+		var maxHold = ship.getMaxHold() - ship.getHold() < 15; // Less than 15 hold left
+		if(ship.getBodyCargo("hull").body.gen != 1) maxHold = (ship.getHold() / ship.getMaxHold()) > 0.6; // More than 60% of storage filled up
+		if(ship.hasMinerals() && (maxHold || sortedCargos.length == 0) && bestMineralTrade) {
 			loggerShip.info("I have minerals on the board, so I'm flying to planet and try to sell them.");
 			/*if(ship.getLocation() != LOCATION_SYSTEM && ship.getLocation() != LOCATION_PLANET) {
 				await ship.safeEscape();
@@ -411,8 +260,8 @@ module.exports = {
 					cargoVector = cargoTarget.body.vector;
 
 					if(cargoVector) {
-						await ship.safeMove(cargoVector.x, cargoVector.y);
 						await ship.safeGrab(cargoTarget.uuid);
+						await ship.safeMove(cargoVector.x, cargoVector.y);
 						await ship.safeAttack(cargoTarget.uuid, [1]);
 						
 						//loggerShip.info("I grabbed the big cargo I spotted!");

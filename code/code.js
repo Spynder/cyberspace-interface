@@ -3,8 +3,11 @@ var sdk = require("./libs/enhancer");
 const delay = require("delay");
 const mafs = require("./libs/mafs");
 const config = require("./libs/config.js");
-const {ipcMain} = require("electron");
+const {ipcMain, webContents} = require("electron");
 var dbManager = sdk.dbManager;
+
+var web;
+if(webContents) web = webContents.getAllWebContents()[0];
 
 /* 	Log levels
 *	* Trace
@@ -17,24 +20,62 @@ var dbManager = sdk.dbManager;
 
 global.multiLoop = {flyingFor: {}, localMemory: {}, deals: {}, noDealsFlying: {}};
 
-const actionDelay = 300;
-var loop = async function(account, ships) {
+
+// {ID: 1234567890, active: false};
+var activeShips = [];
+
+ipcMain.on("shipActivity", (event, arg) => {
+	//console.log(arg);
+	var index = activeShips.findIndex(item => item.ID == arg.ID);
+	if(index == -1) activeShips.push(arg);
+	else activeShips[index] = arg;
+})
+
+const actionDelay = 200;
+var loop = async function(account, ships, planets) {
 	await account.safeAssemble();
 	
-	for(var ship of ships) {
-		await shipLoop(account, ship);
+	/*for(var planet of planets) {
+		await planetLoop(account, planet);
+	}*/
+	let shipNumber = activeShips.reduce((acc, val) => (val.active ? 1 : 0) + acc, 0);
+	if(shipNumber > 0) {
+		for(var ship of ships) {
+			var shipObj = activeShips.find(entry => entry.ID == ship.uuid);
+			// If we have entry, leave as is, otherwise get default value based on GUI presense.
+			var activity = shipObj ? shipObj.active : (isGUILaunched() ? false : true);
+			if(activity) {
+				await shipLoop(account, ship);
+			}
+		}
+	} else {
+		loggerConsole.info("No ships activated!");
+		await delay(5000);
 	}
 
 	await dbManager.cleanDeadEntries(ships);
 	loggerConsole.debug("Done the cycle, repeating.");
 }
 
+var planetLoop = async function(account, instance) {
+	const {uuid, quadrant} = instance;
+	sdk = require("./libs/enhancer");
+	const planet = await account.getPlanet(uuid, quadrant);
+
+	delete require.cache[require.resolve("./libs/enhancer")];
+
+	await planet.gatherInfo(account).catch((e) => {
+		console.log("Unexpected error at planet gathering! - " + e.message);
+		console.error(e);
+	});
+
+	await planet.dispose();
+}
+
 var shipLoop = async function(account, instance) {
 	const {uuid, quadrant} = instance;
 	sdk = require("./libs/enhancer");
 	const ship = await account.getShip(uuid, quadrant);
-	await delay(actionDelay);
-	await ship.selfScan();
 	loggerShip.addContext("Ship", ship.uuid);
 	console.log("\n\n\n");
 
@@ -49,11 +90,19 @@ var shipLoop = async function(account, instance) {
 	
 }
 
+global.isGUILaunched = function() {
+	return !!web;
+}
+
+global.sendInfo = function(event, arg) {
+	if(isGUILaunched()) {
+		web.send(event, arg);
+	}
+}
+
 var start = async function() {
 	loggerConsole.trace("Starting system, logging in the account.");
-	console.log(sdk.Account);
 	var account = await sdk.Account.connect();
-
 	await account.signin(config.accountUsername, config.accountPassword);
 	loggerConsole.trace("Login successful!");
 	await delay(actionDelay);
@@ -64,17 +113,16 @@ var start = async function() {
 	while(true) {
 		try {
 			var objects = await account.objects(9999); // all objects ever
-
-			var mappedIDs = objects;/*.map();*/ // something
-
+			
+			sendInfo("allObjects", objects);
 
 			var ships = objects.filter((instance) => instance.type === 'Ship');
+			var planets = objects.filter((instance) => instance.type === 'Planet');
 			await delay(actionDelay);
-			await loop(account, ships).catch((e) => {
+			await loop(account, ships, planets).catch((e) => {
 				console.error(e);
 				loggerConsole.error("Error while looping, but it's okay! We're just restarting.");
 			});
-			console.log("Outside catch");
 		} catch(e) {
 			loggerConsole.error("Error in while, but I think it'll just restart itself.");
 			console.error(e);
