@@ -2,7 +2,7 @@ var mafs = require("../libs/mafs");
 var delay = require("delay");
 
 module.exports = {
-	run: async function(ship, account, sdk) {
+	run: async function(ship, account, sdk, options) {
 		// 1. Get 200 credits for fuel
 		// 2. Fly to the planet we own
 		// 3. Get minerals from there
@@ -20,11 +20,15 @@ module.exports = {
 		
 		var returningBack = ship.getHold() > 300;
 		returningBack = true;
-		var immediatePark = true;
+		var immediatePark = !options.active;
 
 		if(immediatePark) {
 			loggerShip.info("Parking at nearby landable by command.");
 			await ship.parkAtNearbyLandable();
+			console.log(ship.getLocation());
+			if(ship.getLocation() != LOCATION_SYSTEM) {
+				ship.setParked(true);
+			}
 			return;
 		}
 

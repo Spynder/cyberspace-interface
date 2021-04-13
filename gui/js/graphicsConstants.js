@@ -17,23 +17,23 @@ global.STAT_CRITICAL = "critical";
 global.STAT_UNKNOWN = "unknown";
 
 global.BALANCE_WARNING = 4000;
-global.BALANCE_CRITICAL = 20000;
+global.BALANCE_CRITICAL = 50000;
 global.HIGH_SEC_SYSTEMS = ["Scheat", "Matar", "Sadalbari", "Sadalpheris", "Salm"];
 
 global.SHIPS_ACTIVE = "Park all ships (Safe exit)";
 global.SHIPS_UNACTIVE = "Activate all ships";
 
-global.SHIPSTATE_OFF = 1;
-global.SHIPSTATE_WAIT = 2;
+global.SHIPSTATE_OFF = 0;
+global.SHIPSTATE_WAIT = 1;
+global.SHIPSTATE_PARK = 2;
 global.SHIPSTATE_ON = 3;
-global.SHIPSTATE_PARK = 4;
 
 global.SHIPACTIVITY_ONLINE = "shipOnline";
 global.SHIPACTIVITY_OFFLINE = "shipOffline";
 
 global.GOINSIDE_OK = "Go inside the selected system";
 global.GOINSIDE_NULL = "No system selected";
-global.GOINSIDE_INFO = "No ships in this system";
+global.GOINSIDE_INFO = "No info of this system";
 
 global.COLOR_BG = "#222";
 global.COLOR_BG_LIGHT = "#555";
@@ -52,16 +52,27 @@ global.COLOR_SYSTEM_PLANET_TRAIL = "#888";
 global.COLOR_SYSTEM_ASTRAL_BODY_RIM = "#CCC";
 global.COLOR_SYSTEM_MINERAL = "#696";
 global.COLOR_SYSTEM_BODYPART = "#669";
+global.COLOR_SYSTEM_SHIP_FRIENDLY = "#390";
+global.COLOR_SYSTEM_SHIP_HOSTILE = "#910";
+global.COLOR_SYSTEM_WARP_RING = "#B77";
+global.COLOR_SYSTEM_MARKER = "#BBB";
+global.COLOR_SYSTEM_MARKER_LINE = "#AAA";
+global.COLOR_SYSTEM_STATION_BUSINESS = "#B97";
+global.COLOR_SYSTEM_STATION_SCIENTIFIC = "#789";
 
 global.SYSTEM_RADIUS = 10;
 global.SYSTEM_OFFSET = {xp: 0.1, yp: 0.1};
 global.SYSTEM_DISTANCE_MULTIPLIER = 1.5;
 global.SYSTEM_BOX_OFFSET = 16;
 global.SYSTEM_SAFETY_RIM_RADIUS = 100;
-global.SYSTEM_SUN_RADIUS = 500;
-global.SYSTEM_PLANET_RADIUS = 300;
-global.SYSTEM_CARGO_RADIUS = 50;
-global.SYSTEM_SHIP_SIZE = 32;
+global.SYSTEM_SUN_RADIUS = 150;
+global.SYSTEM_PLANET_RADIUS = 200;
+global.SYSTEM_CARGO_RADIUS = 30;
+global.SYSTEM_STATION_RADIUS = 50;
+global.SYSTEM_SHIP_SIZE = 64;
+global.SYSTEM_WARP_RING_RADIUS = 8000;
+global.SYSTEM_MARKER_RADIUS = 100;
+global.OWNER_ID = "a678ea674c";
 
 global.SCALE_SENSITIVITY = 0.003;
 global.SYSTEM_START_ZOOM = 0.1;

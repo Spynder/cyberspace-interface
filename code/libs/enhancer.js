@@ -2,6 +2,7 @@ var sdk = require("@cyberspace-dev/sdk");
 var mafs = require("./mafs");
 const delay = require("delay");
 const retry = require("async-retry");
+const _ = require("lodash");
 
 const role_miner = "../roles/role_miner";
 const role_colonizer = "../roles/role_colonizer";
@@ -24,14 +25,23 @@ sdk.Ship.prototype.selfScan = async function() {
 		return rad;
 	}, {retries: 5});
 
+	if(this.getCurrentSystem()) {
+		let info = _.cloneDeep(this.radarData);
+		info.updateTime = new Date().getTime();
+		multiLoop.deals[this.getCurrentSystem()] = multiLoop.deals[this.getCurrentSystem()] || {};
+		info.allDeals = multiLoop.deals[this.getCurrentSystem()];
+		sendInfo("systemInfo", info);
+	}
+
 	if(this.getLocation() == LOCATION_SYSTEM) {
+		this.setParked(false);
 		this.setLocalMemory("location", this.details.parent.uuid);
 	}
 
 	this.memory = await sdk.dbManager.getMemory(this);
 }
 
-sdk.Ship.prototype.execRole = async function(account) {
+sdk.Ship.prototype.execRole = async function(account, options) {
 	await this.selfScan();
 	var memory = this.memory;
 	var role = memory.role;
@@ -53,7 +63,7 @@ sdk.Ship.prototype.execRole = async function(account) {
 		delete require.cache[require.resolve(moduleName)];
 		mafs = require("./mafs");
 		delete require.cache[require.resolve("./mafs")];	
-		await moduleRequire.run(this, account, sdk);
+		await moduleRequire.run(this, account, sdk, options);
 
 		var struct = {	hullLevel: this.getBodyCargo("hull").body.gen,
 						ID: this.details.uuid,
@@ -196,6 +206,7 @@ sdk.Ship.prototype.safeEscape = async function() {
 		try {
 			await this.escape();
 			this.setLocalMemory("parked", false);
+			this.setParked(false);
 			result = RESULT_OK;
 			// experimental
 		} catch(e) {
@@ -436,6 +447,12 @@ sdk.getAllFlyingFor = function() {
 
 sdk.getAllDeals = function() {
 	return multiLoop.deals;
+}
+
+sdk.Ship.prototype.setParked = function(parked) {
+	let index = multiLoop.activeShips.findIndex(entry => entry.ID == this.uuid);
+	multiLoop.activeShips[index].parked = parked;
+	sendInfo("shipParked", {ID: this.uuid, parked: parked});
 }
 
 sdk.Ship.prototype.setFlyingFor = function(uuid) {
@@ -680,47 +697,6 @@ sdk.Ship.prototype.getBestMineralTradeInConstellation = function() {
 		}
 	}
 	return best;
-
-	/*for(const [system, planets] of Object.entries(multiLoop.deals)) {
-		var bestInSystem = {planet: [], price: 0, uuid: []};
-		//console.log(system);
-		//console.log(planets);
-		for(const [planet, deals] of Object.entries(planets)) {
-			var typedDeals = {};
-			typedDeals = deals.deals.filter((deal) => deal.type == "BUY" && deal.expected == "MINERALS");
-			var sortedDeals = typedDeals.sort((a, b) => b.price - a.price);
-			if(sortedDeals.length) {
-				if(sortedDeals[0].price > bestInSystem.price) {
-					bestInSystem = {planet: [planet], price: sortedDeals[0].price, uuid: [sortedDeals[0].uuid]};
-				} else if(sortedDeals[0].price == bestInSystem.price) {
-					bestInSystem.planet.push(planet);
-					bestInSystem.uuid.push(sortedDeals[0].uuid);
-				}
-			}
-		}
-		
-		if(bestInSystem.price >= HIGHEST_MINERAL_TRADE_COST) {
-			best = bestInSystem;
-			best.system = system;
-			break;
-		} else {
-			if(bestInSystem.price > best.price) {
-				best = bestInSystem;
-				best.system = system;
-			}
-		}
-	}
-
-	if(best.planet.length > 1) {
-		var closestPlanet = this.getClosestPlanet(best.planet);
-		var index = best.planet.indexOf(closestPlanet.uuid);
-		return {system: best.system, planet: closestPlanet.uuid, price: best.price, uuid: best.uuid[index]};
-	} else if(best.planet.length == 0) {
-		return undefined;
-	} else {
-		return {system: best.system, planet: best.planet[0], price: best.price, uuid: best.uuid[0]};
-	}*/
-	//console.log(multiLoop.deals);
 }
 
 sdk.Ship.prototype.getBestMineralTrade = function() {
@@ -824,7 +800,6 @@ sdk.Ship.prototype.parkAtSpecifiedPlanet = async function(planetUuid) {
 	}
 	else {
 		var planet = this.radarData.nodes.find((node) => node.uuid == planetUuid);
-		//console.log(planetUuid)
 		if(planet) {
 			var vect = new mafs.Line(	new mafs.Pos(	this.details.body.vector.x,
 														this.details.body.vector.y),
@@ -856,11 +831,9 @@ sdk.Ship.prototype.operateMoney = async function(keep) {
 		return BUSINESS_STATION_NOT_FOUND;
 	}
 	if(this.getLocation() != LOCATION_BUSINESS_STATION) {
-		//console.log("Escape?");
 		await this.safeEscape();
 	}
 	var result;
-	//console.log(this.getLocation() == LOCATION_BUSINESS_STATION);
 	if(this.getLocation() == LOCATION_SYSTEM) {
 		result = FLYING_TO_BUSINESS_STATION;
 		await this.safeMove(tradeStation.body.vector.x, tradeStation.body.vector.y);
@@ -933,7 +906,8 @@ sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, maxCost) {
 
 		else if(bpTrade && bpTrade.price <= maxCost) {
 			let requiredBalance = bpTrade.price + (isHull ? HULL_CHANGE_COST : 0);
-			if(this.details.body.balance == requiredBalance) {
+			if(	(this.details.body.balance == requiredBalance && this.getCurrentSystem() == SYSTEM_SCHEAT) || 
+				(this.details.body.balance >= requiredBalance && this.getCurrentSystem() != SYSTEM_SCHEAT)) {
 				console.log(bpTrade)
 				await this.parkAtSpecifiedPlanet(bpTrade.planet);
 
@@ -967,7 +941,6 @@ sdk.Ship.prototype.getClosestPlanet = function(planetArray) {
 	for(planet of planetArray) {
 		planets.push(this.radarData.nodes.find((node) => node.type == "Planet" && node.uuid == planet));
 	}
-	//if(planets[0] == undefined) return
 	var sortedPlanets = mafs.sortByDistance(new mafs.Pos(this.details.body.vector.x, this.details.body.vector.y), planets); // Sort planets by proximity.
 	return sortedPlanets[0];
 }

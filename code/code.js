@@ -18,17 +18,17 @@ if(webContents) web = webContents.getAllWebContents()[0];
 *	* Fatal
 */
 
-global.multiLoop = {flyingFor: {}, localMemory: {}, deals: {}, noDealsFlying: {}};
+global.multiLoop = {flyingFor: {}, localMemory: {}, deals: {}, noDealsFlying: {}, activeShips: []};
 
 
-// {ID: 1234567890, active: false};
-var activeShips = [];
+// {ID: 1234567890, active: false, parked: true};
+//var activeShips = [];
 
 ipcMain.on("shipActivity", (event, arg) => {
 	//console.log(arg);
-	var index = activeShips.findIndex(item => item.ID == arg.ID);
-	if(index == -1) activeShips.push(arg);
-	else activeShips[index] = arg;
+	var index = multiLoop.activeShips.findIndex(item => item.ID == arg.ID);
+	if(index == -1) multiLoop.activeShips.push(arg);
+	else multiLoop.activeShips[index].active = arg.active;
 })
 
 const actionDelay = 200;
@@ -38,14 +38,20 @@ var loop = async function(account, ships, planets) {
 	/*for(var planet of planets) {
 		await planetLoop(account, planet);
 	}*/
-	let shipNumber = activeShips.reduce((acc, val) => (val.active ? 1 : 0) + acc, 0);
+	let shipNumber = multiLoop.activeShips.reduce(function(acc, val) {
+		let active = val.active != undefined ? val.active : (isGUILaunched() ? false : true);
+		let parked = val.parked != undefined ? val.parked : (isGUILaunched() ? true : false);
+		return (active || !parked ? 1 : 0) + acc;
+	}, 0);
 	if(shipNumber > 0) {
-		for(var ship of ships) {
-			var shipObj = activeShips.find(entry => entry.ID == ship.uuid);
+		for(let ship of ships) {
+			let shipObj = multiLoop.activeShips.find(entry => entry.ID == ship.uuid);
 			// If we have entry, leave as is, otherwise get default value based on GUI presense.
-			var activity = shipObj ? shipObj.active : (isGUILaunched() ? false : true);
-			if(activity) {
-				await shipLoop(account, ship);
+			let active = shipObj ? shipObj.active : (isGUILaunched() ? false : true);
+			let parked = shipObj ? shipObj.parked : (isGUILaunched() ? true : false);
+			let options = {active: active}; 
+			if(active || !parked) {
+				await shipLoop(account, ship, options);
 			}
 		}
 	} else {
@@ -72,7 +78,7 @@ var planetLoop = async function(account, instance) {
 	await planet.dispose();
 }
 
-var shipLoop = async function(account, instance) {
+var shipLoop = async function(account, instance, options) {
 	const {uuid, quadrant} = instance;
 	sdk = require("./libs/enhancer");
 	const ship = await account.getShip(uuid, quadrant);
@@ -81,7 +87,7 @@ var shipLoop = async function(account, instance) {
 
 	delete require.cache[require.resolve("./libs/enhancer")];
 
-	await ship.execRole(account).catch((e) => {
+	await ship.execRole(account, options).catch((e) => {
 		loggerShip.error("Unhandled exception occured while executing ship role: " + e.message);
 		console.error(e);
 	});

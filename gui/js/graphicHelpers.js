@@ -56,20 +56,25 @@ module.exports = {
 		return `<img class="shipIcon" src="img/roles/role${role ? role : "Unknown"}.png">`;
 	},
 
-	generateShipLabel: function(state) {
+	generateShipLabel: function(active, parked) {
+		parked = parked == undefined ? true : parked;  // Default: true
+		active = active == undefined ? false : active; // Default: false
 		var label = "Off";
+		let state = (active) + (!parked)*2; // aka Bit operations...
+		// 0 = !active, parked
+		// 1 = active, parked
 		switch(state) {
 			case SHIPSTATE_OFF:
 				label = "Off";
 				break;
 			case SHIPSTATE_WAIT:
-				label = "Wait";
-				break;
-			case SHIPSTATE_ON:
-				label = "On";
+				label = "Wait"; //"Wait";
 				break;
 			case SHIPSTATE_PARK:
 				label = "Park";
+				break;
+			case SHIPSTATE_ON:
+				label = "On";
 				break;
 		}	
 
@@ -81,7 +86,7 @@ module.exports = {
 		var balanceText = this.generateShipBalance(shipStruct.balance);
 		var systemText = this.generateShipSystem(shipStruct.system);
 		var roleImg = this.generateShipRole(shipStruct.role);
-		var labelImg = this.generateShipLabel(shipStruct.label);
+		var labelImg = this.generateShipLabel(shipStruct.active, shipStruct.parked);
 		return `<div class="ship" shipID=${shipStruct.ID}>
 					<div class="iconBlock">
 						<span class="helper"></span>
@@ -130,6 +135,20 @@ module.exports = {
 				height: SYSTEM_CARGO_RADIUS * 2};
 	},
 
+	getShipHitbox: function(ship) {
+		return {x: ship.body.vector.x - SYSTEM_SHIP_SIZE,
+				y: ship.body.vector.y - SYSTEM_SHIP_SIZE,
+				width: SYSTEM_SHIP_SIZE * 2,
+				height: SYSTEM_SHIP_SIZE * 2};
+	},
+
+	getStationHitbox: function(station) {
+		return {x: station.body.vector.x - SYSTEM_STATION_RADIUS,
+				y: station.body.vector.y - SYSTEM_STATION_RADIUS,
+				width: SYSTEM_STATION_RADIUS * 2,
+				height: SYSTEM_STATION_RADIUS * 2};
+	},
+
 	getSystemIconCircle: function(system, w, h) {
 		return {x: (system.x + (w * SYSTEM_OFFSET.xp)) * SYSTEM_DISTANCE_MULTIPLIER + SYSTEM_RADIUS,
 				y: (system.y + (h * SYSTEM_OFFSET.yp)) * SYSTEM_DISTANCE_MULTIPLIER + SYSTEM_RADIUS};
@@ -157,5 +176,19 @@ module.exports = {
 
 	getPlanetAngleOnOrbit: function(x, y) {
 		return (Math.atan2(y, x));
-	}
+	},
+
+	getPointOnCircle: function(dx, dy, rad, angle) {
+		return {x: dx + rad * Math.sin(angle),
+				y: dy + rad * Math.cos(angle)};
+	},
+
+	extendLine: function(line, length) {
+		var p1 = line.p1;
+		var p2 = line.p2;
+		lenAB = Math.sqrt(Math.pow(p1.x - p2.x, 2.0) + Math.pow(p1.y - p2.y, 2.0));
+		var extendedEnd = {	x: p2.x + (p2.x - p1.x) / lenAB * length, 
+							y: p2.y + (p2.y - p1.y) / lenAB * length};
+		return {p1: p1, p2: extendedEnd};
+	},
 }

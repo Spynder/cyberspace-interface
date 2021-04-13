@@ -2,7 +2,7 @@ var mafs = require("../libs/mafs");
 var delay = require("delay");
 
 module.exports = {
-	run: async function(ship, account, sdk) {
+	run: async function(ship, account, sdk, options) {
 		// 1. Check if we have any planets ready for colonization
 		// 2. If so, get N * 10000 + 4400 (for fuel) from Baker Plasa
 		// 3. Buy embryo (and virus if needed)

@@ -1,7 +1,7 @@
 var mafs = require("../libs/mafs");
 
 module.exports = {
-	run: async function(ship, account, sdk) {
+	run: async function(ship, account, sdk, options) {
 		// 1. Warp into correct system
 		// 2. Drop reduntant items
 		// 3. If you have any minerals fly and sell 'em
@@ -15,8 +15,7 @@ module.exports = {
 		var cargos = radarData.nodes.filter((node) => node.type == "Cargo" && node.body.type == "MINERALS" && mafs.isSafeSpot(new mafs.Pos(node.body.vector.x, node.body.vector.y)));
 		var details = ship.details; // Get details of our ship
 		var memory = ship.memory;
-
-		var immediatePark = true;
+		var immediatePark = !options.active;
 
 		// TODO: Change all required 'var's to 'let's
 
@@ -62,6 +61,9 @@ module.exports = {
 		var hullTrade = ship.getBestTrade("HULL", 3, true);
 		var engineTrade = ship.getBestTrade("ENGINE", 3, true);
 		var tankTrade = ship.getBestTrade("TANK", 3, true);
+
+		var bestMineralTrade = ship.getBestMineralTrade();
+		console.log(bestMineralTrade);
 		//console.log(tankTrade);
 
 		/*if(ship.getHold() > ship.getMaxHold()) {
@@ -87,8 +89,7 @@ module.exports = {
 		var dest = memory.homeSystem;
 		var currLocation = mafs.findWarpDestination(ship.getLocalMemory().location, dest);
 
-		var bestMineralTrade = ship.getBestMineralTrade();
-		console.log(bestMineralTrade);
+		
 		console.log(ship.getBestMineralTradeInConstellation());
 
 		if(ship.details.body.balance < KEEP_MINIMUM && ship.getCurrentSystem() == SYSTEM_SCHEAT) {
@@ -217,7 +218,7 @@ module.exports = {
 					break;
 			}
 		}
-		else if(sortedCargos.length > Object.keys(sdk.getAllFlyingFor()[system] || {}).length && !immediatePark && ship.details.body.balance < 60000 && bestMineralTrade) {
+		else if(sortedCargos.length > Object.keys(sdk.getAllFlyingFor()[system] || {}).length && !immediatePark && bestMineralTrade) {
 			loggerShip.info("I see some cargos, so i'm flying to them!");
 			await ship.safeEscape();
 			var memorizedCargo = ship.getFlyingFor();
@@ -282,9 +283,13 @@ module.exports = {
 			switch(result) {
 				case ALREADY_PARKED:
 					loggerShip.info("I am currently parked at " + ship.getLocationName() + ".");
+					if(ship.getLocation() != LOCATION_SYSTEM) {
+						ship.setParked(true);
+					}
 					if(ship.getLocation() == LOCATION_PLANET) {
 						var planetInfo = await ship.safeScan(ship.getLocationName());
 						ship.setPlanetDeals(planetInfo);
+						
 						if(planetInfo) {
 							//ship.setPlanetDeals(planetInfo);
 							//console.log(planetInfo.nodes);
