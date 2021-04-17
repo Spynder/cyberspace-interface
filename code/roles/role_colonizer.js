@@ -24,7 +24,7 @@ module.exports = {
 
 		var home = SYSTEM_SCHEAT;
 		var dest = SYSTEM_IOTA_PEGASI;
-		var planetName = "Thailara";//"Tilia";
+		var planetName = "Thailara";
 
 		/*if(ship.getBodyCargo("hull").body.gen == 8) {
 			await ship.parkAtNearbyLandable();

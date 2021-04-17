@@ -145,18 +145,23 @@ $(document).ready(function() {
 
 	function updateShipItem(shipID, ignoreShipTextUpdate) {
 		var shipStruct = getShipStructByID(shipID);
-		var item = findShipItemByID(shipStruct.ID);
+		if(shipStruct) {
+			var item = findShipItemByID(shipStruct.ID);
 
-		item.find(".fuelText").replaceWith(gh.generateShipFuel(shipStruct.fuel, shipStruct.fuelMax));
-		item.find(".balanceText").replaceWith(gh.generateShipBalance(shipStruct.balance));
-		item.find(".systemText").replaceWith(gh.generateShipSystem(shipStruct.system));
+			item.find(".fuelText").replaceWith(gh.generateShipFuel(shipStruct.fuel, shipStruct.fuelMax));
+			item.find(".balanceText").replaceWith(gh.generateShipBalance(shipStruct.balance));
+			item.find(".systemText").replaceWith(gh.generateShipSystem(shipStruct.system));
 
-		item.find(".shipIcon").replaceWith(gh.generateShipRole(shipStruct.role));
+			item.find(".shipIcon").replaceWith(gh.generateShipRole(shipStruct.role));
+			item.find(".label").replaceWith(gh.generateShipLabel(shipStruct.active, shipStruct.parked));
+			
+			// Update label
 
-		var btn = item.find(".indicators").find(".shipActivity");
-		btn.removeClass(shipStruct.active ? SHIPACTIVITY_OFFLINE : SHIPACTIVITY_ONLINE);
-		btn.addClass(shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
-		ipcRenderer.send("shipActivity", {ID: shipStruct.ID, active: shipStruct.active});
+			var btn = item.find(".indicators").find(".shipActivity");
+			btn.removeClass(shipStruct.active ? SHIPACTIVITY_OFFLINE : SHIPACTIVITY_ONLINE);
+			btn.addClass(shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
+			ipcRenderer.send("shipActivity", {ID: shipStruct.ID, active: shipStruct.active});
+		}
 
 		if(!ignoreShipTextUpdate) {
 			updateShipText();
@@ -168,6 +173,7 @@ $(document).ready(function() {
 		if(index != -1) {
 			ships[index].parked = arg.parked;
 		}
+		updateShipItem(arg.ID);
 	});
 
 	ipcRenderer.on("shipInfo", (event, arg) => {
@@ -178,10 +184,13 @@ $(document).ready(function() {
 			ships.push(arg);
 			generateShipList();
 		} else {
-			copy = ships[itemID];
-			ships[itemID] = arg;
-			ships[itemID].active = copy.active;
-			ships[itemID].parked = copy.parked;
+			let filteredArg = {};
+			Object.keys(arg).filter(item => arg[item] != undefined).forEach(item => filteredArg[item] = arg[item]);
+			ships[itemID] = Object.assign({}, ships[itemID], filteredArg);
+			//copy = ships[itemID];
+			//ships[itemID] = arg;
+			//ships[itemID].active = copy.active;
+			//ships[itemID].parked = copy.parked;
 		}
 		updateShipItem(id);
 	});
@@ -501,7 +510,6 @@ $(document).ready(function() {
 	function drawSystem() {
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
 		drawRectangle(0, 0, width, height, COLOR_BG);
-
 		ctx.save();
 		ctx.translate(translation.x, translation.y);
 		ctx.scale(scaling, scaling);
@@ -595,7 +603,13 @@ $(document).ready(function() {
 			else currSelectedShip = undefined;
 		}
 
-		// TODO go back btn
+		// Draw delta time
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		let lastDate = new Date(getCurrentSystemData().updateTime);
+		let currDate = new Date();
+		let deltaTime = new Date(currDate.getTime() - lastDate.getTime());
+		let dateText = "-" + `${deltaTime.getUTCHours()}`.padStart(2, '0') + ":" + `${deltaTime.getUTCMinutes()}`.padStart(2, '0') + ":" + `${deltaTime.getUTCSeconds()}`.padStart(2, '0');
+		drawText(TEXT_SIZE_MEDIUM, COLOR_TEXT_SECONDARY, dateText, width-SYSTEM_TIME_TEXT_PADDING, SYSTEM_TIME_TEXT_PADDING, "right");
 
 		ctx.restore();
 	}

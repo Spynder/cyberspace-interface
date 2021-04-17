@@ -36,8 +36,9 @@ global.HOME_SYSTEM = SYSTEM_SCHEAT;
 // Roles
 global.ROLE_MINER = "Miner";
 global.ROLE_FREIGHTER = "Freighter";
-global.ROLE_DEFENDER = "Defender";
+global.ROLE_ATTACKER = "Attacker";
 global.ROLE_COLONIZER = "Colonizer";
+global.ROLE_SCOUT = "Scout";
 
 global.WANTED_PLANETS = {SYSTEM_PI1_PEGASI: ["Droebos"]};
 
@@ -45,7 +46,7 @@ global.OWNED_PLANETS = ["Droebos"];
 
 global.TRADE_EXPIRE_TIME = 1000 * 60 * 45; // 45 minutes
 
-global.MIN_TRADE_EXPIRE_TIME = 1000 * 60 * 5; // 5 minutes
+global.MIN_TRADE_EXPIRE_TIME = 1000 * 60 * 10; // 10 minutes
 
 global.MINIMAL_BODY_COST = 1000;
 global.HULL_CHANGE_COST = 1000;
@@ -153,6 +154,58 @@ global.ROLES = [
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SADALPHERIS,
 	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
+	{
+		role: ROLE_SCOUT,
+		homeSystem: HOME_SYSTEM,
+		scoutingPlanet: "Drewsa",
+	},
+	{
+		role: ROLE_SCOUT,
+		homeSystem: HOME_SYSTEM,
+		scoutingPlanet: "Roebe",
+	},
+	{
+		role: ROLE_SCOUT,
+		homeSystem: HOME_SYSTEM,
+		scoutingPlanet: "Mayvel",
+	},
+	{
+		role: ROLE_SCOUT,
+		homeSystem: HOME_SYSTEM,
+		scoutingPlanet: "Headsbing",
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: HOME_SYSTEM,
+	},
 	/*{
 		role: ROLE_FREIGHTER,
 		homeSystem: SYSTEM_SCHEAT,
@@ -201,3 +254,7 @@ global.SHIP_HAS_MINERALS = 3;
 global.NOT_IN_SCHEAT = 4;
 global.NO_DEALS = 5;
 global.NOT_ENOUGH_MONEY = 6;
+
+//upgradeBodyPartList
+global.CHANGING_PART = 0;
+global.ALL_CHANGED = 1;

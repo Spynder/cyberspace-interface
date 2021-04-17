@@ -8,29 +8,33 @@ const role_miner = "../roles/role_miner";
 const role_colonizer = "../roles/role_colonizer";
 const role_freighter = "../roles/role_freighter";
 const role_planet = "../roles/role_planet";
+const role_scout = "../roles/role_scout";
+const role_attacker = "../roles/role_attacker";
 
 require("./constants");
 delete require.cache[require.resolve("./constants")];
 
 sdk.dbManager = require("./dbmanager");
 
-sdk.Ship.prototype.selfScan = async function() {
-	this.details = await retry(async bail => {
-		var exp = await sdk.profileTime(this.explore.bind(this));
-		return exp;
-	}, {retries: 5});
+sdk.Ship.prototype.selfScan = async function(skipScans) {
+	if(!skipScans) {
+		this.details = await retry(async bail => {
+			var exp = await sdk.profileTime(this.explore.bind(this));
+			return exp;
+		}, {retries: 5});
 
-	this.radarData = await retry(async bail => {
-		var rad = await this.safeRadar();
-		return rad;
-	}, {retries: 5});
+		this.radarData = await retry(async bail => {
+			var rad = await this.safeRadar();
+			return rad;
+		}, {retries: 5});
 
-	if(this.getCurrentSystem()) {
-		let info = _.cloneDeep(this.radarData);
-		info.updateTime = new Date().getTime();
-		multiLoop.deals[this.getCurrentSystem()] = multiLoop.deals[this.getCurrentSystem()] || {};
-		info.allDeals = multiLoop.deals[this.getCurrentSystem()];
-		sendInfo("systemInfo", info);
+		if(this.getCurrentSystem()) {
+			let info = _.cloneDeep(this.radarData);
+			info.updateTime = new Date().getTime();
+			multiLoop.deals[this.getCurrentSystem()] = multiLoop.deals[this.getCurrentSystem()] || {};
+			info.allDeals = multiLoop.deals[this.getCurrentSystem()];
+			sendInfo("systemInfo", info);
+		}
 	}
 
 	if(this.getLocation() == LOCATION_SYSTEM) {
@@ -38,13 +42,14 @@ sdk.Ship.prototype.selfScan = async function() {
 		this.setLocalMemory("location", this.details.parent.uuid);
 	}
 
-	this.memory = await sdk.dbManager.getMemory(this);
+	
 }
 
 sdk.Ship.prototype.execRole = async function(account, options) {
-	await this.selfScan();
+	this.memory = await sdk.dbManager.getMemory(this);
 	var memory = this.memory;
 	var role = memory.role;
+	await this.selfScan(role == ROLE_SCOUT);
 	loggerShip.info("Executing role \"" + role + "\".");
 	var moduleName;
 	switch(role) {
@@ -57,6 +62,12 @@ sdk.Ship.prototype.execRole = async function(account, options) {
 		case ROLE_FREIGHTER:
 			moduleName = role_freighter;
 			break;
+		case ROLE_SCOUT:
+			moduleName = role_scout;
+			break;
+		case ROLE_ATTACKER:
+			moduleName = role_attacker;
+			break;
 	}
 	if(moduleName) {
 		var moduleRequire = require(moduleName);
@@ -65,12 +76,14 @@ sdk.Ship.prototype.execRole = async function(account, options) {
 		delete require.cache[require.resolve("./mafs")];	
 		await moduleRequire.run(this, account, sdk, options);
 
-		var struct = {	hullLevel: this.getBodyCargo("hull").body.gen,
-						ID: this.details.uuid,
+		let hullCargo = this.getBodyCargo("hull");
+		//console.log(this);
+		var struct = {	hullLevel: hullCargo ? hullCargo.body.gen : undefined,
+						ID: this.uuid,
 						fuel: this.getFuel(),
 						fuelMax: this.getMaxFuel(),
 						role: role,
-						balance: this.details.body.balance,
+						balance: this.details ? this.details.body.balance : undefined,
 						system: this.getCurrentSystem(),
 						hold: this.getHold(),
 						holdMax: this.getMaxHold(),
@@ -78,6 +91,8 @@ sdk.Ship.prototype.execRole = async function(account, options) {
 						details: this.details,
 						radarData: this.radarData,
 						memory: this.memory};
+
+		//console.log(struct);
 
 		//console.log(struct);
 		sendInfo("shipInfo", struct);
@@ -355,6 +370,7 @@ sdk.Ship.prototype.safeTransfer = async function(uuid, type) {
 // Start of getters
 
 sdk.Ship.prototype.hasCargo = function(type) {
+	if(!this.details) return undefined;
 	var result;
 	if(type == "embryo") {
 		result = this.details.nodes.filter((node) => node.body.view == "ITEM901");
@@ -372,27 +388,27 @@ sdk.Ship.prototype.hasMinerals = function() {
 }
 
 sdk.Ship.prototype.getBodyCargo = function(item) {
-	return this.details.nodes.find((node) => node.uuid == this.details.body[item].uuid);
+	return this.details ? this.details.nodes.find((node) => node.uuid == this.details.body[item].uuid) : undefined;
 }
 
 sdk.Ship.prototype.getHold = function() {
-	return this.details.nodes.reduce(((acc, node) => acc + node.body.size), 0);
+	return this.details ? this.details.nodes.reduce(((acc, node) => acc + node.body.size), 0) : undefined;
 }
 
 sdk.Ship.prototype.getMaxHold = function() {
-	return this.details.nodes.find((node) => node.uuid == this.details.body.hull.uuid).body.mods.find((mod) => mod.name == "total_hp").value; // Total HP = Total Hold
+	return this.details ? this.details.nodes.find((node) => node.uuid == this.details.body.hull.uuid).body.mods.find((mod) => mod.name == "total_hp").value : undefined; // Total HP = Total Hold
 }
 
 sdk.Ship.prototype.getCurrentHP = function() {
-	return this.details.nodes.find((node) => node.uuid == this.details.body.hull.uuid).body.mods.find((mod) => mod.name == "current_hp").value;
+	return this.details ? this.details.nodes.find((node) => node.uuid == this.details.body.hull.uuid).body.mods.find((mod) => mod.name == "current_hp").value : undefined;
 }
 
 sdk.Ship.prototype.getLocation = function() {
-	return this.details.parent.type;
+	return this.details ? this.details.parent.type : undefined;
 }
 
 sdk.Ship.prototype.getLocationName = function() {
-	return this.details.parent.uuid;
+	return this.details ? this.details.parent.uuid : undefined;
 }
 
 sdk.Ship.prototype.getCurrentSystem = function() {
@@ -400,11 +416,11 @@ sdk.Ship.prototype.getCurrentSystem = function() {
 }
 
 sdk.Ship.prototype.getFuel = function() {
-	return this.details.nodes.find((node) => node.body.type == "TANK").body.mods.find((mod) => mod.name == "current_fuel").value;
+	return this.details ? this.details.nodes.find((node) => node.body.type == "TANK").body.mods.find((mod) => mod.name == "current_fuel").value : undefined;
 }
 
 sdk.Ship.prototype.getMaxFuel = function() {
-	return this.details.nodes.find((node) => node.body.type == "TANK").body.mods.find((mod) => mod.name == "total_fuel").value;
+	return this.details ? this.details.nodes.find((node) => node.body.type == "TANK").body.mods.find((mod) => mod.name == "total_fuel").value : undefined;
 }
 
 // End of getters
@@ -507,7 +523,13 @@ sdk.Ship.prototype.setPickedUp = function(uuid) {
 	delete multiLoop.flyingFor[system][this.uuid];
 }
 
-
+sdk.getPlanetDeals = function(planet) {
+	for(system of Object.values(multiLoop.deals)) {
+		for(sysPlanet in system) {
+			if(sysPlanet == planet) return system[sysPlanet];
+		}
+	}
+}
 
 sdk.Ship.prototype.setPlanetDeals = function(planetInfo) {
 	if(this.getLocation() != LOCATION_PLANET || !this.getCurrentSystem()) return -1;
@@ -522,6 +544,7 @@ sdk.Ship.prototype.getPlanetsWithNoDeals = function() {
 	if(!this.getCurrentSystem()) return 0;
 
 	var result = [];
+	if(!this.radarData) return [];
 	var allPlanets = this.radarData.nodes.filter((node) => node.type == "Planet");
 	multiLoop.deals[this.getCurrentSystem()] = multiLoop.deals[this.getCurrentSystem()] || {};
 	for(planet of allPlanets) {
@@ -591,12 +614,64 @@ sdk.Ship.prototype.setUpdatedDealsForPlanet = function(planet) {
 
 	multiLoop.noDealsFlying[this.getCurrentSystem()] = multiLoop.noDealsFlying[this.getCurrentSystem()] || {};
 	//console.log(planet, multiLoop.noDealsFlying[this.getCurrentSystem()], this.uuid);
-	if(multiLoop.noDealsFlying[this.getCurrentSystem()][planet] == this.uuid) {
+	if(multiLoop.noDealsFlying[this.getCurrentSystem()][planet]) {
 		delete multiLoop.noDealsFlying[this.getCurrentSystem()][planet];
 	}
 }
 
-sdk.Ship.prototype.getBestTrade = function(type, gen, higher, system) {
+sdk.getFilteredTrades = function(type, gen, higher, planetInfo) {
+	let isMinerals = type == "MINERALS";
+	var filteredDeals;
+	if(isMinerals) {
+		filteredDeals = planetInfo.deals.filter((deal) => deal.type == "BUY" && deal.expected == type);
+		//console.log(planetInfo.nodes)
+		//console.log(key)
+		//console.log(planetInfo)
+	} else {
+		if(gen) {
+			if(higher) {
+				filteredDeals = planetInfo.deals.filter(function(deal) {
+					var cargo = planetInfo.nodes.find((node) => node.uuid == deal.target);
+					return deal.type == "SELL" && cargo && cargo.body.type == type && cargo.body.gen >= gen;
+				});
+				//console.log(typedDeals);
+			} else {
+				filteredDeals = planetInfo.deals.filter(function(deal) {
+					var cargo = planetInfo.nodes.find((node) => node.uuid == deal.target);
+					return deal.type == "SELL" && cargo && cargo.body.type == type && cargo.body.gen == gen;
+				});
+			}
+		} else {
+			filteredDeals = planetInfo.deals.filter(function(deal) {
+				var cargo = planetInfo.nodes.find((node) => node.uuid == deal.target);
+				return deal.type == "SELL" && cargo && cargo.body.type == type;
+			});
+		}
+		//console.log(planetInfo.nodes);
+	}
+	return filteredDeals;
+}
+
+sdk.getSortedTrades = function(typedDeals, type, gen, higher, planetInfo, amount) {
+	let isMinerals = type == "MINERALS";
+
+	var sortedDeals = typedDeals.sort((a, b) => b.price - a.price * (isMinerals ? 1 : -1));
+
+	if(!isMinerals && gen && higher) {
+		var samePrice = sortedDeals.filter((item) => item.price == sortedDeals[0].price);
+		var sortedByGen = samePrice.sort(function(a, b) {
+			var cargoA = planetInfo.nodes.find((node) => node.uuid == a.target);
+			var cargoB = planetInfo.nodes.find((node) => node.uuid == b.target)
+			return cargoB.body.gen - cargoA.body.gen;
+		});
+		sortedDeals = sortedByGen;
+	} else if(isMinerals && amount) {
+		sortedDeals = sortedDeals.filter((item) => item.count >= amount);
+	}
+	return sortedDeals;
+}
+
+sdk.Ship.prototype.getBestTrade = function(type, gen, higher, system, amount) {
 
 	if(!system) {
 		if(!this.getCurrentSystem()) return 0;
@@ -605,61 +680,22 @@ sdk.Ship.prototype.getBestTrade = function(type, gen, higher, system) {
 	
 	var best = {planet: [], price: 0, uuid: []};
 
+	let isMinerals = type == "MINERALS";
+
 	multiLoop.deals[system] = multiLoop.deals[system] || {};
 
 	for (const [key, value] of Object.entries(multiLoop.deals[system])) {
-		//console.log(key)
-		//console.log(value.deals.filter((deal) => deal.type == "BUY" && deal.expected == type));
-		var typedDeals;
-		if(type == "MINERALS") {
-			typedDeals = value.deals.filter((deal) => deal.type == "BUY" && deal.expected == type);
-			//console.log(value.nodes)
-			//console.log(key)
-			//console.log(value)
-		} else {
-			if(gen) {
-				if(higher) {
-					typedDeals = value.deals.filter(function(deal) {
-						var cargo = value.nodes.find((node) => node.uuid == deal.target);
-						return deal.type == "SELL" && cargo && cargo.body.type == type && cargo.body.gen >= gen;
-					});
-					//console.log(typedDeals);
-				} else {
-					typedDeals = value.deals.filter(function(deal) {
-						var cargo = value.nodes.find((node) => node.uuid == deal.target);
-						return deal.type == "SELL" && cargo && cargo.body.type == type && cargo.body.gen == gen;
-					});
-				}
-			} else {
-				typedDeals = value.deals.filter(function(deal) {
-					var cargo = value.nodes.find((node) => node.uuid == deal.target);
-					return deal.type == "SELL" && cargo && cargo.body.type == type;
-				});
-			}
-			//console.log(value.nodes);
-		}
-		var sortedDeals;
-		if(type == "MINERALS") {
-			sortedDeals = typedDeals.sort((a, b) => b.price - a.price);
-		} else {
-			sortedDeals = typedDeals.sort((a, b) => a.price - b.price);
-		}
-		if(type != "MINERALS" && gen && higher) {
-			var samePrice = sortedDeals.filter((item) => item.price == sortedDeals[0].price);
-			var sortedByGen = samePrice.sort(function(a, b) {
-				var cargoA = value.nodes.find((node) => node.uuid == a.target);
-				var cargoB = value.nodes.find((node) => node.uuid == b.target)
-				return cargoB.body.gen - cargoA.body.gen;
-			});
-			sortedDeals = sortedByGen;
-		}
+		let typedDeals = sdk.getFilteredTrades(type, gen, higher, value);
+		let sortedDeals = sdk.getSortedTrades(typedDeals, type, gen, higher, value, amount);
+		//console.log(sortedDeals);
 		if(sortedDeals.length) {
-			if(type == "MINERALS") {
+			if(isMinerals) {
 				if(sortedDeals[0].price > best.price) {
-					best = {planet: [key], price: sortedDeals[0].price, uuid: [sortedDeals[0].uuid]};
+					best = {planet: [key], price: sortedDeals[0].price, uuid: [sortedDeals[0].uuid], amount: sortedDeals[0].count};
 				} else if(sortedDeals[0].price == best.price) {
 					best.planet.push(key);
 					best.uuid.push(sortedDeals[0].uuid);
+					best.amount += sortedDeals[0].count;
 				}
 			} else {
 				if(sortedDeals[0].price < best.price) {
@@ -676,20 +712,28 @@ sdk.Ship.prototype.getBestTrade = function(type, gen, higher, system) {
 	if(best.planet.length > 1 && !system) {
 		var closestPlanet = this.getClosestPlanet(best.planet);
 		var index = best.planet.indexOf(closestPlanet.uuid);
-		return {planet: closestPlanet.uuid, price: best.price, uuid: best.uuid[index]};
+		let struct = {planet: closestPlanet.uuid, price: best.price, uuid: best.uuid[index]};
+		if(isMinerals) struct.amount = best.amount;
+		return struct;
 	} else if(best.planet.length == 0) {
 		return undefined;
 	} else {
-		return {planet: best.planet[0], price: best.price, uuid: best.uuid[0]};
+		let struct = {planet: best.planet[0], price: best.price, uuid: best.uuid[0]};
+		if(isMinerals) struct.amount = best.amount;
+		return struct;
 	}
 
 }
 
-sdk.Ship.prototype.getBestMineralTradeInConstellation = function() {
+sdk.Ship.prototype.getBestTradeInConstellation = function(type, gen, higher) {
+
+}
+
+sdk.Ship.prototype.getBestMineralTradeInConstellation = function(minAmount) {
 	var best = {system: "", planet: [], price: 0, uuid: []};
 
 	for(const [system, planets] of Object.entries(multiLoop.deals)) {
-		var systemBest = this.getBestTrade("MINERALS", 1, false, system);
+		var systemBest = this.getBestTrade("MINERALS", 1, false, system, minAmount);
 		if(!systemBest) continue;
 		if(best.price < systemBest.price) {
 			best = systemBest;
@@ -706,16 +750,32 @@ sdk.Ship.prototype.getBestMineralTrade = function() {
 sdk.Ship.prototype.isPlanetDealsMinExpired = function(planet) {
 	if(!this.getCurrentSystem()) return -1;
 
-	var info = this.getPlanetsWithExpiredDeals()[planet];
-	return planet + MIN_TRADE_EXPIRE_TIME <= new Date().getTime();
+	var info = this.getPlanetsWithExpiredDeals().includes(planet);
+	//return !info || info.time + MIN_TRADE_EXPIRE_TIME <= new Date().getTime();
+	return info;
 }
-sdk.Ship.prototype.isPlanetDealsExpired = function(planet) {
+/*sdk.Ship.prototype.isPlanetDealsExpired = function(planet) {
 	if(!this.getCurrentSystem()) return -1;
 
-	var info = this.getPlanetsWithExpiredDeals()[planet];
-	return planet + RADE_EXPIRE_TIME <= new Date().getTime();
+	var info = this.getPlanetsWithExpiredDeals().includes(planet);
+	console.log(this.getPlanetsWithExpiredDeals())
+	return info;
+	//return !info || info.time + TRADE_EXPIRE_TIME <= new Date().getTime();
+}*/
+
+sdk.hasPlanetDealsBeenScanned = function(planet) {
+	let deals = multiLoop.deals;
+	return Object.values(deals).some(system => Object.keys(system).some(sysPlanet => sysPlanet == planet));
 }
 
+sdk.isPlanetDealsExpired = function(planet, min) {
+	if(!sdk.hasPlanetDealsBeenScanned(planet)) return true;
+	let planetDeals = sdk.getPlanetDeals(planet);
+	let time = planetDeals.time;
+	//console.log(time - new Date().getTime());
+	let expireTime = min ? MIN_TRADE_EXPIRE_TIME : TRADE_EXPIRE_TIME;
+	return time + expireTime <= new Date().getTime();
+}
 
 
 sdk.Ship.prototype.getLocalMemory = function() {
@@ -807,8 +867,8 @@ sdk.Ship.prototype.parkAtSpecifiedPlanet = async function(planetUuid) {
 														planet.body.vector.y)
 									);
 			var extended = mafs.extendLine(vect, 40);
-			await this.safeMove(extended.p2.x, extended.p2.y);
 			await this.safeLanding(planet.uuid);
+			await this.safeMove(extended.p2.x, extended.p2.y);
 			result = FLYING_TO_LANDABLE;
 		} else {
 			loggerShip.warn("CANT FIND PLANET")
@@ -932,6 +992,14 @@ sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, maxCost) {
 		}
 	}
 	return BODY_PART_UPGRADED;
+}
+
+sdk.Ship.prototype.upgradeBodyPartList = async function(list) {
+	for(let partStruct of list) {
+		let result = await this.upgradeBodyPart(partStruct.part, partStruct.gen, MINIMAL_BODY_COST);
+		if(result == CHANGING_BODY_PART || result == BUYING_BODY_PART) return CHANGING_PART; // Don't interrupt change of parts
+	}
+	return ALL_CHANGED;
 }
 
 

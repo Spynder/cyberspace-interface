@@ -207,7 +207,10 @@ module.exports = {
 		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_SADALBARI)		return SYSTEM_SADALBARI;
 		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SADALPHERIS)	return SYSTEM_SADALPHERIS;
 
-		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_IOTA_PEGASI) 		return SYSTEM_SCHEAT;
-		if(current == SYSTEM_MATAR	 	&& destination == SYSTEM_IOTA_PEGASI) 		return SYSTEM_SCHEAT;
+		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_IOTA_PEGASI) 	return SYSTEM_SCHEAT;
+		if(current == SYSTEM_MATAR	 	&& destination == SYSTEM_IOTA_PEGASI) 	return SYSTEM_SCHEAT;
+
+		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_SADALBARI) 	return SYSTEM_SCHEAT;
+		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_SALM) 			return SYSTEM_SCHEAT;
 	}
 }

@@ -78,7 +78,7 @@ module.exports = {
 				break;
 		}	
 
-		return `<img class="indicator" src="img/labels/Label${label}.png">`;	
+		return `<img class="label" src="img/labels/Label${label}.png">`;	
 	},
 
 	generateShipHtml: function(shipStruct) {

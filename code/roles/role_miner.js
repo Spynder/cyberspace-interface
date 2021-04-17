@@ -56,12 +56,6 @@ module.exports = {
 
 		console.log(memory.homeSystem, ship.getFuel(), ship.getMaxFuel(), ship.details.parent.uuid, (ship.getLocalMemory()).location);
 
-		//console.log(await sdk.profileTime(ship.getMaxFuel.bind(ship)));
-
-		var hullTrade = ship.getBestTrade("HULL", 3, true);
-		var engineTrade = ship.getBestTrade("ENGINE", 3, true);
-		var tankTrade = ship.getBestTrade("TANK", 3, true);
-
 		var bestMineralTrade = ship.getBestMineralTrade();
 		console.log(bestMineralTrade);
 		//console.log(tankTrade);
@@ -73,15 +67,13 @@ module.exports = {
 		}*/
 		//console.log(hullTrade)
 
-		console.log(engineTrade);
+		console.log("EXPIRED")
+		console.log(sdk.hasPlanetDealsBeenScanned("Drewsa") && !sdk.isPlanetDealsExpired("Drewsa"));
 
-		let upgradedParts = [{part: "HULL", gen: 3}, {part: "ENGINE", gen: 3}];
+		let requiredParts = [{part: "HULL", gen: 3}, {part: "ENGINE", gen: 3}];
 
-		for(let partStruct of upgradedParts) {
-			let result = await ship.upgradeBodyPart(partStruct.part, partStruct.gen, MINIMAL_BODY_COST);
-			console.log(result);
-			if(result == CHANGING_BODY_PART || result == BUYING_BODY_PART) return; // Don't do anything else until BP is upgraded, or skip if ship has minerals.
-		}
+		let upgradeResult = await ship.upgradeBodyPartList(requiredParts);
+		if(upgradeResult == CHANGING_PART) return;
 
 		console.log("IM ALIVE PAST THAT")
 		
@@ -90,7 +82,7 @@ module.exports = {
 		var currLocation = mafs.findWarpDestination(ship.getLocalMemory().location, dest);
 
 		
-		console.log(ship.getBestMineralTradeInConstellation());
+		console.log(ship.getBestMineralTradeInConstellation(500));
 
 		if(ship.details.body.balance < KEEP_MINIMUM && ship.getCurrentSystem() == SYSTEM_SCHEAT) {
 			loggerShip.info("Operating " + KEEP_MINIMUM + " for safe warping.");
@@ -189,7 +181,7 @@ module.exports = {
 			return;
 		}
 
-		else if((/*details.body.balance > 1100 ||*/ (details.body.balance > KEEP_MINIMUM && sortedCargos.length == 0)) && /*(memory.homeSystem == HOME_SYSTEM || ship.details.parent.uuid == SYSTEM_SCHEAT)*/ radarData.nodes.find((instance) => instance.type == "BusinessStation")) {
+		else if((details.body.balance > 50000 || (details.body.balance > KEEP_MINIMUM && sortedCargos.length == 0)) && /*(memory.homeSystem == HOME_SYSTEM || ship.details.parent.uuid == SYSTEM_SCHEAT)*/ radarData.nodes.find((instance) => instance.type == "BusinessStation")) {
 			/*loggerShip.info("I have some money on me, so i'm flying to business station to deposit it there!");
 			await ship.safeEscape();
 		    var tradeStation = radarData.nodes.filter((instance) => instance.type == "BusinessStation")[0]; // replace to find
