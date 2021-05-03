@@ -62,7 +62,10 @@ module.exports = {
 				await ship.parkAtSpecifiedPlanet(memory.scoutingPlanet);
 			}
 			var planetInfo = await ship.safeScan(memory.scoutingPlanet);
-			ship.setPlanetDeals(planetInfo);
+			if(planetInfo) {
+				ship.setPlanetDeals(planetInfo);
+				loggerShip.info("Updated planet deals for " + memory.homeSystem + " - " + memory.scoutingPlanet + ".");
+			}
 		}
 	}
 }

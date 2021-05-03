@@ -10,6 +10,14 @@ module.exports = {
 		};
 	},
 
+	getShipState: function(item) {
+		//console.log(item)
+		let parked = item.parked == undefined ? true : item.parked;  // Default: true
+		let active = item.active == undefined ? false : item.active; // Default: false
+		let state = (active) + (!parked)*2; // aka Bit operations...
+		//console.log(item.ID, state)
+		return state;
+	},
 
 	generateShipFuel: function(fuel, fuelMax) {
 		var fuelStat = STAT_GOOD;
@@ -52,28 +60,27 @@ module.exports = {
 		return `<p class="systemText">System: <span class="${systemStat}">${system}</span></p>`;
 	},
 
-	generateShipRole: function(role) {
-		return `<img class="shipIcon" src="img/roles/role${role ? role : "Unknown"}.png">`;
+	generateShipRole: function(objectStruct) {
+		if(objectStruct)
+		roleName = objectStruct.type == "Ship" ? objectStruct.role : "Planet";
+		return `<img class="objectIcon" src="img/roles/role${roleName ? roleName : "Unknown"}.png">`;
 	},
 
-	generateShipLabel: function(active, parked) {
-		parked = parked == undefined ? true : parked;  // Default: true
-		active = active == undefined ? false : active; // Default: false
-		var label = "Off";
-		let state = (active) + (!parked)*2; // aka Bit operations...
-		// 0 = !active, parked
-		// 1 = active, parked
+	generateShipLabel: function(item) {
+		let state = this.getShipState(item);
+		//console.log(item.ID, this.getShipState(item));
+
 		switch(state) {
-			case SHIPSTATE_OFF:
+			case SHIPSTATE.OFF:
 				label = "Off";
 				break;
-			case SHIPSTATE_WAIT:
-				label = "Wait"; //"Wait";
+			case SHIPSTATE.WAIT:
+				label = "Wait";
 				break;
-			case SHIPSTATE_PARK:
+			case SHIPSTATE.PARK:
 				label = "Park";
 				break;
-			case SHIPSTATE_ON:
+			case SHIPSTATE.ON:
 				label = "On";
 				break;
 		}	
@@ -86,7 +93,7 @@ module.exports = {
 		var balanceText = this.generateShipBalance(shipStruct.balance);
 		var systemText = this.generateShipSystem(shipStruct.system);
 		var roleImg = this.generateShipRole(shipStruct.role);
-		var labelImg = this.generateShipLabel(shipStruct.active, shipStruct.parked);
+		var labelImg = this.generateShipLabel(shipStruct);
 		return `<div class="ship" shipID=${shipStruct.ID}>
 					<div class="iconBlock">
 						<span class="helper"></span>
@@ -101,6 +108,97 @@ module.exports = {
 					<div class="indicators">
 						${labelImg}
 						<button class="shipActivity ${shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE}"></button>
+					</div>
+				</div>`;
+	},
+
+	generatePlanetCtzn: function(objectStruct) {
+		let text = `<span class="${STAT_UNKNOWN}">?</span>`;
+		if(objectStruct.hasOwnProperty("body")) {
+			let ctzn = objectStruct.body.ctzn;
+			let size = objectStruct.body.size;
+			text = `<span class="${STAT_GOOD}">${ctzn} / ${size}</span>`;
+		}
+		return `<p class="citizenText">Citizens: ${text}</p>`;
+	},
+
+	generatePlanetHtml: function(planetStruct) {
+		/*var fuelText = this.generateShipFuel(shipStruct.fuel, shipStruct.fuelMax);
+		var balanceText = this.generateShipBalance(shipStruct.balance);
+		var systemText = this.generateShipSystem(shipStruct.system);
+		var roleImg = this.generateShipRole(shipStruct.role);
+		var labelImg = this.generateShipLabel(shipStruct);*/
+		let roleImg = this.generateShipRole("Planet");
+		console.log(planetStruct)
+		let ctznText = this.generatePlanetCtzn(planetStruct.body.ctzn, planetStruct.body.size);
+		return `<div class="ship" shipID=${planetStruct.ID}>
+					<div class="iconBlock">
+						<span class="helper"></span>
+						${roleImg}
+					</div>
+					<div class="shipInfo">
+						<h2>${planetStruct.ID.toUpperCase()}</h2>
+						${ctznText}
+					</div>
+					<div class="indicators">
+						
+						<button class="shipActivity ${planetStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE}"></button>
+					</div>
+				</div>`;
+	},
+
+	generatePlanetMinerals: function(objectStruct) {
+		let text = `<span class="${STAT_UNKNOWN}">?</span>`;
+		if(objectStruct.hasOwnProperty("body")) {
+			text = `<span class="${STAT_GOOD}">${objectStruct.nodes.find(cargo => cargo.body.type == "MINERALS").body.size}</span>`;
+		}
+		
+		return `<p class="systemText">Minerals: <span class="${STAT_GOOD}">${text}</span></p>`;
+	},
+
+	generatePlanetBalance: function(objectStruct) {
+		let text = `<span class="${STAT_UNKNOWN}">?</span>`;
+		if(objectStruct.hasOwnProperty("body")) {
+			text = `<span class="${STAT_GOOD}">${objectStruct.body.balance}</span>`;
+		}
+		return `<p class="citizenText">Balance: ${text}</p>`;
+	},
+
+	generateObjectInfo: function(objectStruct) {
+		let rows = [];
+		console.log(objectStruct)
+		if(objectStruct.type == "Ship") {
+			rows.push(this.generateShipFuel(objectStruct.fuel, objectStruct.fuelMax));
+			rows.push(this.generateShipBalance(objectStruct.balance));
+			rows.push(this.generateShipSystem(objectStruct.system));
+		} else if(objectStruct.type == "Planet") {
+			rows.push(this.generatePlanetCtzn(objectStruct));
+			rows.push(this.generatePlanetBalance(objectStruct));
+			rows.push(this.generatePlanetMinerals(objectStruct));
+		}
+
+		return `<div class="objectInfo">
+					<h2>${objectStruct.ID.toUpperCase()}</h2>
+					${rows[0]}
+					${rows[1]}
+					${rows[2]}
+				</div>`;
+	},
+
+	generateObjectHtml: function(objectStruct) {
+		//console.log(objectStruct);
+		let roleImg = this.generateShipRole(objectStruct);
+		var labelImg = this.generateShipLabel(objectStruct);
+		let objectInfo = this.generateObjectInfo(objectStruct);
+		return `<div class="object" objID=${objectStruct.ID}>
+					<div class="iconBlock">
+						<span class="helper"></span>
+						${roleImg}
+					</div>
+					${objectInfo}
+					<div class="indicators">
+						${(objectStruct.type == "Ship") ? labelImg : ""}
+						<button class="objectActivity ${objectStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE}"></button>
 					</div>
 				</div>`;
 	},
@@ -181,14 +279,5 @@ module.exports = {
 	getPointOnCircle: function(dx, dy, rad, angle) {
 		return {x: dx + rad * Math.sin(angle),
 				y: dy + rad * Math.cos(angle)};
-	},
-
-	extendLine: function(line, length) {
-		var p1 = line.p1;
-		var p2 = line.p2;
-		lenAB = Math.sqrt(Math.pow(p1.x - p2.x, 2.0) + Math.pow(p1.y - p2.y, 2.0));
-		var extendedEnd = {	x: p2.x + (p2.x - p1.x) / lenAB * length, 
-							y: p2.y + (p2.y - p1.y) / lenAB * length};
-		return {p1: p1, p2: extendedEnd};
 	},
 }

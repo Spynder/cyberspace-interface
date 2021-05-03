@@ -18,48 +18,74 @@ if(webContents) web = webContents.getAllWebContents()[0];
 *	* Fatal
 */
 
-global.multiLoop = {flyingFor: {}, localMemory: {}, deals: {}, noDealsFlying: {}, activeShips: []};
+global.multiLoop = {flyingFor: {}, localMemory: {}, deals: {}, noDealsFlying: {}, activeObjects: [], attackerTargets: {}};
 
 
 // {ID: 1234567890, active: false, parked: true};
-//var activeShips = [];
+//var activeObjects = [];
 
-ipcMain.on("shipActivity", (event, arg) => {
+ipcMain.on("objectActivity", (event, arg) => {
 	//console.log(arg);
-	var index = multiLoop.activeShips.findIndex(item => item.ID == arg.ID);
-	if(index == -1) multiLoop.activeShips.push(arg);
-	else multiLoop.activeShips[index].active = arg.active;
+	var index = multiLoop.activeObjects.findIndex(item => item.ID == arg.ID);
+	if(index == -1) multiLoop.activeObjects.push(arg);
+	else multiLoop.activeObjects[index].active = arg.active;
 })
 
 const actionDelay = 200;
 var loop = async function(account, ships, planets) {
 	await account.safeAssemble();
 	
-	/*for(var planet of planets) {
-		await planetLoop(account, planet);
-	}*/
-	let shipNumber = multiLoop.activeShips.reduce(function(acc, val) {
+	for(var planet of planets) {
+		let objObj = multiLoop.activeObjects.find(entry => entry.ID == planet.uuid);
+		// If we have entry, leave as is, otherwise get default value based on GUI presense.
+		let active = (objObj && objObj.hasOwnProperty("active")) ? objObj.active : (isGUILaunched() ? false : true);
+		let parked = (objObj && objObj.hasOwnProperty("parked")) ? objObj.parked : (isGUILaunched() ? true : false);
+		let options = {active: active}; 
+		if(active || !parked) {
+			await planetLoop(account, planet);
+		} else {
+			var struct = {	type: "Planet",
+							ID: planet.uuid};
+
+			sendInfo("planetInfo", struct);
+		}		
+	}
+	
+	await dbManager.cleanDeadEntries(ships);
+	
+	let shipNumber = multiLoop.activeObjects.reduce(function(acc, val) {
 		let active = val.active != undefined ? val.active : (isGUILaunched() ? false : true);
 		let parked = val.parked != undefined ? val.parked : (isGUILaunched() ? true : false);
 		return (active || !parked ? 1 : 0) + acc;
 	}, 0);
-	if(shipNumber > 0) {
+	if(shipNumber > 0 || true) { // TODO: fix || true
 		for(let ship of ships) {
-			let shipObj = multiLoop.activeShips.find(entry => entry.ID == ship.uuid);
+			let objObj = multiLoop.activeObjects.find(entry => entry.ID == ship.uuid);
 			// If we have entry, leave as is, otherwise get default value based on GUI presense.
-			let active = shipObj ? shipObj.active : (isGUILaunched() ? false : true);
-			let parked = shipObj ? shipObj.parked : (isGUILaunched() ? true : false);
+			let active = (objObj && objObj.hasOwnProperty("active")) ? objObj.active : (isGUILaunched() ? false : true);
+			let parked = (objObj && objObj.hasOwnProperty("parked")) ? objObj.parked : (isGUILaunched() ? true : false);
 			let options = {active: active}; 
 			if(active || !parked) {
 				await shipLoop(account, ship, options);
+			} else {
+				let shipMemory = await sdk.dbManager.getMemory(ship);
+				var struct = {	type: "Ship",
+								ID: ship.uuid,
+								role: shipMemory.role,
+								memory: shipMemory};
+
+				sendInfo("shipInfo", struct);
 			}
+		}
+		if(shipNumber == 0) {
+			loggerConsole.info("No ships activated!");
+			await delay(5000);
 		}
 	} else {
 		loggerConsole.info("No ships activated!");
 		await delay(5000);
 	}
 
-	await dbManager.cleanDeadEntries(ships);
 	loggerConsole.debug("Done the cycle, repeating.");
 }
 

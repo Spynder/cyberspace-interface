@@ -66,7 +66,7 @@ canvas {
 	height: 100vh;
 }
 
-#shipsContainer {
+#objectsContainer {
 	flex: 1 1 auto;
 	overflow-y: scroll;
 }
@@ -86,7 +86,7 @@ h1, h2, p {
 	padding: 0;
 }
 
-.ship {
+.object {
 	height: 100px;
 	margin: 5px;
 	border: 1px black solid;
@@ -95,12 +95,12 @@ h1, h2, p {
 	background: #555;
 }
 
-.ship:hover {
+.object:hover {
 	background: #484848;
 	cursor: pointer;
 }
 
-.ship:active {
+.object:active {
 	background: #444;
 	position: relative;
 	top: 1px;
@@ -128,19 +128,19 @@ h2 {
     height: 100%;
 }
 
-.shipIcon {
+.objectIcon {
 	vertical-align: middle;
 	margin: 9px;
 	width: 64px;
 	height: 64px;
 }
 
-.shipInfo {
+.objectInfo {
 	float: left;
 	margin-left: 16px;
 }
 
-.shipInfo img {
+.objectInfo img {
 	display: inline-block;
 	float: right;
 }
@@ -157,7 +157,7 @@ h2 {
 	margin: 4px;
 }
 
-.shipActivity {
+.objectActivity {
 	margin: 4px;
 	margin-top: auto;
 	height: 24px;
@@ -168,11 +168,11 @@ h2 {
 .shipOnline	 { background: url('../img/buttons/ButtonOn.png'); 	}
 .shipOffline { background: url('../img/buttons/ButtonOff.png'); }
 
-.shipActivity:hover { cursor: pointer; }
+.objectActivity:hover { cursor: pointer; }
 .shipOnline:hover { background: url('../img/buttons/ButtonOnHover.png'); }
 .shipOffline:hover { background: url('../img/buttons/ButtonOffHover.png'); }
 
-.shipActivity:active { position: relative; top: 1px; }
+.objectActivity:active { position: relative; top: 1px; }
 .shipOnline:active { background: url('../img/buttons/ButtonOnPress.png'); }
 .shipOffline:active { background: url('../img/buttons/ButtonOffPress.png'); }
 

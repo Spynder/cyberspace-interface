@@ -19,39 +19,36 @@ module.exports = {
 		console.log("FREIGHTER");
 		
 		var returningBack = ship.hasMinerals() || ship.getHold() > 300;
-		returningBack = true;
+		//returningBack = true;
 		var immediatePark = !options.active;
-
-		let requiredParts = [{part: "HULL", gen: 6}, {part: "ENGINE", gen: 5}, {part: "TANK", gen: 5}];
-		let upgradeResult = await ship.upgradeBodyPartList(requiredParts);
-		if(upgradeResult == CHANGING_PART) return;
 
 		if(immediatePark) {
 			loggerShip.info("Parking at nearby landable by command.");
 			await ship.parkAtNearbyLandable();
-			console.log(ship.getLocation());
 			if(ship.getLocation() != LOCATION_SYSTEM) {
 				ship.setParked(true);
 			}
 			return;
 		}
 
-		var home = SYSTEM_SADALBARI;
-		var dest = SYSTEM_IOTA_PEGASI;
-		var planetName = "Thailara";
+		let requiredParts = [{part: "HULL", gen: 5}, {part: "ENGINE", gen: 4}, {part: "TANK", gen: 5}];
+		let upgradeResult = await ship.upgradeBodyPartList(requiredParts);
+		if(upgradeResult == CHANGING_PART) return;
 
-		var currLocation;
-		if(!returningBack) {
-			currLocation = mafs.findWarpDestination(ship.getLocationName(), dest);
-		} else {
-			currLocation = mafs.findWarpDestination(ship.getLocationName(), home);
-		}
+		/*(await ship.safeScan("Decceon")).nodes.forEach(function(item) {
+			console.log(item.nodes)
+		})*/
 
-		var bestMineralTrade = ship.getBestMineralTrade();
+		var home = SYSTEM_SADALPHERIS;
+		var dest = SYSTEM_ALGENIB;
+		var planetName = "Natov";
+
+		let bestMineralTradeInConstellation = ship.getBestMineralTradeInConstellation(500);
+		var bestMineralTradeInSystem = ship.getBestMineralTrade();
 		var mineralAmount = (ship.getMaxHold() * 0.7) - ship.getHold();
-		var requiredBalance = 5000;
+		var requiredBalance = 5000 + ((ship.getMaxFuel() - ship.getFuel()) * 10);
 		console.log(ship.getBestMineralTradeInConstellation(500));
-		console.log(bestMineralTrade);
+		console.log(bestMineralTradeInSystem);
 
 		if(ship.getCurrentSystem() == dest && ship.getLocationName() != planetName) {
 			await ship.safeEscape();
@@ -61,33 +58,32 @@ module.exports = {
 			await ship.safeEscape();
 		}
 
-		else if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != dest) {
-			console.log("landing at nearby")
+		if(ship.details.body.balance != requiredBalance && !ship.hasMinerals() && ship.getCurrentSystem() == SYSTEM_SCHEAT) {
+			loggerShip.info("Operating " + requiredBalance + "!");
+			await ship.operateMoney(requiredBalance);
+			return;
+		}
+
+		else if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != dest && HIGH_SEC_SYSTEMS.includes(ship.getCurrentSystem())) {
+			loggerShip.info("Landing at nearby to refuel.");
 			await ship.parkAtNearbyLandable();
 			await ship.safeFuel(); // todo? maybe fuel is included in first func
 			return;
 		}
 
-		else if(ship.getFuel() == ship.getMaxFuel() && ship.getCurrentSystem() != (returningBack ? home : dest)) {
+		else if(ship.getFuel() == ship.getMaxFuel() && ship.getCurrentSystem() != (returningBack ? home : dest) && ship.getLocation() != LOCATION_SYSTEM) {
+			loggerShip.info("Escaping from atmosphere to fly to destination!");
 			await ship.safeEscape();
 		}
 
-		if(ship.details.body.balance > requiredBalance && !ship.hasMinerals() && ship.getCurrentSystem() == SYSTEM_SCHEAT) {
-			await ship.operateMoney(requiredBalance);
+		if(ship.getCurrentSystem() != (returningBack ? home : dest)) {
+			await ship.warpToSystem(returningBack ? home : dest);
 		}
 
-		else if(currLocation) {
-			loggerShip.info("Warping " + ship.getLocationName() + " > " + currLocation);
-			await ship.safeEscape();
-			var coords = WARPS[(ship.getLocalMemory()).location][currLocation];
-			await ship.safeMove(coords.x, coords.y);
-			await ship.safeWarp(currLocation);
-		}
-
-		else if(ship.getCurrentSystem() == home && returningBack && ship.hasMinerals() && bestMineralTrade) {
+		else if(ship.getCurrentSystem() == home && returningBack && ship.hasMinerals() && bestMineralTradeInSystem) {
 			loggerShip.info("I have minerals on the board, so I'm flying to planet and try to sell them.");
 
-			var deal = bestMineralTrade;
+			var deal = bestMineralTradeInSystem;
 			await ship.parkAtSpecifiedPlanet(deal.planet);
 
 			console.log(deal)
@@ -113,7 +109,7 @@ module.exports = {
 		}
 
 		
-		else if(ship.getCurrentSystem() == dest && !returningBack && ship.getLocation() == LOCATION_SYSTEM) {
+		if(ship.getCurrentSystem() == dest && !returningBack && ship.getLocation() == LOCATION_SYSTEM) {
 			loggerShip.warn("Landing on " + planetName)
 			var planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
 			var planet = planets.find((pla) => pla.uuid == planetName);
@@ -123,8 +119,8 @@ module.exports = {
 														planet.body.vector.y)
 									);
 			var extended = mafs.extendLine(vect, 40);
-			await ship.safeMove(extended.p2.x, extended.p2.y);
 			await ship.safeLanding(planet.uuid);
+			await ship.safeMove(extended.p2.x, extended.p2.y);
 			await ship.safeFuel();
 		}
 

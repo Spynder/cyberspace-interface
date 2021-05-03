@@ -20,7 +20,7 @@ module.exports = {
 			var allMemories = db.prepare(`SELECT memory FROM ships`).all();
 			var rolesInDB = allMemories.map(item => JSON.parse(item.memory).roleID);
 			var missing = -1;
-			for (var i = 0; i < /*ROLES.length*/ allMemories.length; i++) {
+			for (var i = 0; i < allMemories.length; i++) {
 				if(rolesInDB.indexOf(i) == -1) {
 					missing = i;
 					break;

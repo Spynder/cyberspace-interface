@@ -212,5 +212,143 @@ module.exports = {
 
 		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_SADALBARI) 	return SYSTEM_SCHEAT;
 		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_SALM) 			return SYSTEM_SCHEAT;
+
+		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_MARKAB) 		return SYSTEM_SALM;
+		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_MARKAB) 		return SYSTEM_MARKAB;
+		if(current == SYSTEM_MARKAB 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SALM;
+		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
+
+		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_SIRRAH) 		return SYSTEM_SIRRAH;
+		if(current == SYSTEM_SIRRAH	 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
+	},
+
+	findWarpPath: function(start, end, maxFuel) {
+		// Thanks to https://en.wikipedia.org/wiki/A*_search_algorithm
+		// and https://youtu.be/aKYlikFAV4k
+
+		let openSet = [];
+		let closedSet = [];
+		let allSystems = [];
+
+		function systemSpot(x, y, systemName) {
+			this.x = x;
+			this.y = y;
+			this.name = systemName;
+
+			this.f = 0;
+			this.g = 0;
+			this.h = 0;
+			this.neighbors = [];
+			this.previous = undefined;
+
+			this.fuelNeeded = function(spot) {
+				return Math.hypot(this.x - spot.x, this.y - spot.y) / 10;
+			}
+
+			this.addNeighbors = function() {
+				for(let system of allSystems) {
+					if(this.fuelNeeded(system) <= maxFuel && this != system) {
+						this.neighbors.push(system);
+					}
+				}
+			}
+
+			this.valueOf = function() {
+				return this.name;
+			}
+		}
+
+		function findSystemSpot(system) {
+			return allSystems.find(sys => sys == system);
+		}
+
+		function systemInClosedSet(system) {
+			return closedSet.findIndex(sys => sys == system) != -1;
+		}
+
+		function systemInOpenSet(system) {
+			return openSet.findIndex(sys => sys == system) != -1;
+		}
+
+		for(let system of SYSTEMS) { // Create systemSpots
+			allSystems.push(new systemSpot(system.x, system.y, system.name));
+		}
+
+		for(let [index, system] of allSystems.entries()) { // Fill all neighbors for them
+			allSystems[index].addNeighbors();
+		}
+
+		let startSpot = findSystemSpot(start);
+		let endSpot = findSystemSpot(end);
+
+		openSet.push(startSpot);
+
+		while(openSet.length > 0) { // A* algorithm
+			let lowestIndex = 0;
+			for(let [index, item] of openSet.entries()) { // .entries() allows to get an index
+				if(item.f < openSet[lowestIndex]) {
+					lowestIndex = index;
+				}
+			}
+
+			let currentSpot = openSet[lowestIndex];
+
+			if(currentSpot == end) {
+				let path = [];
+				let temp = currentSpot;
+				path.unshift(temp.name);
+				while(temp.previous) {
+					temp = temp.previous;
+					path.unshift(temp.name);
+				}
+				console.log("DONE");
+
+				// return cost (fuel needed in total)
+				return path;
+			}
+
+			openSet.splice(openSet.findIndex(spot => spot == currentSpot), 1);
+			closedSet.push(currentSpot);
+
+			let neighbors = currentSpot.neighbors;
+
+			for(let neighbor of neighbors) {
+				if(!systemInClosedSet(neighbor)) {
+					let tempG = currentSpot.g + currentSpot.fuelNeeded(neighbor); // heuristic function
+
+					let newPath = false;
+					if(systemInOpenSet(neighbor)) {
+						if(tempG < neighbor.g) {
+							neighbor.g = tempG;
+							newPath = true;
+						}
+					} else {
+						neighbor.g = tempG;
+						openSet.push(neighbor);
+						newPath = true;
+					}
+
+					if(newPath) {
+						neighbor.h = neighbor.fuelNeeded(endSpot);
+						neighbor.f = neighbor.g + neighbor.h;
+						neighbor.previous = currentSpot;
+					}
+				}
+			}
+		}
+
+		console.log("Solution is absent! :D")
+		return [];
+	},
+
+	getWarpCoords: function(from, to) {
+		let rad = 8000;
+
+		let x = SYSTEMS.find(sys => sys.name == to).x - SYSTEMS.find(sys => sys.name == from).x;
+		let y = SYSTEMS.find(sys => sys.name == to).y - SYSTEMS.find(sys => sys.name == from).y;
+
+		return {x: rad * Math.cos(Math.atan2(y, x)),
+				y: rad * Math.sin(Math.atan2(y, x))};
+		//return WARPS[from][to];
 	}
 }

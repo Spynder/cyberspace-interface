@@ -1,6 +1,7 @@
 const {ipcRenderer} = require('electron');
-require("./js/graphicsConstants");
+require("./../code/libs/constants");
 var gh = require("./js/graphicHelpers");
+var mafs = require("./../code/libs/mafs");
 var _ = require("lodash");
 
 $(document).ready(function() {
@@ -14,6 +15,7 @@ $(document).ready(function() {
 
 	var ships = [];
 	var planets = [];
+	let objects = [];
 
 	var enabledShips = 0; // TODO replace to a function
 
@@ -91,10 +93,25 @@ $(document).ready(function() {
 	}
 
 	function generateShipList() {
+		generateObjectList();
+		return;
 		if($("shipsContainer").children().length != ships.length) { // TODO: they might be different, but same value: [a, b] => [a] => [a, c]
 			$("#shipsContainer").empty();
 			planets.forEach(function(planet) {
-				
+				var item = $(gh.generatePlanetHtml(planet));
+				$("#shipsContainer").append(item);
+				var planetStruct = ships.find(obj => obj.ID == item.attr("shipID"));
+				item.click(function() {
+					//currSelectedShip = item.attr("shipID");
+					//renderJson(ships[getShipIndexByID(planetStruct.ID)]);
+				});
+				var activityBtn = item.find(".indicators").find(".shipActivity");
+				/*activityBtn.click(function(event) {
+					event.stopPropagation();
+					shipStruct = ships.find(obj => obj.ID == item.attr("shipID")); // TODO: Since then element might have been updated
+					ships[ships.indexOf(shipStruct)].active = !shipStruct.active;
+					updateShipItem(shipStruct.ID);
+				});*/
 			});
 
 			ships.forEach(function(ship) {
@@ -102,6 +119,7 @@ $(document).ready(function() {
 				$("#shipsContainer").append(item);
 				var shipStruct = ships.find(obj => obj.ID == item.attr("shipID"));
 				item.click(function() {
+					currSelectedShip = item.attr("shipID");
 					renderJson(ships[getShipIndexByID(shipStruct.ID)]);
 				});
 				var activityBtn = item.find(".indicators").find(".shipActivity");
@@ -110,7 +128,32 @@ $(document).ready(function() {
 					shipStruct = ships.find(obj => obj.ID == item.attr("shipID")); // TODO: Since then element might have been updated
 					ships[ships.indexOf(shipStruct)].active = !shipStruct.active;
 					updateShipItem(shipStruct.ID);
-				})
+				});
+			});
+		}
+	}
+
+	function generateObjectList() {
+		//console.log()
+		if($("#objectsContainer").children().length != objects.length) { // TODO: they might be different, but same value: [a, b] => [a] => [a, c]
+			$("#objectsContainer").empty();
+			objects.forEach(function(obj) {
+				var item = $(gh.generateObjectHtml(obj));
+				$("#objectsContainer").append(item);
+				var objStruct = objects.find(obj => obj.ID == item.attr("objID"));
+				item.click(function() {
+					if(objStruct.type == "Ship") {
+						currSelectedShip = item.attr("objID");
+					}
+					renderJson(objects[getObjectIndexByID(objStruct.ID)]);
+				});
+				var activityBtn = item.find(".indicators").find(".objectActivity");
+				activityBtn.click(function(event) {
+					event.stopPropagation();
+					objStruct = objects.find(obj => obj.ID == item.attr("objID")); // TODO: Since then element might have been updated
+					objects[objects.indexOf(objStruct)].active = !objStruct.active;
+					updateObjectItem(objStruct.ID);
+				});
 			});
 		}
 	}
@@ -137,6 +180,22 @@ $(document).ready(function() {
 		return planets.findIndex(planet => planet.ID == ID);
 	}
 
+
+
+	function findObjectItemByID(ID) {
+		return $(`.object[objID = '${ID}']`);
+	}
+
+	function getObjectIndexByID(ID) {
+		return objects.findIndex(object => object.ID == ID);
+	}
+
+	function getObjectStructByID(ID) {
+		return objects[getObjectIndexByID(ID)];
+	}
+
+
+
 	function getRandomInt(min, max) {
 		min = Math.ceil(min);
 		max = Math.floor(max);
@@ -153,7 +212,7 @@ $(document).ready(function() {
 			item.find(".systemText").replaceWith(gh.generateShipSystem(shipStruct.system));
 
 			item.find(".shipIcon").replaceWith(gh.generateShipRole(shipStruct.role));
-			item.find(".label").replaceWith(gh.generateShipLabel(shipStruct.active, shipStruct.parked));
+			item.find(".label").replaceWith(gh.generateShipLabel(shipStruct));
 			
 			// Update label
 
@@ -168,15 +227,60 @@ $(document).ready(function() {
 		}
 	}
 
-	ipcRenderer.on("shipParked", (event, arg) => {
-		let index = getShipIndexByID(arg.ID);
-		if(index != -1) {
-			ships[index].parked = arg.parked;
+	function updateObjectItem(objectID, ignoreShipTextUpdate) {
+		var objectStruct = getObjectStructByID(objectID);
+		if(objectStruct) {
+			var item = findObjectItemByID(objectStruct.ID);
+
+			item.find(".objectInfo").replaceWith(gh.generateObjectInfo(objectStruct));
+
+			item.find(".objectIcon").replaceWith(gh.generateShipRole(objectStruct.role));
+			item.find(".label").replaceWith(gh.generateShipLabel(objectStruct));
+			
+			// Update label
+
+			var btn = item.find(".indicators").find(".objectActivity");
+			btn.removeClass(objectStruct.active ? SHIPACTIVITY_OFFLINE : SHIPACTIVITY_ONLINE);
+			btn.addClass(objectStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
+
+			ipcRenderer.send("objectActivity", {ID: objectStruct.ID, active: objectStruct.active});
 		}
-		updateShipItem(arg.ID);
+
+		if(!ignoreShipTextUpdate) {
+			updateShipText();
+		}
+	}
+
+	ipcRenderer.on("shipParked", (event, arg) => {
+		let index = getObjectIndexByID(arg.ID);
+		if(index != -1) {
+			objects[index].parked = arg.parked;
+		}
+		updateObjectItem(arg.ID);
 	});
 
+	function updateInfo(event, arg) {
+		var id = arg.ID;
+		var itemID = getObjectIndexByID(id);
+		if(itemID == -1) {
+			arg.active = false;
+			objects.push(arg);
+			generateObjectList();
+		} else {
+			let filteredArg = {};
+			Object.keys(arg).filter(item => arg[item] != undefined).forEach(item => filteredArg[item] = arg[item]);
+			objects[itemID] = Object.assign({}, objects[itemID], filteredArg);
+			//copy = ships[itemID];
+			//ships[itemID] = arg;
+			//ships[itemID].active = copy.active;
+			//ships[itemID].parked = copy.parked;
+		}
+		updateObjectItem(id);
+	}
+
 	ipcRenderer.on("shipInfo", (event, arg) => {
+		updateInfo(event, arg);
+		return;
 		var id = arg.ID;
 		var itemID = getShipIndexByID(id);
 		if(itemID == -1) {
@@ -187,6 +291,27 @@ $(document).ready(function() {
 			let filteredArg = {};
 			Object.keys(arg).filter(item => arg[item] != undefined).forEach(item => filteredArg[item] = arg[item]);
 			ships[itemID] = Object.assign({}, ships[itemID], filteredArg);
+			//copy = ships[itemID];
+			//ships[itemID] = arg;
+			//ships[itemID].active = copy.active;
+			//ships[itemID].parked = copy.parked;
+		}
+		updateShipItem(id);
+	});
+
+	ipcRenderer.on("planetInfo", (event, arg) => {
+		updateInfo(event, arg);
+		return;
+		var id = arg.ID;
+		var itemID = getPlanetIndexByID(id);
+		if(itemID == -1) {
+			arg.active = false;
+			planets.push(arg);
+			generateShipList();
+		} else {
+			let filteredArg = {};
+			Object.keys(arg).filter(item => arg[item] != undefined).forEach(item => filteredArg[item] = arg[item]);
+			planets[itemID] = Object.assign({}, planets[itemID], filteredArg);
 			//copy = ships[itemID];
 			//ships[itemID] = arg;
 			//ships[itemID].active = copy.active;
@@ -215,11 +340,12 @@ $(document).ready(function() {
 
 	function updateShipText() {
 		enabledShips = ships.filter(item => item.active).length;
-		$("#disableAll").text(enabledShips == 0 ? SHIPS_UNACTIVE : SHIPS_ACTIVE);
+		$("#disableAll").text(enabledShips == 0 ? SHIPS_DISABLED : SHIPS_ENABLED);
 		/*if($("shipsContainer").children().length != ships.length) {
 			generateShipList(); // TODO
 		}*/
-		$("#shipsText").text(`${ships.length} ships (${enabledShips} active): `);
+		let activatedShips = ships.filter(item => gh.getShipState(item) == SHIPSTATE.ON).length;
+		$("#shipsText").text(`${ships.length} ships (${activatedShips} active): `);
 
 	}
 
@@ -241,6 +367,22 @@ $(document).ready(function() {
 	}
 
 	$(window).resize(canvasResize); // When window is resized, always resize the canvas to it.
+
+	function drawArrow(x1, y1, x2, y2) {
+		ctx.beginPath();
+		var headLength = 10; // length of head in pixels
+		var dx = x2 - x1;
+		var dy = y2 - y1;
+		var angle = Math.atan2(dy, dx);
+		ctx.moveTo(x1, y1);
+		ctx.lineTo(x2, y2);
+		ctx.lineTo(x2 - headLength * Math.cos(angle - Math.PI/6), y2 - headLength * Math.sin(angle - Math.PI/6));
+		ctx.moveTo(x2, y2);
+		ctx.lineTo(x2 - headLength * Math.cos(angle + Math.PI/6), y2 - headLength * Math.sin(angle + Math.PI/6));
+		ctx.strokeStyle = "#FFF";
+		ctx.stroke();
+		ctx.closePath();
+	}
 
 	function drawText(size, color, text, x, y, align, font) {
 		if(font) {
@@ -289,16 +431,22 @@ $(document).ready(function() {
 		var color = HIGH_SEC_SYSTEMS.indexOf(systemStruct.name) == -1 ? COLOR_SYSTEM_FILL_UNSAFE : COLOR_SYSTEM_FILL_SAFE;
 		drawCircle(coords.x, coords.y, SYSTEM_RADIUS, color);
 		drawCircle(coords.x, coords.y, SYSTEM_RADIUS, COLOR_SYSTEM_STROKE, true, 2);
+
+		
 	}
 
 	function getShipsInSystem(sys) {
 		return ships.filter((ship) => ship.system == sys);
 	}
 
+	function getObjectsInSystem(sys) {
+		return objects.filter((obj) => obj.system == sys);
+	}
+
 	function drawSystemList() {
 		var system = currSelectedSystem;
 		var systemStruct = SYSTEMS.find((sys) => sys.name == system);
-		var list = getShipsInSystem(system);
+		var list = getObjectsInSystem(system);
 
 		if(list.length) {
 			var listOffset = (TEXT_SIZE_SMALL + TEXT_LINE_MARGIN_SMALL) * list.length + SYSTEM_BOX_OFFSET;
@@ -320,6 +468,32 @@ $(document).ready(function() {
 				var shipRelativePos = (TEXT_SIZE_SMALL + TEXT_LINE_MARGIN_SMALL) * i - TEXT_LINE_MARGIN_SMALL;
 				drawText(TEXT_SIZE_SMALL, COLOR_TEXT_SECONDARY, ship.ID, coords.x, coords.y - listOffset + shipRelativePos, "center", textFont);
 			});
+		}
+	}
+
+	function drawShipWarpPath() {
+		if(currSelectedShip) {
+			let shipObj = objects.find(obj => obj.ID == currSelectedShip);
+			if(shipObj && shipObj.details && shipObj.details.path) {
+				let path = shipObj.details.path;
+				for(let [index, system] of path.entries()) {
+					if(path.length-1 > index) {
+						let curr = /*SYSTEMS.find(sys => sys.name == system);*/ gh.getSystemIconCircle(SYSTEMS.find(sys => sys.name == system), width, height);
+						let next = gh.getSystemIconCircle(SYSTEMS.find(sys => sys.name == path[index+1]), width, height);
+
+						console.log(curr);
+
+						let offsetCurr = mafs.extendLine({p1: next, p2: curr}, -SYSTEM_RADIUS).p2;
+						let offsetNext = mafs.extendLine({p1: offsetCurr, p2: next}, -SYSTEM_RADIUS).p2;
+
+						let currIcon = 0;
+						let nextIcon = 0;
+						console.log(offsetCurr);
+
+						drawArrow(offsetCurr.x, offsetCurr.y, offsetNext.x, offsetNext.y);
+					}
+				}
+			}
 		}
 	}
 
@@ -477,6 +651,8 @@ $(document).ready(function() {
 		drawText(TEXT_SIZE_MEDIUM, COLOR_TEXT_SECONDARY, currSelectedSystem, width/2, 72*2, "center");
 		drawSystemList();
 
+		drawShipWarpPath();
+
 	}
 
 	var systemScan = {planets: [{name: "Planet1", radius: 50, x: 1000, y: 1000},
@@ -584,8 +760,8 @@ $(document).ready(function() {
 					let p1 = {x: objectStruct.body.vector.x, y: objectStruct.body.vector.y};
 					let p2 = {x: target.x, y: target.y};
 					drawMarker(p2.x, p2.y, SYSTEM_MARKER_RADIUS);
-					p2 = gh.extendLine({p1: p1, p2: p2}, -SYSTEM_MARKER_RADIUS).p2;
-					p1 = gh.extendLine({p1: p2, p2: p1}, -SYSTEM_SHIP_SIZE).p2;
+					p2 = mafs.extendLine({p1: p1, p2: p2}, -SYSTEM_MARKER_RADIUS).p2;
+					p1 = mafs.extendLine({p1: p2, p2: p1}, -SYSTEM_SHIP_SIZE).p2;
 
 					// Draw target line
 					ctx.beginPath();
@@ -609,7 +785,7 @@ $(document).ready(function() {
 		let currDate = new Date();
 		let deltaTime = new Date(currDate.getTime() - lastDate.getTime());
 		let dateText = "-" + `${deltaTime.getUTCHours()}`.padStart(2, '0') + ":" + `${deltaTime.getUTCMinutes()}`.padStart(2, '0') + ":" + `${deltaTime.getUTCSeconds()}`.padStart(2, '0');
-		drawText(TEXT_SIZE_MEDIUM, COLOR_TEXT_SECONDARY, dateText, width-SYSTEM_TIME_TEXT_PADDING, SYSTEM_TIME_TEXT_PADDING, "right");
+		drawText(TEXT_SIZE_MEDIUM, COLOR_TEXT_SECONDARY, dateText, width-SYSTEM_TIME_TEXT_MARGIN, SYSTEM_TIME_TEXT_MARGIN, "right");
 
 		ctx.restore();
 	}
@@ -631,14 +807,10 @@ $(document).ready(function() {
 
 	$("#goInside").click(function() {
 		changeScreen(SCREEN_SYSTEM);
-		translateSystemCanvas(width/2*scaling, height/2*scaling);
-		zoomSystemCanvas(SYSTEM_START_ZOOM);
 		renderJson(getCurrentSystemData())
 	});
 
 	$("#goBack").click(function() {
-		zoomSystemCanvas(1/SYSTEM_START_ZOOM);
-		translateSystemCanvas(-width/2*scaling, -height/2*scaling);
 		changeScreen(SCREEN_CLUSTER);
 	});
 
