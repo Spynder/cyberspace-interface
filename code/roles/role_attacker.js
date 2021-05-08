@@ -30,7 +30,8 @@ module.exports = {
 
 		//multiLoop.attackerTargets = {};
 		let manualAttackDisable = false;
-		let flyTo = SYSTEM_SIRRAH;
+		let flyTo = SYSTEM_IOTA_PEGASI;
+		let planetName = "Thailara";
 
 		// TODO: Fly to fight with 5000+ for repairs.
 		// TODO: Check for distance to safety. They might lure you away and shoot there. (3000 to nearby safe spot (planet/warp spot))
@@ -51,15 +52,15 @@ module.exports = {
 							];
 		let upgradeResult = await ship.upgradeBodyPartList(requiredParts);
 		console.log("code: " + upgradeResult)
-		if(upgradeResult == CHANGING_PART) return;
+		if(upgradeResult < 0) return;
 
-		else if(upgradeResult == NOT_DONE) {
+		else if(upgradeResult == rcs.NOT_DONE_CHANGING_LIST) {
 			loggerShip.info("I can't find required parts, and I haven't been built yet, so I'm going at nearby landable.");
 			await ship.parkAtNearbyLandable();
 			return;
 		}
 
-		else if(upgradeResult == ALL_CHANGED) {
+		else if(upgradeResult == rcs.LIST_ALL_CHANGED) {
 			loggerShip.info("It seems that I'm fully upgraded!");
 
 			if(ship.getLocation() != LOCATION_SYSTEM) {
@@ -77,20 +78,21 @@ module.exports = {
 				return;
 			}
 
-			if(ship.details.body.balance != 10000 && ship.getCurrentSystem() == HOME_SYSTEM) {
-				loggerShip.warn("Operating 10000 for repairs in fight!");
-				await ship.operateMoney(10000);
+			if(ship.details.body.balance != 15000 && ship.getCurrentSystem() == HOME_SYSTEM) {
+				loggerShip.warn("Operating 15000 for repairs in fight!");
+				await ship.operateMoney(15000);
 				return;
 			}
 
-			let currLocation = mafs.findWarpDestination(ship.getCurrentSystem(), flyTo);
+			/*let currLocation = mafs.findWarpDestination(ship.getCurrentSystem(), flyTo);
 			if(currLocation) {
 				let coords = WARPS[ship.getCurrentSystem()][currLocation];
 				if(ship.getLocation() != LOCATION_SYSTEM) await ship.safeEscape();
 				await ship.safeMove(coords.x, coords.y);
 				await ship.safeWarp(currLocation);
 				return;
-			}
+			}*/
+			if(await ship.warpToSystem(flyTo) < 0) return;
 
 			let target = ship.getAttackingTarget();
 
@@ -151,15 +153,21 @@ module.exports = {
 					if(!injured) {
 						let shipPos = new mafs.Pos(ship.details.body.vector.x, ship.details.body.vector.y);
 						let enemyPos = new mafs.Pos(targetBody.body.vector.x, targetBody.body.vector.y);
-						let keepDistance = 200;
+						let keepDistance = 100;
 						let distanceFighting = mafs.extendLine(new mafs.Line(shipPos, enemyPos), -keepDistance).p2;
 						await ship.safeMove(distanceFighting.x, distanceFighting.y);
 					}
 					await ship.safeAttack(targetBody.uuid, [1,2,3,4,5]);
 				}
 			} else {
-				loggerShip.warn("No targets, so I'm landing at nearby landable.");
-				await ship.parkAtNearbyLandable();
+				loggerShip.warn("No targets, parking to specified planet: " + planetName);
+
+				let planetDetails = await ship.safeScan(planetName);
+				if(planetDetails) {
+					ship.setPlanetDeals(planetDetails);
+				}
+
+				await ship.parkAtSpecifiedPlanet(planetName);
 				return;
 			}
 			// code

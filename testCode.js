@@ -1,4 +1,5 @@
 var delay = require('delay');
+var mafs = require('./code/libs/mafs')
 
 /*var obj = {
   Matar: {
@@ -70,7 +71,7 @@ global.SYSTEMS = [  {x: 217,  y: 136,   name: "Scheat"},
 	return Math.hypot(s1.x - s2.x, s1.y - s2.y) / 10;
 }*/
 
-function findWarpPath(start, end, maxFuel) {
+/*function findWarpPath(start, end, maxFuel) {
 
 	// Thanks to https://en.wikipedia.org/wiki/A*_search_algorithm
 	// and https://youtu.be/aKYlikFAV4k
@@ -191,7 +192,7 @@ function findWarpPath(start, end, maxFuel) {
 	return [];
 }
 let start = new Date().getTime();
-console.log(findWarpPath("Scheat", "Algenib", 25));
+console.log(findWarpPath("Scheat", "Algenib", 25));*/
 
 //console.log(findWarpPath("Scheat", "Pi-1 Pegasi", 15));
 //console.log(findWarpPath("Algenib", "Enif", 15));
@@ -214,3 +215,65 @@ function getPointOnCircle(dx, dy, rad, angle) {
 //addPath(SYSTEM_SCHEAT, SYSTEM_MATAR, {x: 7235, y: -3413});
 //addPath(SYSTEM_MATAR, SYSTEM_PI1_PEGASI, {x: 7499, y: -2788});
 //console.log(getPointOnCircle(0, 0, 8000, 0));
+
+
+
+
+
+
+
+// Thanks to:
+// https://stackoverflow.com/questions/10358022/find-the-better-intersection-of-two-moving-objects
+
+let l1 = new mafs.Pos(0, 0); // location of asteroid
+let v1 = new mafs.Pos(50, 50); // velocity (scalar speed + direction) of asteroid
+
+let l2 = new mafs.Pos(0, 100); // location of ship
+let s2 = 100; // speed (just scalar) of ship
+
+// Translating l1 so that l2 will be at [0,0]
+l1 = new mafs.Pos(l1.x - l2.x, l1.y - l2.y);
+
+let a = (v1.x ** 2) + (v1.y ** 2) - (s2 ** 2); // * (t ** 2);
+let b = (2 * l1.x * v1.x) + (2 * l1.y * v1.y); // * t
+let c = (l1.x ** 2) + (l1.y ** 2);
+
+let solution;
+if(a != 0) {
+	// Yay, discriminants!
+	let D = (b**2 - 4*a*c);
+	if(D < 0) {
+		solution = NaN;
+	} else {
+		let t1 = (-b + Math.sqrt(D)) / (2 * a);
+		let t2 = (-b - Math.sqrt(D)) / (2 * a);
+		if(t1 < 0) solution = t2;
+		else if(t2 < 0) solution = t1;
+
+		// both are positive
+		else solution = Math.min(t1, t2);
+	}
+} else { // ...whole code collapses and we have to do workaround
+	if(c == 0 || b == 0) {
+		solution = NaN;
+	} else {
+		solution = (-c / b);
+	}
+}
+
+
+
+if(isNaN(solution) || solution < 0) {
+	console.log("Collision is impossible: " + solution);
+} else {
+	console.log("Time: " + solution);
+	// Translation l1 back to its original place
+	l1 = new mafs.Pos(l1.x + l2.x, l1.y + l2.y);
+
+	let interception = new mafs.Pos(
+		(l1.x + (v1.x * solution)),
+		(l1.y + (v1.y * solution))
+	);
+	console.log("Interception point:");
+	console.log(interception);
+}

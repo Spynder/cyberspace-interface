@@ -91,7 +91,7 @@ sdk.Ship.prototype.execRole = async function(account, options) {
 						currentHP: this.getCurrentHP(),
 						details: this.details,
 						radarData: this.radarData,
-						memory: this.memory};
+						memory: this.memory,};
 
 		sendInfo("shipInfo", struct);
 	}
@@ -282,9 +282,11 @@ sdk.Ship.prototype.safeWarp = async function(uuid) {
 
 sdk.Ship.prototype.safeRadar = async function() {
 	var result = await sdk.profileTime(async function() {
-		return await this.radar().catch((e) => {
+		let radarResult = await this.radar().catch((e) => {
 			loggerShip.debug("Error occured tried to radar: " + e.message);
 		});
+		this.setRadarMemory(radarResult);
+		return radarResult;
 	}.bind(this));
 	return result;
 } // enhance
@@ -414,6 +416,14 @@ sdk.Ship.prototype.getMaxHold = function() {
 
 sdk.Ship.prototype.getCurrentHP = function() {
 	return this.details ? this.details.nodes.find((node) => node.uuid == this.details.body.hull.uuid).body.mods.find((mod) => mod.name == "current_hp").value : undefined;
+}
+
+sdk.Ship.prototype.getEngineSpeed = function() {
+	return this.details ? this.details.nodes.find((node) => node.uuid == this.details.body.engine.uuid).body.mods.find((mod) => mod.name == "speed").value : undefined;
+}
+
+sdk.Ship.prototype.getShipSpeed = function() {
+	return this.details ? (this.getMaxHold() - this.getHold()) / this.getMaxHold() * this.getEngineSpeed() * 0.8 + this.getEngineSpeed() * 0.2 : undefined;
 }
 
 sdk.Ship.prototype.getBalance = function() {
@@ -853,7 +863,9 @@ sdk.Ship.prototype.getAttackingTarget = function() {
 		}
 	} else {
 		if(HIGH_SEC_SYSTEMS.includes(this.getCurrentSystem())) return;
-		let target = this.radarData.nodes.filter(node => node.type == "Ship" && (node.owner != this.details.owner && !ALLY_IDS.includes(node.owner)))[0];
+		let targets = this.radarData.nodes.filter(node => node.type == "Ship" && (node.owner != this.details.owner && !ALLY_IDS.includes(node.owner)));
+		let target = targets[0];
+		target = mafs.sortByDistance(new mafs.Pos(this.details.body.vector.x, this.details.body.vector.y), targets)[0];
 		if(target) {
 			loggerShip.info("Found target in system " + this.getCurrentSystem() + " in the system with radarData.");
 			this.setAttackingTarget(target.uuid);
@@ -872,7 +884,26 @@ sdk.Ship.prototype.setAttackingTarget = function(uuid) {
 	return multiLoop.attackerTargets;
 }
 
+sdk.Ship.prototype.setRadarMemory = function(radarData) {
+	if(!this.getCurrentSystem()) return;
 
+	multiLoop.radarMemory = multiLoop.radarMemory || {};
+	multiLoop.radarMemory[this.getCurrentSystem()] = multiLoop.radarMemory[this.getCurrentSystem()] || [];
+	if(multiLoop.radarMemory[this.getCurrentSystem()].length >= MAX_RADARMEMORY_ELEMENTS) {
+		multiLoop.radarMemory[this.getCurrentSystem()].shift();
+	}
+	let dataCopy = _.cloneDeep(radarData);
+	dataCopy.time = new Date().getTime();
+	multiLoop.radarMemory[this.getCurrentSystem()].push(dataCopy);
+}
+
+sdk.Ship.prototype.getRadarMemory = function() {
+	if(!this.getCurrentSystem()) return undefined;
+	multiLoop.radarMemory = multiLoop.radarMemory || [];
+	multiLoop.radarMemory[this.getCurrentSystem()] = multiLoop.radarMemory[this.getCurrentSystem()] || [];
+
+	return multiLoop.radarMemory[this.getCurrentSystem()];
+}
 
 sdk.Ship.prototype.getLocalMemory = function() {
 	return multiLoop.localMemory[this.uuid] || {};
@@ -951,7 +982,7 @@ sdk.Ship.prototype.parkAtSpecifiedPlanet = async function(planetUuid) {
 		result = ALREADY_PARKED;
 	}
 
-	if(this.getLocation() != LOCATION_SYSTEM && this.getLocationName() != planetUuid) {
+	else if(this.getLocation() != LOCATION_SYSTEM && this.getLocationName() != planetUuid) {
 		await this.safeEscape();
 	}
 	else {
@@ -970,7 +1001,9 @@ sdk.Ship.prototype.parkAtSpecifiedPlanet = async function(planetUuid) {
 			loggerShip.warn("CANT FIND PLANET")
 		}
 	}
-	await this.safeFuel();
+	if(this.getLocation() == LOCATION_PLANET) {
+		await this.safeFuel();
+	}
 	return result;
 }
 
@@ -1185,7 +1218,7 @@ sdk.Ship.prototype.upgradeBodyPartList = async function(list) {
 	for(let partStruct of list) {
 		let result = await this.upgradeBodyPart(partStruct.part, partStruct.gen, MINIMAL_BODY_COST, partStruct.slot);
 		//if(result == rcs.CHANGING_BODY_PART || result == rcs.BUYING_BODY_PART) return rcs.LIST_CHANGING_PART; // Don't interrupt change of parts
-		console.log(partStruct.part, result)
+		//console.log(partStruct.part, result)
 		if(result < 0) return rcs.LIST_CHANGING_PART;
 		else if(result != rcs.BODY_PART_UPGRADED) return rcs.NOT_DONE_CHANGING_LIST;
 	}

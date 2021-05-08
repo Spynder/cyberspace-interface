@@ -53,8 +53,10 @@ global.COLOR_SYSTEM_PLANET = "#A88";
 global.COLOR_SYSTEM_PLANET_TRAIL = "#888";
 global.COLOR_SYSTEM_ASTRAL_BODY_RIM = "#CCC";
 global.COLOR_SYSTEM_MINERAL = "#696";
+global.COLOR_SYSTEM_ASTEROID = "#444";
 global.COLOR_SYSTEM_BODYPART = "#669";
 global.COLOR_SYSTEM_SHIP_FRIENDLY = "#390";
+global.COLOR_SYSTEM_SHIP_ALLY = "#CD0";
 global.COLOR_SYSTEM_SHIP_HOSTILE = "#910";
 global.COLOR_SYSTEM_WARP_RING = "#B77";
 global.COLOR_SYSTEM_MARKER = "#BBB";
@@ -70,6 +72,7 @@ global.SYSTEM_SAFETY_RIM_RADIUS = 100;
 global.SYSTEM_SUN_RADIUS = 300;
 global.SYSTEM_PLANET_RADIUS = 200;
 global.SYSTEM_CARGO_RADIUS = 30;
+global.SYSTEM_ASTEROID_RADIUS = 30;
 global.SYSTEM_STATION_RADIUS = 150;
 global.SYSTEM_SHIP_SIZE = 64;
 global.SYSTEM_WARP_RING_RADIUS = 8000;
@@ -188,8 +191,12 @@ global.MINIMAL_BODY_COST = 1000;
 global.HULL_CHANGE_COST = 1000;
 global.HIGHEST_MINERAL_TRADE_COST = 50;
 
+global.MAX_RADARMEMORY_ELEMENTS = 5;
+
 global.ALLY_IDS = [
-	"e8be292de2",
+	"e8be292de2", // Kosrotoff
+	"2c865b9658", // RAMZIK
+	"1c5b926242", // 1323ED5
 ];
 // not as constant but still
 global.WARPS = {};
@@ -250,16 +257,16 @@ global.ROLES = [
 	// First time, ships are very slow, so we need many of them
 
 	{
-		role: ROLE_FREIGHTER,
-		homeSystem: SYSTEM_MATAR,
-	},
-	{
-		role: ROLE_FREIGHTER,
-		homeSystem: SYSTEM_MATAR,
-	},
-	{
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SALM,
+	},
+	{
+		role: ROLE_ATTACKER,
+		homeSystem: SYSTEM_MATAR,
+	},
+	{
+		role: ROLE_FREIGHTER,
+		homeSystem: SYSTEM_SALM, // was a miner
 	},
 	{
 		role: ROLE_MINER,
@@ -294,6 +301,11 @@ global.ROLES = [
 		role: ROLE_SCOUT,
 		homeSystem: SYSTEM_SADALPHERIS,
 		scoutingPlanet: "Grion A5",
+	},
+	{
+		role: ROLE_SCOUT,
+		homeSystem: SYSTEM_SALM,
+		scoutingPlanet: "Acapus",
 	},
 	{
 		role: ROLE_MINER,

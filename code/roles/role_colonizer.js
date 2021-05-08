@@ -22,7 +22,7 @@ module.exports = {
 		console.log("COLONIZER");
 		console.log("COLONIZER");
 
-		let buyVirus = false;
+		let buyVirus = true;
 
 		var immediatePark = !options.active;
 		
@@ -37,8 +37,8 @@ module.exports = {
 		}
 
 		var home = SYSTEM_SCHEAT;
-		var dest = SYSTEM_ALGENIB;
-		var planetName = "Natov";
+		var dest = SYSTEM_PI1_PEGASI;
+		var planetName = "Thides G1";
 
 		if(ship.hasCargo("embryo")) {
 			await ship.safeEquip("artifact1", ship.hasCargo("embryo")[0].uuid);
@@ -48,10 +48,13 @@ module.exports = {
 		}
 
 		//var currLocation = mafs.findWarpDestination(ship.getCurrentSystem(), dest);
-
+		if(ship.getLocation() != LOCATION_SYSTEM && ship.getCurrentSystem() == dest && ship.getLocationName() != planetName) {
+			await ship.safeEscape();
+		}
 		/*console.log(ship.details.parent.uuid);*/
 		if(ship.getLocation() == LOCATION_SYSTEM && ship.getCurrentSystem() == dest) {
 			loggerShip.warn("Landing on owned");
+
 			var planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
 			var planet = planets.find((pla) => pla.uuid == planetName);
 			if(planet) {
@@ -65,7 +68,7 @@ module.exports = {
 				await ship.safeLanding(planet.uuid);
 			}
 		}
-		else if(ship.details.parent.uuid == planetName) {
+		else if(ship.getLocationName() == planetName) {
 			if(ship.hasCargo("virus")) {
 				await ship.safeApply("EXTERMINATION");
 			}
@@ -104,18 +107,18 @@ module.exports = {
 			await ship.safeFuel();
 			return;
 		}
-		if(!ship.hasCargo("embryo") && ship.getCurrentSystem() != HOME_SYSTEM) {
+		if(!ship.hasCargo(/*"embryo"*/ "virus") && ship.getCurrentSystem() != HOME_SYSTEM) {
 			await ship.warpToSystem(home);
 		}
 
-		else if(ship.hasCargo("embryo")/* && ship.hasCargo("virus")*/) {
+		else if(ship.hasCargo(/*"embryo"*/ "virus")/* && ship.hasCargo("virus")*/) {
 			await ship.warpToSystem(dest);
 		}
 
-		if(((ship.getLocalMemory()).location == SYSTEM_SCHEAT || ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation") && !ship.hasCargo("embryo")) {
+		if(((ship.getLocalMemory()).location == SYSTEM_SCHEAT || ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation") && !ship.hasCargo(/*"embryo"*/ "virus")) {
 			console.log("In");
 			console.log(details.body.balance);
-			var requiredMoney = 5000 + 10000 + (buyVirus ? 10000 : 0);
+			var requiredMoney = 5000 + 00000 + (buyVirus ? 30000 : 0);
 			if(details.body.balance != requiredMoney) {
 				console.log("Operating");
 				await ship.operateMoney(requiredMoney);
@@ -126,8 +129,10 @@ module.exports = {
 				if(sciStation) {
 					await ship.safeMove(sciStation.body.vector.x, sciStation.body.vector.y);
 					await ship.safeLanding(sciStation.uuid);
-					await ship.safeApply("GET_EMBRYO");
+					//await ship.safeApply("GET_EMBRYO");
 					if(buyVirus) {
+						await ship.safeApply("GET_VIRUS");
+						await ship.safeApply("GET_VIRUS");
 						await ship.safeApply("GET_VIRUS");
 					}
 				}

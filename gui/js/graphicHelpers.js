@@ -61,8 +61,9 @@ module.exports = {
 	},
 
 	generateShipRole: function(objectStruct) {
+		let roleName = undefined;
 		if(objectStruct)
-		roleName = objectStruct.type == "Ship" ? objectStruct.role : "Planet";
+			roleName = (objectStruct.type == "Ship") ? objectStruct.role : "Planet";
 		return `<img class="objectIcon" src="img/roles/role${roleName ? roleName : "Unknown"}.png">`;
 	},
 
@@ -123,11 +124,6 @@ module.exports = {
 	},
 
 	generatePlanetHtml: function(planetStruct) {
-		/*var fuelText = this.generateShipFuel(shipStruct.fuel, shipStruct.fuelMax);
-		var balanceText = this.generateShipBalance(shipStruct.balance);
-		var systemText = this.generateShipSystem(shipStruct.system);
-		var roleImg = this.generateShipRole(shipStruct.role);
-		var labelImg = this.generateShipLabel(shipStruct);*/
 		let roleImg = this.generateShipRole("Planet");
 		console.log(planetStruct)
 		let ctznText = this.generatePlanetCtzn(planetStruct.body.ctzn, planetStruct.body.size);
@@ -233,6 +229,13 @@ module.exports = {
 				height: SYSTEM_CARGO_RADIUS * 2};
 	},
 
+	getAsteroidHitbox: function(asteroid) {
+		return {x: asteroid.body.vector.x - SYSTEM_ASTEROID_RADIUS,
+				y: asteroid.body.vector.y - SYSTEM_ASTEROID_RADIUS,
+				width: SYSTEM_ASTEROID_RADIUS * 2,
+				height: SYSTEM_ASTEROID_RADIUS * 2};
+	},
+
 	getShipHitbox: function(ship) {
 		return {x: ship.body.vector.x - SYSTEM_SHIP_SIZE,
 				y: ship.body.vector.y - SYSTEM_SHIP_SIZE,
@@ -262,6 +265,10 @@ module.exports = {
 
 	getShipsFromData: function(radarData) {
 		return radarData.nodes.filter(item => item.type == "Ship");
+	},
+
+	getAsteroidsFromData: function(radarData) {
+		return radarData.nodes.filter(item => item.type == "Asteroid");
 	},
 
 	getStationsFromData: function(radarData) {

@@ -77,6 +77,8 @@ module.exports = {
 		var planet = ship.getPlanetToUpdateDealsFor();
 
 		var sortedCargos = mafs.sortByDistance(new mafs.Pos(details.body.vector.x, details.body.vector.y), cargos);
+		let asteroids = radarData.nodes.filter((node) => node.type == "Asteroid" && mafs.isSafeSpot(new mafs.Pos(node.body.vector.x, node.body.vector.y)));
+		let closestAsteroid = mafs.sortByDistance(new mafs.Pos(details.body.vector.x, details.body.vector.y), asteroids)[0];
 
 		var maxHold = ship.getMaxHold() - ship.getHold() < 15; // Less than 15 hold left
 		if(ship.getBodyCargo("hull").body.gen != 1) maxHold = (ship.getHold() / ship.getMaxHold()) > 0.6; // More than 60% of storage filled up
@@ -191,45 +193,164 @@ module.exports = {
 					if(cargoVector) {
 						await ship.safeGrab(cargoTarget.uuid);
 						await ship.safeMove(cargoVector.x, cargoVector.y);
-						await ship.safeAttack(cargoTarget.uuid, [1]);
+						//await ship.safeAttack(cargoTarget.uuid, [1]);
 						
 						//loggerShip.info("I grabbed the big cargo I spotted!");
 					}
 				}
 			}
+			return;
 		}
 
 		else if(!immediatePark && !ship.getLocalMemory().location) {
 			loggerShip.info("Escaping the atmosphere to understand, where am I.");
 			await ship.safeEscape();
+			return;
 		}
 
-		
-
-		else {
-			var result = await ship.parkAtNearbyPlanet();
-			switch(result) {
-				case ALREADY_PARKED:
-					loggerShip.info("I am currently parked at " + ship.getLocationName() + ".");
+		else if(!immediatePark && closestAsteroid && true) {
+			loggerShip.warn("Closest asteroid!");
+			if(ship.getCurrentHP() != ship.getMaxHold()) {
+				loggerShip.info("Repairing with drone to be able to go for asteroids!");
+				await ship.safeEscape();
+				let landable = ship.getClosestLandableInSystem();
+				await ship.safeMove(landable.body.vector.x, landable.body.vector.y);
+				return;
+			}
+			console.log(closestAsteroid)
+			let radarMemory = ship.getRadarMemory();
+			if(radarMemory && radarMemory.length >= 2) {
+				let currSnapshot = radarMemory[radarMemory.length - 1];
+				let previousSnapshot = radarMemory[radarMemory.length - 2];
+				let asteroidSnapshot = previousSnapshot.nodes.find(node => node.uuid == closestAsteroid.uuid);
+				let shipSnapshot = previousSnapshot.nodes.find(node => node.uuid == ship.uuid);
+				if(!shipSnapshot) {
 					if(ship.getLocation() != LOCATION_SYSTEM) {
-						ship.setParked(true);
+						await ship.safeEscape();
 					}
-					if(ship.getLocation() == LOCATION_PLANET) {
-						var planetInfo = await ship.safeScan(ship.getLocationName());
-						if(planetInfo) {
-							ship.setPlanetDeals(planetInfo);
+					return;
+				} else {
+					let timeDelta = currSnapshot.time - previousSnapshot.time;
+
+					let currShipPos = new mafs.Pos(ship.details.body.vector.x, ship.details.body.vector.y);
+					let prevShipPos = new mafs.Pos(shipSnapshot.body.vector.x, shipSnapshot.body.vector.y);
+
+					let shipLocationDelta = new mafs.Pos(currShipPos.x - prevShipPos.x, currShipPos.y - prevShipPos.y);
+					let shipSpeed = new mafs.Pos(shipLocationDelta.x / timeDelta, shipLocationDelta.y / timeDelta);
+					let scalarShipSpeed = (mafs.lineLength(new mafs.Line(new mafs.Pos(0, 0), shipSpeed)));
+					//console.log("ship speed: " + scalarShipSpeed)
+					//console.log("calculated speed: " + ship.getShipSpeed());
+					//console.log("division: " + scalarShipSpeed / ship.getShipSpeed());
+					if(mafs.lineLength(new mafs.Line(new mafs.Pos(0, 0), shipLocationDelta)) < 1) { // basically ship is stationary
+						scalarShipSpeed = ship.getShipSpeed() * 0.05;
+					}
+					if(asteroidSnapshot) {
+						// Then we are able to calculate and actually attack asteroid
+
+						
+						await ship.safeAttack(closestAsteroid.uuid, [1]);
+
+						let shipPos = new mafs.Pos(ship.details.body.vector.x, ship.details.body.vector.y);
+						let currAsteroidPos = new mafs.Pos(closestAsteroid.body.vector.x, closestAsteroid.body.vector.y);
+						let prevAsteroidPos = new mafs.Pos(asteroidSnapshot.body.vector.x, asteroidSnapshot.body.vector.y);
+						let asteroidVector = new mafs.Line(prevAsteroidPos, currAsteroidPos);
+
+						let locationDelta = new mafs.Pos(currAsteroidPos.x - prevAsteroidPos.x, currAsteroidPos.y - prevAsteroidPos.y);
+						console.log(locationDelta)
+
+						let asteroidSpeed = new mafs.Pos(locationDelta.x / timeDelta, locationDelta.y / timeDelta);
+
+						// Thanks to:
+						// https://stackoverflow.com/questions/10358022/find-the-better-intersection-of-two-moving-objects
+
+						// l1 = currAsteroidPos
+						// v1 = asteroidSpeed
+
+						// l2 = currShipPos
+						// s2 = scalarShipSpeed
+
+						// Translating currAsteroidPos so that currShipPos will be at [0,0]
+						currAsteroidPos = new mafs.Pos(currAsteroidPos.x - currShipPos.x, currAsteroidPos.y - currShipPos.y);
+
+						let a = (asteroidSpeed.x ** 2) + (asteroidSpeed.y ** 2) - (scalarShipSpeed ** 2); // * (t ** 2);
+						let b = (2 * currAsteroidPos.x * asteroidSpeed.x) + (2 * currAsteroidPos.y * asteroidSpeed.y); // * t
+						let c = (currAsteroidPos.x ** 2) + (currAsteroidPos.y ** 2);
+
+						let time;
+						if(a != 0) {
+							// Yay, discriminants!
+							let D = (b**2 - 4*a*c);
+							if(D < 0) {
+								console.log("D is negative");
+								time = NaN;
+							} else {
+								let t1 = (-b + Math.sqrt(D)) / (2 * a);
+								let t2 = (-b - Math.sqrt(D)) / (2 * a);
+								if(t1 < 0) time = t2;
+								else if(t2 < 0) time = t1;
+
+								// both are positive
+								else time = Math.min(t1, t2);
+							}
+						} else { // ...whole code collapses and we have to do workaround
+							if(c == 0 || b == 0) {
+								console.log("B or C is zero")
+								time = NaN;
+							} else {
+								time = (-c / b);
+							}
+						}
+
+						if(isNaN(time) || time < 0) {
+							console.log("Collision is impossible: " + time);
+						} else {
+							//console.log("Time: " + time);
+							// Translation currAsteroidPos back to its original place
+							currAsteroidPos = new mafs.Pos(currAsteroidPos.x + currShipPos.x, currAsteroidPos.y + currShipPos.y);
+
+							let interception = new mafs.Pos(
+								(currAsteroidPos.x + (asteroidSpeed.x * time)),
+								(currAsteroidPos.y + (asteroidSpeed.y * time))
+							);
+
+							console.log(currAsteroidPos);
+							console.log(interception);
+
+							let shipAsteroidVector = new mafs.Line(shipPos, interception);
+							let shortenedAsteroidPos = mafs.extendLine(shipAsteroidVector, -20).p2;
+
+							//console.log("Interception point:");
+							//console.log(interception);
+							console.log("HELLO????")
+							await ship.safeMove(shortenedAsteroidPos.x, shortenedAsteroidPos.y);
+							return;
+
 						}
 					}
-					else if(ship.getLocation() == LOCATION_BUSINESS_STATION && ship.getBalance() != KEEP_MINIMUM) {
-						await ship.operateMoney(KEEP_MINIMUM);
-					}
-					break;
-				case FLYING_TO_LANDABLE:
-					loggerShip.info("I have nothing to do, so I'm parking to nearby planet.");
-					break;
+				}
 			}
 		}
 
-		
+		var result = await ship.parkAtNearbyPlanet();
+		switch(result) {
+			case ALREADY_PARKED:
+				loggerShip.info("I am currently parked at " + ship.getLocationName() + ".");
+				if(ship.getLocation() != LOCATION_SYSTEM) {
+					ship.setParked(true);
+				}
+				if(ship.getLocation() == LOCATION_PLANET) {
+					var planetInfo = await ship.safeScan(ship.getLocationName());
+					if(planetInfo) {
+						ship.setPlanetDeals(planetInfo);
+					}
+				}
+				else if(ship.getLocation() == LOCATION_BUSINESS_STATION && ship.getBalance() != KEEP_MINIMUM) {
+					await ship.operateMoney(KEEP_MINIMUM);
+				}
+				break;
+			case FLYING_TO_LANDABLE:
+				loggerShip.info("I have nothing to do, so I'm parking to nearby planet.");
+				break;
+		}
 	}
 }

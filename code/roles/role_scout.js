@@ -16,7 +16,7 @@ module.exports = {
 			return;
 		}
 
-		if(ship.getLocation() != LOCATION_SYSTEM) ship.setParked(true);
+		ship.setParked((ship.getLocation() != undefined) ? ship.getLocation() != LOCATION_SYSTEM : false);
 
 		// NO CPU TIME WASTING DOWN
 		if(sdk.hasPlanetDealsBeenScanned(memory.scoutingPlanet) && !sdk.isPlanetDealsExpired(memory.scoutingPlanet, true)) {
@@ -31,7 +31,6 @@ module.exports = {
 
 		let dest = memory.homeSystem;
 
-		let currLocation = mafs.findWarpDestination(ship.getLocalMemory().location, dest);
 		if(ship.details.body.balance != KEEP_MINIMUM && ship.getCurrentSystem() == SYSTEM_SCHEAT && dest != SYSTEM_SCHEAT) {
 			loggerShip.info("Operating " + KEEP_MINIMUM + " for safe warping.");
 			await ship.operateMoney(KEEP_MINIMUM);
@@ -42,14 +41,7 @@ module.exports = {
 			await ship.safeFuel();
 			return;
 		}
-		else if(currLocation) {
-			loggerShip.info("Warping " + (ship.getLocalMemory()).location + " > " + currLocation);
-			await ship.safeEscape();
-			let coords = WARPS[(ship.getLocalMemory()).location][currLocation];
-			await ship.safeMove(coords.x, coords.y);
-			await ship.safeWarp(currLocation);
-			return;
-		}
+		else if(await ship.warpToSystem(dest) < 0) return;
 
 		let expired = sdk.isPlanetDealsExpired(memory.scoutingPlanet, true);
 		

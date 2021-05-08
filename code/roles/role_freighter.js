@@ -18,8 +18,9 @@ module.exports = {
 		console.log("FREIGHTER");
 		console.log("FREIGHTER");
 		
-		var returningBack = ship.hasMinerals() || ship.getHold() > 300;
-		//returningBack = true;
+		var returningBack = ship.hasMinerals() || (ship.getHold() / ship.getMaxHold()) > 0.5;
+		returningBack = true;
+		//returningBack = false;
 		var immediatePark = !options.active;
 
 		if(immediatePark) {
@@ -33,22 +34,68 @@ module.exports = {
 
 		let requiredParts = [{part: "HULL", gen: 5}, {part: "ENGINE", gen: 4}, {part: "TANK", gen: 5}];
 		let upgradeResult = await ship.upgradeBodyPartList(requiredParts);
-		if(upgradeResult == CHANGING_PART) return;
+		if(upgradeResult < 0) return;
 
 		/*(await ship.safeScan("Decceon")).nodes.forEach(function(item) {
 			console.log(item.nodes)
 		})*/
+		/*
+		console.log("Changing hull");
+		let parts = ship.hasCargo("HULL") || [];
+		let oldPart = parts.find((part) => part.body.gen != 8 && !ship.isAlreadyEquiped(part.uuid));
+		let betterPart = parts.find((part) => part.body.gen == 8 && !ship.isAlreadyEquiped(part.uuid));
+		if(betterPart) {
+			if(ship.getBalance() == HULL_CHANGE_COST) {
+				loggerShip.info("Flying to scientific station to change hull!");
+				var sciStation = ship.radarData.nodes.find((instance) => instance.type == "ScientificStation");
+				console.log(betterPart);
+				if(ship.getLocation() != LOCATION_SCIENTIFIC_STATION) {
+					await ship.safeEscape();
+				}
+				if(sciStation) {
+					await ship.safeMove(sciStation.body.vector.x, sciStation.body.vector.y);
+					await ship.safeLanding(sciStation.uuid);
+					await ship.safeApply("CHANGE_HULL", betterPart.uuid);
+				}
+			} else {
+				loggerShip.info("Getting " + HULL_CHANGE_COST + " for hull change.");
+				await ship.operateMoney(HULL_CHANGE_COST);
+			}
+		}
+		if(oldPart && !betterPart) {
+			await ship.safeDrop(oldPart.uuid);
+			await ship.safeAttack(oldPart.uuid, [1,2,3,4,5]);
+		}
+		return;
+		*/
 
-		var home = SYSTEM_SADALPHERIS;
+		var home = SYSTEM_SCHEAT;
 		var dest = SYSTEM_ALGENIB;
 		var planetName = "Natov";
+
+		let returnToHome = false;
 
 		let bestMineralTradeInConstellation = ship.getBestMineralTradeInConstellation(500);
 		var bestMineralTradeInSystem = ship.getBestMineralTrade();
 		var mineralAmount = (ship.getMaxHold() * 0.7) - ship.getHold();
 		var requiredBalance = 5000 + ((ship.getMaxFuel() - ship.getFuel()) * 10);
-		console.log(ship.getBestMineralTradeInConstellation(500));
+		console.log(bestMineralTradeInConstellation);
 		console.log(bestMineralTradeInSystem);
+		let sellingTo = "";
+		if(bestMineralTradeInConstellation) {
+			sellingTo = bestMineralTradeInConstellation.system;
+		}
+
+		let warpingTo;
+		if(ship.getBalance() >= 250000 || returnToHome) {
+			warpingTo = home;
+		} else if(returningBack && sellingTo) {
+			warpingTo = sellingTo;
+		} else if(!returningBack) {
+			warpingTo = dest;
+		} else {
+			warpingTo = home;
+		}
 
 		if(ship.getCurrentSystem() == dest && ship.getLocationName() != planetName) {
 			await ship.safeEscape();
@@ -71,16 +118,16 @@ module.exports = {
 			return;
 		}
 
-		else if(ship.getFuel() == ship.getMaxFuel() && ship.getCurrentSystem() != (returningBack ? home : dest) && ship.getLocation() != LOCATION_SYSTEM) {
+		else if(ship.getFuel() == ship.getMaxFuel() && ship.getCurrentSystem() != warpingTo && ship.getLocation() != LOCATION_SYSTEM) {
 			loggerShip.info("Escaping from atmosphere to fly to destination!");
 			await ship.safeEscape();
 		}
 
-		if(ship.getCurrentSystem() != (returningBack ? home : dest)) {
-			await ship.warpToSystem(returningBack ? home : dest);
+		if(ship.getCurrentSystem() != warpingTo) {
+			await ship.warpToSystem(warpingTo);
 		}
 
-		else if(ship.getCurrentSystem() == home && returningBack && ship.hasMinerals() && bestMineralTradeInSystem) {
+		else if(ship.getCurrentSystem() == sellingTo && returningBack && ship.hasMinerals() && bestMineralTradeInSystem) {
 			loggerShip.info("I have minerals on the board, so I'm flying to planet and try to sell them.");
 
 			var deal = bestMineralTradeInSystem;
@@ -90,11 +137,7 @@ module.exports = {
 
 			var planetInfo = await ship.safeScan(deal.planet);
 			if(planetInfo) {
-				//console.log(planetInfo.nodes);
-				//console.log(planetInfo.body.deals);
 				ship.setPlanetDeals(planetInfo);
-				//var buyTrade = planetInfo.body.deals.find((deal) => deal.type == "BUY" && deal.expected == "MINERALS"); //filter
-				// find best trade
 				var buyTrade = planetInfo.body.deals.find(item => item.uuid == deal.uuid);
 				if(buyTrade) {
 					console.log(buyTrade.uuid);
@@ -122,9 +165,188 @@ module.exports = {
 			await ship.safeLanding(planet.uuid);
 			await ship.safeMove(extended.p2.x, extended.p2.y);
 			await ship.safeFuel();
+			return;
 		}
 
-		else if(ship.getLocation() == LOCATION_PLANET && ship.getLocationName() == planetName) {
+		//console.log("End of execution");
+		let forsakenBug = false;
+
+		if(forsakenBug) {
+			console.log("FORSAKEN BUG");
+			var owned = await account.getPlanet(planetName);
+			var ownedDetails = await owned.explore();
+			try {
+				let mineralCargo = ownedDetails.nodes.find(node => node.type == "Cargo");
+
+				let craftItem = "DROID";
+				let craftSlot = craftItem.toLowerCase() + "";
+				let buyAntimatter = false;
+				let dropAntimatter = false;
+				let buySomeMinerals = false;
+				let craftSomething = false;
+				let transferCrafted = false;
+				let equipCrafted = false;
+				let sellMinerals = false;
+				let restoreNegativeBalance = false;
+				let closeAllDeals = false;
+				let restorePositiveBalance = false;
+
+				if(restorePositiveBalance && ship.hasMinerals()) {
+					if(ownedDetails.body.balance > 0) {
+						console.log("Restoring balance...");
+						let mineralsID = mineralCargo.uuid;
+						loggerShip.warn("Creating a deal!");
+						let allTrades = ownedDetails.body.deals.filter((deal) => deal.type == "BUY");
+						if(allTrades.length <= 1) {
+							await owned.buy(mineralsID, ownedDetails.body.balance - 10, 1); // TODO search for cargo not hardcode it
+							await delay(ACTION_DELAY);
+						}
+						loggerShip.warn("Executing a deal!");
+						console.log(ownedDetails.body.deals);
+						var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "BUY");
+
+						if(buyTrade) {
+							await ship.safeAccept(buyTrade.uuid, 1);
+							await ship.safeFuel();
+						}
+					}
+				}
+
+				if(closeAllDeals) {
+					console.log("Closing deals....")
+					let currTrade = ownedDetails.body.deals[0];
+					if(currTrade) {
+						await owned.close(currTrade.uuid);
+						console.log(currTrade);
+					}
+				}
+
+				if(restoreNegativeBalance && ship.hasMinerals()) {
+					if(ownedDetails.body.balance < 0) {
+						console.log("Restoring balance...");
+						let mineralsID = mineralCargo.uuid;
+						loggerShip.warn("Creating a deal!");
+						let allTrades = ownedDetails.body.deals.filter((deal) => deal.type == "SELL");
+						if(allTrades.length <= 1) {
+							console.log(-ownedDetails.body.balance + 10);
+							await owned.sell(mineralsID, -ownedDetails.body.balance + 10); // TODO search for cargo not hardcode it
+							await delay(ACTION_DELAY);
+						}
+						loggerShip.warn("Executing a deal!");
+						console.log(ownedDetails.body.deals);
+						var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "SELL");
+
+						if(buyTrade) {
+							await ship.safeAccept(buyTrade.uuid, 1);
+							await ship.safeFuel();
+						}
+					}
+				}
+
+				if(sellMinerals && ship.hasMinerals()) {
+					let allTrades = ownedDetails.body.deals.filter((deal) => deal.type == "BUY");
+					loggerShip.warn("Creating a deal!");
+					if(allTrades.length <= 1) {
+						owned.buy("MINERALS", 1, 2);
+						await delay(ACTION_DELAY);
+					}
+
+					loggerShip.warn("Executing a deal!");
+					console.log(ownedDetails.body.deals);
+					var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "BUY");
+					if(buyTrade) {
+						await ship.safeAccept(buyTrade.uuid);
+						await ship.safeFuel();
+					}
+				}
+
+				if(dropAntimatter) {
+					if(ship.hasMinerals()) {
+						let mineralsID = ship.details.nodes.find(node => node.body.type == "MINERALS").uuid;
+						await ship.safeEscape();
+						await ship.safeDrop(mineralsID);
+						await ship.safeAttack(mineralsID, [1]);
+					}
+				}
+
+				if(buyAntimatter) {
+					if(!ship.hasMinerals()) {
+						let mineralsID = mineralCargo.uuid;
+						var mineralCount = ownedDetails.nodes.find((node) => node.uuid == mineralsID).body.size;
+						loggerShip.warn("Creating a deal!");
+						let allTrades = ownedDetails.body.deals.filter((deal) => deal.type == "SELL");
+						if(allTrades.length <= 1) {
+							await owned.sell(mineralsID, 1); // TODO search for cargo not hardcode it
+							await delay(ACTION_DELAY);
+						}
+						loggerShip.warn("Executing a deal!");
+						console.log(ownedDetails.body.deals);
+						var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "SELL");
+
+						if(buyTrade) {
+							await ship.safeAccept(buyTrade.uuid, -20001);
+							await ship.safeFuel();
+						}
+					}
+				}
+
+				if(equipCrafted) {
+					let foundItem = ship.details.nodes.find(node => node.body.type == craftItem && node.body.gen == 8 && !ship.isAlreadyEquiped(node.uuid));
+					if(foundItem && !ship.isAlreadyEquiped(foundItem.uuid)) {
+						console.log("equiping...")
+						await ship.safeEscape();
+						await ship.safeEquip(craftSlot, foundItem.uuid);
+						let oldItem = ship.details.nodes.find(node => node.body.type == craftItem && node.body.gen != 8);
+						if(oldItem) {
+							await ship.safeDrop(oldItem.uuid);
+						}
+					}
+				}
+
+				if(transferCrafted) {
+					let foundItem = ownedDetails.nodes.find(node => node.body.type == craftItem);
+					if(foundItem) {
+						console.log("transfering....");
+						await ship.safeTransfer(foundItem.uuid, "in");
+					}
+				}
+
+				if(craftSomething) {
+					let foundItem = ownedDetails.nodes.find(node => node.body.type == craftItem);
+					console.log(foundItem);
+					if(!foundItem) {
+						console.log("Crafting....");
+						await owned.make(craftItem, 8);
+					}
+				}
+
+				if(buySomeMinerals && !ship.hasMinerals()) {
+					mineralsID = mineralCargo.uuid;
+					var mineralCount = ownedDetails.nodes.find((node) => node.uuid == mineralsID).body.size;
+					loggerShip.warn("Creating a deal!");
+					var allTrades = ownedDetails.body.deals.filter((deal) => deal.type == "SELL");
+					if(allTrades <= 1) {
+						await owned.sell(mineralsID, 1); // TODO search for cargo not hardcode it
+						await delay(ACTION_DELAY);
+					}
+					loggerShip.warn("Executing a deal!");
+					console.log(ownedDetails.body.deals);
+					var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "SELL");
+
+					if(buyTrade) {
+						await ship.safeAccept(buyTrade.uuid, 1);
+						await ship.safeFuel();
+					}
+				}
+			} catch(e) {
+				loggerShip.error("Unhandled exception occured while executing freighter role: " + e.message);
+				console.error(e);
+			}
+			await owned.dispose();
+			return;
+		}
+
+		if(ship.getLocation() == LOCATION_PLANET && ship.getLocationName() == planetName) {
 			var owned = await account.getPlanet(planetName);
 			var ownedDetails = await owned.explore();
 			try {
@@ -136,6 +358,7 @@ module.exports = {
 					mineralsID = mineralCargo.uuid;
 					var mineralCount = ownedDetails.nodes.find((node) => node.uuid == mineralsID).body.size;
 					console.log(mineralCount);
+					console.log(mineralAmount);
 
 					//ship.safeTransfer("in",); // CANT SPECIFY AMOUNT
 					var sellTrades = ownedDetails.body.deals.filter((deal) => deal.type == "BUY");
@@ -144,7 +367,7 @@ module.exports = {
 						await delay(ACTION_DELAY);
 					}
 					
-					if(ship.details.body.balance < mineralAmount && ownedDetails.body.deals.length == 0 && ship.getHold() < 700) {
+					if(ship.details.body.balance < mineralAmount && ownedDetails.body.deals.length == 0 && ship.getHold() < 1000) {
 						loggerShip.warn("Creating a deal for the ship to get money!");
 						owned.buy("MINERALS", mineralAmount+400, 1);
 						await delay(ACTION_DELAY);
@@ -158,7 +381,7 @@ module.exports = {
 							await ship.safeFuel();	
 						}
 					}
-					if(ship.details.body.balance < mineralAmount && ownedDetails.body.deals.length == 1 && ship.getHold() < 700) {
+					if(ship.details.body.balance < mineralAmount && ownedDetails.body.deals.length == 1 && ship.getHold() < 1000) {
 						loggerShip.warn("Executing a deal!");
 						console.log(ownedDetails.body.deals);
 						var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "SELL");
@@ -170,7 +393,7 @@ module.exports = {
 						}
 					}
 
-					else if(ownedDetails.body.deals.length == 0 && ship.getHold() < 700) {
+					else if(ownedDetails.body.deals.length == 0 && ship.getHold() < 1000) {
 						loggerShip.warn("Creating a deal!");
 						await owned.sell(mineralsID, 1); // TODO search for cargo not hardcode it
 						await delay(ACTION_DELAY);

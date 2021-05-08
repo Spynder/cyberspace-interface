@@ -211,7 +211,7 @@ $(document).ready(function() {
 			item.find(".balanceText").replaceWith(gh.generateShipBalance(shipStruct.balance));
 			item.find(".systemText").replaceWith(gh.generateShipSystem(shipStruct.system));
 
-			item.find(".shipIcon").replaceWith(gh.generateShipRole(shipStruct.role));
+			item.find(".shipIcon").replaceWith(gh.generateShipRole(shipStruct));
 			item.find(".label").replaceWith(gh.generateShipLabel(shipStruct));
 			
 			// Update label
@@ -234,7 +234,7 @@ $(document).ready(function() {
 
 			item.find(".objectInfo").replaceWith(gh.generateObjectInfo(objectStruct));
 
-			item.find(".objectIcon").replaceWith(gh.generateShipRole(objectStruct.role));
+			item.find(".objectIcon").replaceWith(gh.generateShipRole(objectStruct));
 			item.find(".label").replaceWith(gh.generateShipLabel(objectStruct));
 			
 			// Update label
@@ -581,6 +581,12 @@ $(document).ready(function() {
 			}
 		}
 
+		for(asteroidStruct of gh.getAsteroidsFromData(radarData)) { // Cargo
+			if(gh.isInside(mousePos, gh.getAsteroidHitbox(asteroidStruct))) {
+				return asteroidStruct;
+			}
+		}
+
 		for(planetStruct of gh.getPlanetsFromData(radarData)) { // Planets
 			if(gh.isInside(mousePos, gh.getPlanetHitbox(planetStruct))) {
 				let info = planetStruct;
@@ -724,6 +730,11 @@ $(document).ready(function() {
 			drawCircle(cargo.body.vector.x, cargo.body.vector.y, SYSTEM_CARGO_RADIUS, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 5);
 		});
 
+		gh.getAsteroidsFromData(radarData).forEach(function(asteroid) { // asteroid
+			drawCircle(asteroid.body.vector.x, asteroid.body.vector.y, SYSTEM_ASTEROID_RADIUS, COLOR_SYSTEM_ASTEROID);
+			drawCircle(asteroid.body.vector.x, asteroid.body.vector.y, SYSTEM_ASTEROID_RADIUS, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 5);
+		});
+
 		gh.getShipsFromData(radarData).forEach(function(ship) { // Ships
 			let radAngle = ship.body.vector.a + (Math.PI * 1.5);
 			
@@ -739,7 +750,9 @@ $(document).ready(function() {
 			ctx.strokeStyle = COLOR_SYSTEM_ASTRAL_BODY_RIM;
 			ctx.lineWidth = 5;
 			ctx.stroke();
-			ctx.fillStyle = (ship.owner == OWNER_ID) ? COLOR_SYSTEM_SHIP_FRIENDLY : COLOR_SYSTEM_SHIP_HOSTILE;
+			ctx.fillStyle = (ship.owner == OWNER_ID) 		? COLOR_SYSTEM_SHIP_FRIENDLY :
+							(ALLY_IDS.includes(ship.owner))	? COLOR_SYSTEM_SHIP_ALLY	 :
+															  COLOR_SYSTEM_SHIP_HOSTILE;
 			ctx.fill();
 			ctx.closePath();
 			
@@ -752,7 +765,7 @@ $(document).ready(function() {
 		ctx.setLineDash([]); // Back to solid lines
 
 		if(currSelectedShip) {
-			let detailsStruct = ships.find(ship => ship.ID == currSelectedShip);
+			let detailsStruct = objects.find(ship => ship.ID == currSelectedShip);
 			let objectStruct = gh.getShipsFromData(radarData).find(ship => ship.uuid == currSelectedShip); // objectStruct updates faster than detailsStruct
 			if(detailsStruct && detailsStruct.details) {
 				let target = detailsStruct.details.body.target;

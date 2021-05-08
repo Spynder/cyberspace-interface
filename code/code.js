@@ -18,11 +18,16 @@ if(webContents) web = webContents.getAllWebContents()[0];
 *	* Fatal
 */
 
-global.multiLoop = {flyingFor: {}, localMemory: {}, deals: {}, noDealsFlying: {}, activeObjects: [], attackerTargets: {}};
-
-
-// {ID: 1234567890, active: false, parked: true};
-//var activeObjects = [];
+global.multiLoop = {
+	flyingFor: {}, 
+	localMemory: {}, 
+	deals: {}, 
+	noDealsFlying: {}, 
+	activeObjects: [], 
+	attackerTargets: {},
+	radarMemory: [],
+	cycleDelta: undefined,
+};
 
 ipcMain.on("objectActivity", (event, arg) => {
 	//console.log(arg);
@@ -35,6 +40,7 @@ const actionDelay = 200;
 var loop = async function(account, ships, planets) {
 	await account.safeAssemble();
 	
+	let start = new Date().getTime();
 	for(var planet of planets) {
 		let objObj = multiLoop.activeObjects.find(entry => entry.ID == planet.uuid);
 		// If we have entry, leave as is, otherwise get default value based on GUI presense.
@@ -85,6 +91,7 @@ var loop = async function(account, ships, planets) {
 		loggerConsole.info("No ships activated!");
 		await delay(5000);
 	}
+	multiLoop.cycleDelta = (new Date().getTime()) - start;
 
 	loggerConsole.debug("Done the cycle, repeating.");
 }
