@@ -342,13 +342,14 @@ module.exports = {
 	},
 
 	getWarpCoords: function(from, to) {
-		let rad = 8000;
-
 		let x = SYSTEMS.find(sys => sys.name == to).x - SYSTEMS.find(sys => sys.name == from).x;
 		let y = SYSTEMS.find(sys => sys.name == to).y - SYSTEMS.find(sys => sys.name == from).y;
+		
+		return this.getPointOnCircle(0, 0, 8000, Math.atan2(y, x));
+	},
 
-		return {x: rad * Math.cos(Math.atan2(y, x)),
-				y: rad * Math.sin(Math.atan2(y, x))};
-		//return WARPS[from][to];
+	getPointOnCircle: function(dx, dy, rad, angle) {
+		return {x: dx + rad * Math.cos(angle),
+				y: dy + rad * Math.sin(angle)};
 	}
 }

@@ -35,6 +35,19 @@ $(document).ready(function() {
 		let i = systemData.findIndex(sys => sys.uuid == arg.uuid);
 		if(i == -1) systemData.push(arg);
 		else systemData[i] = arg;
+
+		if(!HIGH_SEC_SYSTEMS.includes(arg.uuid)) {
+			let shipsInSystem = gh.getShipsFromData(arg);
+			for(ship of shipsInSystem) {
+				if(ship.owner != OWNER_ID && !ALLY_IDS.includes(ship.owner)) {
+					console.log("ENEMY SPOTTED: ");
+					console.log("UUID: " + ship.uuid);
+					console.log("OWNER: " + ship.owner);
+					playSound("enemySpotted");
+					break;
+				}
+			}
+		}
 	});
 
 	function isMouseInsideSystemIcon(event) {
@@ -481,14 +494,11 @@ $(document).ready(function() {
 						let curr = /*SYSTEMS.find(sys => sys.name == system);*/ gh.getSystemIconCircle(SYSTEMS.find(sys => sys.name == system), width, height);
 						let next = gh.getSystemIconCircle(SYSTEMS.find(sys => sys.name == path[index+1]), width, height);
 
-						console.log(curr);
-
 						let offsetCurr = mafs.extendLine({p1: next, p2: curr}, -SYSTEM_RADIUS).p2;
 						let offsetNext = mafs.extendLine({p1: offsetCurr, p2: next}, -SYSTEM_RADIUS).p2;
 
 						let currIcon = 0;
 						let nextIcon = 0;
-						console.log(offsetCurr);
 
 						drawArrow(offsetCurr.x, offsetCurr.y, offsetNext.x, offsetNext.y);
 					}
@@ -830,6 +840,12 @@ $(document).ready(function() {
 	function renderJson(json) {
 		var renderer = (currScreen == SCREEN_CLUSTER) ? $('#jsonClusterRenderer') : $('#jsonSystemRenderer')
 		renderer.jsonViewer(json, JSON_RENDER_OPTIONS);
+	}
+
+	function playSound(name, volume) {
+		let audio = new Audio("sounds/" + name + ".wav");
+		audio.volume = volume ? volume : 0.3;
+		audio.play();
 	}
 
 	changeScreen(SCREEN_START);

@@ -24,7 +24,7 @@ module.exports = {
 			},
 			categories: {
 				default: {
-					appenders: ["DebugConsole"], 
+					appenders: ["File", "DebugConsole"], 
 					level: "Trace"
 				},
 				Ship: {
@@ -32,7 +32,7 @@ module.exports = {
 					level: "Trace"
 				},
 				DebugConsole: {
-					appenders: ["DebugConsole"],
+					appenders: ["File", "DebugConsole"],
 					level: "Trace"
 				},
 				Logger: {

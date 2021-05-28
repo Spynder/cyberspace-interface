@@ -10,6 +10,7 @@ const role_freighter = "../roles/role_freighter";
 const role_planet = "../roles/role_planet";
 const role_scout = "../roles/role_scout";
 const role_attacker = "../roles/role_attacker";
+const role_manual = "../roles/role_manual";
 
 require("./constants");
 delete require.cache[require.resolve("./constants")];
@@ -68,6 +69,9 @@ sdk.Ship.prototype.execRole = async function(account, options) {
 			break;
 		case ROLE_ATTACKER:
 			moduleName = role_attacker;
+			break;
+		case ROLE_MANUAL:
+			moduleName = role_manual;
 			break;
 	}
 	if(moduleName) {
@@ -329,9 +333,12 @@ sdk.Ship.prototype.safeAttack = async function(target, weapons) {
 		// check distance
 		loggerShip.warn("Attacking target " + target + " with " + weapons.length + " weapon" + (weapons.length > 1 ? "s" : "") + ".");
 
-		await this.attack(target, weapons).catch((e) => {
+		let result = await this.attack(target, weapons).catch((e) => {
 			loggerShip.debug("Error occured tried to attack: " + e.message);
 		});
+
+		this.setLocalMemory("lastAttackTime", new Date().getTime());
+		return result;
 	}.bind(this));
 } // enhance
 
@@ -416,6 +423,10 @@ sdk.Ship.prototype.getMaxHold = function() {
 
 sdk.Ship.prototype.getCurrentHP = function() {
 	return this.details ? this.details.nodes.find((node) => node.uuid == this.details.body.hull.uuid).body.mods.find((mod) => mod.name == "current_hp").value : undefined;
+}
+
+sdk.Ship.prototype.getGripperPower = function() {
+	return this.details ? this.details.nodes.find((node) => node.uuid == this.details.body.gripper.uuid).body.mods.find((mod) => mod.name == "traction").value : undefined;
 }
 
 sdk.Ship.prototype.getEngineSpeed = function() {
@@ -515,6 +526,7 @@ sdk.getAllDeals = function() {
 
 sdk.Ship.prototype.setParked = function(parked) {
 	let index = multiLoop.activeObjects.findIndex(entry => entry.ID == this.uuid);
+	if(index == -1) return;
 	multiLoop.activeObjects[index].parked = parked;
 	sendInfo("shipParked", {ID: this.uuid, parked: parked});
 }
@@ -1058,8 +1070,7 @@ sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, maxCost, s
 	if(!this.getCurrentSystem()) {
 		await this.safeEscape();
 	}
-	
-	if(this.hasMinerals()) return rcs.SHIP_HAS_MINERALS;
+
 	//if(isHull && this.getBodyCargo("hull").body.gen == 1 && this.getCurrentSystem() != SYSTEM_SCHEAT) return NOT_IN_SCHEAT;
 
 	let maxParts = 1;
@@ -1079,6 +1090,9 @@ sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, maxCost, s
 			await this.safeEquip(bodypart, betterPart.uuid);
 		}
 	}
+
+	if(this.getBodyCargo(bodypart).body.gen != 1) return rcs.BODY_PART_UPGRADED;
+	if(this.hasMinerals()) return rcs.SHIP_HAS_MINERALS;
 
 	if(!isHull && this.getBodyCargo("hull").body.gen == 1) return rcs.HULL_IS_LOW_LEVEL;
 
@@ -1169,6 +1183,8 @@ sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, maxCost, s
 			else {
 				//await this.warpToSystem(HOME_SYSTEM);
 			}
+
+
 			
 			if(	(this.getBalance() == requiredBalance && this.getCurrentSystem() == SYSTEM_SCHEAT) || 
 				(this.getBalance() >= requiredBalance && this.getCurrentSystem() != SYSTEM_SCHEAT)) {
@@ -1214,11 +1230,11 @@ sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, maxCost, s
 }
 
 sdk.Ship.prototype.upgradeBodyPartList = async function(list) {
-	if((await this.account.profile()).score + this.getBalance() < 3000) return rcs.NOT_ENOUGH_SCORE;
+	if((multiLoop.profileInfo).score + this.getBalance() < 3000) return rcs.NOT_ENOUGH_SCORE;
 	for(let partStruct of list) {
 		let result = await this.upgradeBodyPart(partStruct.part, partStruct.gen, MINIMAL_BODY_COST, partStruct.slot);
 		//if(result == rcs.CHANGING_BODY_PART || result == rcs.BUYING_BODY_PART) return rcs.LIST_CHANGING_PART; // Don't interrupt change of parts
-		//console.log(partStruct.part, result)
+		console.log(partStruct.part, result)
 		if(result < 0) return rcs.LIST_CHANGING_PART;
 		else if(result != rcs.BODY_PART_UPGRADED) return rcs.NOT_DONE_CHANGING_LIST;
 	}

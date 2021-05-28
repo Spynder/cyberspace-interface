@@ -11,11 +11,9 @@ module.exports = {
 	},
 
 	getShipState: function(item) {
-		//console.log(item)
 		let parked = item.parked == undefined ? true : item.parked;  // Default: true
 		let active = item.active == undefined ? false : item.active; // Default: false
 		let state = (active) + (!parked)*2; // aka Bit operations...
-		//console.log(item.ID, state)
 		return state;
 	},
 
@@ -69,7 +67,6 @@ module.exports = {
 
 	generateShipLabel: function(item) {
 		let state = this.getShipState(item);
-		//console.log(item.ID, this.getShipState(item));
 
 		switch(state) {
 			case SHIPSTATE.OFF:
@@ -125,7 +122,6 @@ module.exports = {
 
 	generatePlanetHtml: function(planetStruct) {
 		let roleImg = this.generateShipRole("Planet");
-		console.log(planetStruct)
 		let ctznText = this.generatePlanetCtzn(planetStruct.body.ctzn, planetStruct.body.size);
 		return `<div class="ship" shipID=${planetStruct.ID}>
 					<div class="iconBlock">
@@ -162,7 +158,6 @@ module.exports = {
 
 	generateObjectInfo: function(objectStruct) {
 		let rows = [];
-		console.log(objectStruct)
 		if(objectStruct.type == "Ship") {
 			rows.push(this.generateShipFuel(objectStruct.fuel, objectStruct.fuelMax));
 			rows.push(this.generateShipBalance(objectStruct.balance));
@@ -182,7 +177,6 @@ module.exports = {
 	},
 
 	generateObjectHtml: function(objectStruct) {
-		//console.log(objectStruct);
 		let roleImg = this.generateShipRole(objectStruct);
 		var labelImg = this.generateShipLabel(objectStruct);
 		let objectInfo = this.generateObjectInfo(objectStruct);

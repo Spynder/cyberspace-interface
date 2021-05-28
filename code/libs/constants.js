@@ -103,7 +103,7 @@ global.SUN_CLOSE_RADIUS = 400; // if intersect
 
 global.KEEP_MINIMUM = 100;
 
-global.ACTION_DELAY = 220;
+global.ACTION_DELAY = 300;
 
 // Locations
 global.LOCATION_PLANET = "Planet";
@@ -183,6 +183,7 @@ global.ROLE_FREIGHTER = "Freighter";
 global.ROLE_ATTACKER = "Attacker";
 global.ROLE_COLONIZER = "Colonizer";
 global.ROLE_SCOUT = "Scout";
+global.ROLE_MANUAL = "Manual";
 
 global.TRADE_EXPIRE_TIME = 1000 * 60 * 45; // 45 minutes
 global.MIN_TRADE_EXPIRE_TIME = 1000 * 60 * 10; // 10 minutes
@@ -244,29 +245,45 @@ addPath(SYSTEM_SALM, SYSTEM_MARKAB, {x: 2671, y: 7541});
 global.ROLES = [
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALBARI,
+		homeSystem: SYSTEM_SCHEAT,
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_MATAR,
+		homeSystem: SYSTEM_SADALBARI, // dead
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: HOME_SYSTEM,
+		homeSystem: SYSTEM_SALM, // dead
 	},
 	// First time, ships are very slow, so we need many of them
 
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SALM,
+		homeSystem: SYSTEM_MATAR, // dead
 	},
 	{
-		role: ROLE_ATTACKER,
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALPHERIS, // dead
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALPHERIS, // dead
+	},
+	{
+		role: ROLE_MANUAL,
+		homeSystem: SYSTEM_SADALPHERIS,
+	},
+	{
+		role: ROLE_MINER,
 		homeSystem: SYSTEM_MATAR,
 	},
 	{
-		role: ROLE_FREIGHTER,
-		homeSystem: SYSTEM_SALM, // was a miner
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SALM,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALBARI,
 	},
 	{
 		role: ROLE_MINER,

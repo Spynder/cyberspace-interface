@@ -23,13 +23,11 @@ global.multiLoop = {
 	localMemory: {}, 
 	deals: {}, 
 	noDealsFlying: {}, 
-	activeObjects: [],
-	functioningObjects: [],
+	activeObjects: [], 
 	attackerTargets: {},
 	radarMemory: [],
 	cycleDelta: undefined,
 	connectedObjects: {},
-	profileInfo: {},
 };
 
 ipcMain.on("objectActivity", (event, arg) => {
@@ -59,7 +57,7 @@ var loop = async function(account, ships, planets) {
 							ID: planet.uuid};
 
 			sendInfo("planetInfo", struct);
-		}
+		}		
 	}
 	
 	await dbManager.cleanDeadEntries(ships);
@@ -138,6 +136,9 @@ var shipLoop = async function(account, instance, options) {
 		loggerShip.error("Unhandled exception occured while executing ship role: " + e.message);
 		console.error(e);
 	});
+
+	//await ship.dispose();
+	
 }
 
 global.isGUILaunched = function() {
@@ -150,58 +151,6 @@ global.sendInfo = function(event, arg) {
 	}
 }
 
-let standaloneLoop = async function(instance, account) {
-	while(true) {
-		try {
-			loggerShip.warn("standalone loop of instance " + instance.uuid);
-			let objObj = multiLoop.activeObjects.find(entry => entry.ID == instance.uuid);
-			// If we have entry, leave as is, otherwise get default value based on GUI presense.
-			let active = (objObj && objObj.hasOwnProperty("active")) ? objObj.active : (isGUILaunched() ? false : true);
-			let parked = (objObj && objObj.hasOwnProperty("parked")) ? objObj.parked : (isGUILaunched() ? true : false);
-			let options = {active: active};
-
-			if(active || !parked) {
-				const {uuid, quadrant} = instance;
-				sdk = require("./libs/enhancer");
-
-				let ship = multiLoop.connectedObjects[uuid];
-				if(!ship) {
-					ship = await account.getShip(uuid, quadrant);
-					multiLoop.connectedObjects[uuid] = ship;
-				}
-				loggerShip.addContext("Ship", uuid);
-				console.log("\n\n\n");
-
-				delete require.cache[require.resolve("./libs/enhancer")];
-
-				await ship.execRole(account, options).catch((e) => {
-					loggerShip.error("Unhandled exception occured while executing ship role: " + e.message);
-					console.error(e);
-				});
-				await delay(ACTION_DELAY);
-			} else {
-				let connectedObject = multiLoop.connectedObjects[instance.uuid];
-				if(connectedObject) {
-					connectedObject.dispose();
-					delete multiLoop.connectedObjects[instance.uuid];
-				}
-				let shipMemory = await sdk.dbManager.getMemory(instance);
-				var struct = {	type: "Ship",
-								ID: instance.uuid,
-								role: shipMemory.role,
-								memory: shipMemory};
-
-				sendInfo("shipInfo", struct);
-
-				await delay(15000);
-			}
-		} catch(e) {
-			loggerConsole.error("Error in standalone loop...");
-			console.error(e);
-		}
-	}
-}
-
 var start = async function() {
 	loggerConsole.trace("Starting system, logging in the account.");
 	var account = await sdk.Account.connect();
@@ -211,38 +160,20 @@ var start = async function() {
 	//global.quadrant = await sdk.Sector.connect(sdk.Quadrants.FEDERATION);
 	//await delay(actionDelay);
 
-
-
 	await dbManager.initDb();
 	while(true) {
 		try {
-			await account.safeAssemble();
-			multiLoop.profileInfo = await account.profile();
-			await delay(ACTION_DELAY);
-
 			var objects = await account.objects(9999); // all objects ever
 			
 			sendInfo("allObjects", objects);
 
-			/*
 			var ships = objects.filter((instance) => instance.type === 'Ship');
 			var planets = objects.filter((instance) => instance.type === 'Planet');
 			await delay(actionDelay);
 			await loop(account, ships, planets).catch((e) => {
 				console.error(e);
 				loggerConsole.error("Error while looping, but it's okay! We're just restarting.");
-			});*/
-			var ships = objects.filter((instance) => instance.type === 'Ship');
-			// add planets later ig... TODO
-
-			for(let ship of ships) {
-				if(!multiLoop.functioningObjects.includes(ship.uuid)) {
-					multiLoop.functioningObjects.push(ship.uuid);
-					standaloneLoop(ship, account);
-				}
-			}
-
-			await delay(15000);
+			});
 		} catch(e) {
 			loggerConsole.error("Error in while, but I think it'll just restart itself.");
 			console.error(e);

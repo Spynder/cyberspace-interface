@@ -30,8 +30,8 @@ module.exports = {
 
 		//multiLoop.attackerTargets = {};
 		let manualAttackDisable = false;
-		let flyTo = SYSTEM_IOTA_PEGASI;
-		let planetName = "Thailara";
+		let flyTo = SYSTEM_JIH;
+		let planetName = "Elea";
 
 		// TODO: Fly to fight with 5000+ for repairs.
 		// TODO: Check for distance to safety. They might lure you away and shoot there. (3000 to nearby safe spot (planet/warp spot))
@@ -101,7 +101,7 @@ module.exports = {
 				let targetBody = ship.radarData.nodes.find(node => node.uuid == target.target);
 				
 				let healthPercentage = ship.getCurrentHP() / ship.getMaxHold();
-				let injured = healthPercentage <= 0.7;
+				let injured = healthPercentage <= 0.3;
 				let healthy = healthPercentage >= 1.0;
 				if(healthy) {
 					ship.setLocalMemory("retreating", false);
@@ -124,6 +124,7 @@ module.exports = {
 					if(!escapeCoords) {
 						loggerShip.warn("Injured, landing on nearby landable!");
 						await ship.parkAtNearbyLandable(); // Fix, cause droid won't heal you if you're on a planet
+						// TODO: find inhabited landables
 						await ship.safeRepair();
 						return;
 					}
@@ -149,15 +150,18 @@ module.exports = {
 				}
 
 				if(targetBody) {
-					await ship.safeEscape();
+					if(ship.getLocation() != LOCATION_SYSTEM) {
+						await ship.safeEscape();
+					}
 					if(!injured) {
 						let shipPos = new mafs.Pos(ship.details.body.vector.x, ship.details.body.vector.y);
 						let enemyPos = new mafs.Pos(targetBody.body.vector.x, targetBody.body.vector.y);
-						let keepDistance = 100;
+						let keepDistance = -100;
 						let distanceFighting = mafs.extendLine(new mafs.Line(shipPos, enemyPos), -keepDistance).p2;
-						await ship.safeMove(distanceFighting.x, distanceFighting.y);
+						await ship.safeMove(distanceFighting.x, distanceFighting.y); // fuck it, i'm a fucking rock and not moving
 					}
-					await ship.safeAttack(targetBody.uuid, [1,2,3,4,5]);
+					let attackResult = await ship.safeAttack(targetBody.uuid, [1,2,3,4,5]);
+					console.log(attackResult);
 				}
 			} else {
 				loggerShip.warn("No targets, parking to specified planet: " + planetName);
@@ -166,6 +170,14 @@ module.exports = {
 				if(planetDetails) {
 					ship.setPlanetDeals(planetDetails);
 				}
+
+				/*let allTrades = planetDetails.body.deals.filter((deal) => deal.type == "SELL");
+				loggerShip.warn("Executing a deal!");
+				var buyTrade = planetDetails.body.deals.find((deal) => deal.type == "SELL");
+				console.log(buyTrade);
+				if(buyTrade && !ship.hasMinerals()) {
+					await ship.safeAccept(buyTrade.uuid, -1000);
+				}*/
 
 				await ship.parkAtSpecifiedPlanet(planetName);
 				return;

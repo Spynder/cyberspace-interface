@@ -10,6 +10,12 @@ module.exports = {
 		//console.log(planetDetails);
 		//console.log(planetDetails.nodes);
 
+		try {
+			await planet.make("HULL", 9);
+		} catch(e) {
+			console.error(e);
+		}
+
 		planetDetails.ID = planet.uuid;
 		planetDetails.type = "Planet";
 

@@ -22,7 +22,7 @@ module.exports = {
 		console.log("COLONIZER");
 		console.log("COLONIZER");
 
-		let buyVirus = true;
+		let buyVirus = false;
 
 		var immediatePark = !options.active;
 		
@@ -37,15 +37,16 @@ module.exports = {
 		}
 
 		var home = SYSTEM_SCHEAT;
-		var dest = SYSTEM_PI1_PEGASI;
-		var planetName = "Thides G1";
+		var dest = SYSTEM_IOTA_PEGASI;
+		var planetName = "Thailara";
 
-		if(ship.hasCargo("embryo")) {
+		// Stopped working with patch v0.19-Alpha (14.05.2021)
+		/*if(ship.hasCargo("embryo")) {
 			await ship.safeEquip("artifact1", ship.hasCargo("embryo")[0].uuid);
 		}
 		if(ship.hasCargo("virus")) {
 			await ship.safeEquip("artifact2", ship.hasCargo("virus")[0].uuid);
-		}
+		}*/
 
 		//var currLocation = mafs.findWarpDestination(ship.getCurrentSystem(), dest);
 		if(ship.getLocation() != LOCATION_SYSTEM && ship.getCurrentSystem() == dest && ship.getLocationName() != planetName) {
@@ -107,18 +108,18 @@ module.exports = {
 			await ship.safeFuel();
 			return;
 		}
-		if(!ship.hasCargo(/*"embryo"*/ "virus") && ship.getCurrentSystem() != HOME_SYSTEM) {
+		if(!ship.hasCargo("embryo") && ship.getCurrentSystem() != HOME_SYSTEM) {
 			await ship.warpToSystem(home);
 		}
 
-		else if(ship.hasCargo(/*"embryo"*/ "virus")/* && ship.hasCargo("virus")*/) {
+		else if(ship.hasCargo("embryo")/* && ship.hasCargo("virus")*/) {
 			await ship.warpToSystem(dest);
 		}
 
-		if(((ship.getLocalMemory()).location == SYSTEM_SCHEAT || ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation") && !ship.hasCargo(/*"embryo"*/ "virus")) {
+		if(((ship.getLocalMemory()).location == SYSTEM_SCHEAT || ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation") && !ship.hasCargo("embryo")) {
 			console.log("In");
 			console.log(details.body.balance);
-			var requiredMoney = 5000 + 00000 + (buyVirus ? 30000 : 0);
+			var requiredMoney = 1000 + 10000 + (buyVirus ? 10000 : 0);
 			if(details.body.balance != requiredMoney) {
 				console.log("Operating");
 				await ship.operateMoney(requiredMoney);
@@ -129,10 +130,8 @@ module.exports = {
 				if(sciStation) {
 					await ship.safeMove(sciStation.body.vector.x, sciStation.body.vector.y);
 					await ship.safeLanding(sciStation.uuid);
-					//await ship.safeApply("GET_EMBRYO");
+					await ship.safeApply("GET_EMBRYO");
 					if(buyVirus) {
-						await ship.safeApply("GET_VIRUS");
-						await ship.safeApply("GET_VIRUS");
 						await ship.safeApply("GET_VIRUS");
 					}
 				}

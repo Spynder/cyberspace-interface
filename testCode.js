@@ -1,5 +1,3 @@
-var delay = require('delay');
-var mafs = require('./code/libs/mafs')
 
 /*var obj = {
   Matar: {
@@ -225,7 +223,7 @@ function getPointOnCircle(dx, dy, rad, angle) {
 // Thanks to:
 // https://stackoverflow.com/questions/10358022/find-the-better-intersection-of-two-moving-objects
 
-let l1 = new mafs.Pos(0, 0); // location of asteroid
+/*let l1 = new mafs.Pos(0, 0); // location of asteroid
 let v1 = new mafs.Pos(50, 50); // velocity (scalar speed + direction) of asteroid
 
 let l2 = new mafs.Pos(0, 100); // location of ship
@@ -276,4 +274,22 @@ if(isNaN(solution) || solution < 0) {
 	);
 	console.log("Interception point:");
 	console.log(interception);
+}*/
+class Person {
+	constructor(name) {
+		this.name = name;
+	}
 }
+	
+function abc() {
+	
+
+	let className = "Person";
+	let nameName = "123";
+	console.log(this)
+	let obj = new this;
+
+	console.log(obj);
+}
+
+abc();
