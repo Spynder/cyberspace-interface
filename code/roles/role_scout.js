@@ -8,7 +8,7 @@ module.exports = {
 
 		if(immediatePark) { // Only if we have to park we interrupt the no-time-spent
 			await ship.safeScan();
-			loggerShip.info("Parking at nearby landable by command.");
+			ship.log("info", "Parking at nearby landable by command.");
 			await ship.parkAtNearbyLandable();
 			if(ship.getLocation() != LOCATION_SYSTEM) {
 				ship.setParked(true);
@@ -18,12 +18,11 @@ module.exports = {
 
 		ship.setParked((ship.getLocation() != undefined) ? ship.getLocation() != LOCATION_SYSTEM : false);
 
-		// NO CPU TIME WASTING DOWN
+		// Since major breakthrough, I can afford to don't care with these CPU cycles
 		if(sdk.hasPlanetDealsBeenScanned(memory.scoutingPlanet) && !sdk.isPlanetDealsExpired(memory.scoutingPlanet, true)) {
-			loggerShip.info(memory.homeSystem + " - " + memory.scoutingPlanet + " is up-to-date with deals, so I'm sleeping.");
+			ship.log("info", memory.homeSystem + " - " + memory.scoutingPlanet + " is up-to-date with deals, so I'm sleeping.");
 			return;
 		}
-		// NO CPU TIME WASTING UP
 
 		await ship.selfScan();
 		let radarData = ship.radarData;
@@ -32,7 +31,7 @@ module.exports = {
 		let dest = memory.homeSystem;
 
 		if(ship.details.body.balance != KEEP_MINIMUM && ship.getCurrentSystem() == SYSTEM_SCHEAT && dest != SYSTEM_SCHEAT) {
-			loggerShip.info("Operating " + KEEP_MINIMUM + " for safe warping.");
+			ship.log("info", "Operating " + KEEP_MINIMUM + " for safe warping.");
 			await ship.operateMoney(KEEP_MINIMUM);
 			return;
 		}
@@ -56,7 +55,7 @@ module.exports = {
 			var planetInfo = await ship.safeScan(memory.scoutingPlanet);
 			if(planetInfo) {
 				ship.setPlanetDeals(planetInfo);
-				loggerShip.info("Updated planet deals for " + memory.homeSystem + " - " + memory.scoutingPlanet + ".");
+				ship.log("info", "Updated planet deals for " + memory.homeSystem + " - " + memory.scoutingPlanet + ".");
 			}
 		}
 	}

@@ -24,7 +24,7 @@ module.exports = {
 		var immediatePark = !options.active;
 
 		if(immediatePark) {
-			loggerShip.info("Parking at nearby landable by command.");
+			ship.log("info", "Parking at nearby landable by command.");
 			await ship.parkAtNearbyLandable();
 			if(ship.getLocation() != LOCATION_SYSTEM) {
 				ship.setParked(true);
@@ -46,7 +46,7 @@ module.exports = {
 		let betterPart = parts.find((part) => part.body.gen == 8 && !ship.isAlreadyEquiped(part.uuid));
 		if(betterPart) {
 			if(ship.getBalance() == HULL_CHANGE_COST) {
-				loggerShip.info("Flying to scientific station to change hull!");
+				ship.log("info", "Flying to scientific station to change hull!");
 				var sciStation = ship.radarData.nodes.find((instance) => instance.type == "ScientificStation");
 				console.log(betterPart);
 				if(ship.getLocation() != LOCATION_SCIENTIFIC_STATION) {
@@ -58,7 +58,7 @@ module.exports = {
 					await ship.safeApply("CHANGE_HULL", betterPart.uuid);
 				}
 			} else {
-				loggerShip.info("Getting " + HULL_CHANGE_COST + " for hull change.");
+				ship.log("info", "Getting " + HULL_CHANGE_COST + " for hull change.");
 				await ship.operateMoney(HULL_CHANGE_COST);
 			}
 		}
@@ -107,20 +107,20 @@ module.exports = {
 		}
 
 		if(ship.details.body.balance != requiredBalance && !ship.hasMinerals() && ship.getCurrentSystem() == SYSTEM_SCHEAT) {
-			loggerShip.info("Operating " + requiredBalance + "!");
+			ship.log("info", "Operating " + requiredBalance + "!");
 			await ship.operateMoney(requiredBalance);
 			return;
 		}
 
 		else if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != dest && HIGH_SEC_SYSTEMS.includes(ship.getCurrentSystem())) {
-			loggerShip.info("Landing at nearby to refuel.");
+			ship.log("info", "Landing at nearby to refuel.");
 			await ship.parkAtNearbyLandable();
-			await ship.safeFuel(); // todo? maybe fuel is included in first func
+			await ship.safeFuel();
 			return;
 		}
 
 		else if(ship.getFuel() == ship.getMaxFuel() && ship.getCurrentSystem() != warpingTo && ship.getLocation() != LOCATION_SYSTEM) {
-			loggerShip.info("Escaping from atmosphere to fly to destination!");
+			ship.log("info", "Escaping from atmosphere to fly to destination!");
 			await ship.safeEscape();
 		}
 
@@ -129,7 +129,7 @@ module.exports = {
 		}
 
 		else if(ship.getCurrentSystem() == sellingTo && returningBack && ship.hasMinerals() && bestMineralTradeInSystem) {
-			loggerShip.info("I have minerals on the board, so I'm flying to planet and try to sell them.");
+			ship.log("info", "I have minerals on the board, so I'm flying to planet and try to sell them.");
 
 			var deal = bestMineralTradeInSystem;
 			await ship.parkAtSpecifiedPlanet(deal.planet);
@@ -147,14 +147,14 @@ module.exports = {
 
 					planetInfo = await ship.safeScan(deal.planet);
 					ship.setPlanetDeals(planetInfo);
-					//loggerShip.info("Trade successfully accepted!");
+					//ship.log("info", "Trade successfully accepted!");
 				}
 			}
 		}
 
 		
 		if(ship.getCurrentSystem() == dest && !returningBack && ship.getLocation() == LOCATION_SYSTEM) {
-			loggerShip.warn("Landing on " + planetName)
+			ship.log("warn", "Landing on " + planetName)
 			var planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
 			var planet = planets.find((pla) => pla.uuid == planetName);
 			var vect = new mafs.Line(	new mafs.Pos(	ship.details.body.vector.x,
@@ -175,8 +175,8 @@ module.exports = {
 			try {
 				await delay(500);
 				console.log(ownedDetails.nodes);
-				var mineralsID = "03cc566c55";
-				let mineralCargo = ownedDetails.nodes.find(node => node.type == "Cargo");
+				var mineralsID;
+				let mineralCargo = ownedDetails.nodes.find(node => node.body.type == "MINERALS");
 				if(mineralCargo) {
 					mineralsID = mineralCargo.uuid;
 					var mineralCount = ownedDetails.nodes.find((node) => node.uuid == mineralsID).body.size;
@@ -191,10 +191,10 @@ module.exports = {
 					}
 					
 					if(ship.details.body.balance < mineralAmount && ownedDetails.body.deals.length == 0 && ship.getHold() < 1000) {
-						loggerShip.warn("Creating a deal for the ship to get money!");
+						ship.log("warn", "Creating a deal for the ship to get money!");
 						owned.buy("MINERALS", mineralAmount+400, 1);
 						await delay(ACTION_DELAY);
-						loggerShip.warn("Executing a deal!");
+						ship.log("warn", "Executing a deal!");
 						console.log(ownedDetails.body.deals);
 						var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "BUY");
 						if(buyTrade) {
@@ -205,7 +205,7 @@ module.exports = {
 						}
 					}
 					if(ship.details.body.balance < mineralAmount && ownedDetails.body.deals.length == 1 && ship.getHold() < 1000) {
-						loggerShip.warn("Executing a deal!");
+						ship.log("warn", "Executing a deal!");
 						console.log(ownedDetails.body.deals);
 						var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "SELL");
 						console.log(buyTrade);
@@ -217,10 +217,10 @@ module.exports = {
 					}
 
 					else if(ownedDetails.body.deals.length == 0 && ship.getHold() < 1000) {
-						loggerShip.warn("Creating a deal!");
-						await owned.sell(mineralsID, 1); // TODO search for cargo not hardcode it
+						ship.log("warn", "Creating a deal!");
+						await owned.sell(mineralsID, 1);
 						await delay(ACTION_DELAY);
-						loggerShip.warn("Executing a deal!");
+						ship.log("warn", "Executing a deal!");
 						console.log(ownedDetails.body.deals);
 						var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "SELL");
 						if(buyTrade) {
@@ -228,7 +228,7 @@ module.exports = {
 							await ship.safeFuel();
 						}
 					} else {
-						loggerShip.warn("Executing a deal!");
+						ship.log("warn", "Executing a deal!");
 						console.log(ownedDetails.body.deals);
 						var buyTrade = ownedDetails.body.deals.find((deal) => deal.type == "SELL");
 						if(buyTrade) {
@@ -239,18 +239,18 @@ module.exports = {
 					}
 				}
 			} catch(e) {
-				loggerShip.error("Unhandled exception occured while executing freighter role: " + e.message);
+				ship.log("error", "Unhandled exception occured while executing freighter role: " + e.message);
 				console.error(e);
 			}
 
 			// IMPORTANT
 			/*if(ownedDetails.body.balance > 0 && ship.hasMinerals()) {
 				await delay(500);
-				loggerShip.warn("Clearing planet balance!");
+				ship.log("warn", "Clearing planet balance!");
 				owned.buy("MINERALS", ownedDetails.body.balance, 1);
 				await delay(ACTION_DELAY);
 
-				loggerShip.warn("Executing a deal!");
+				ship.log("warn", "Executing a deal!");
 				await delay(2000);
 				ownedDetails = await owned.explore();
 				await delay(ACTION_DELAY);

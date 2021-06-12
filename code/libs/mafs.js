@@ -301,7 +301,6 @@ module.exports = {
 					temp = temp.previous;
 					path.unshift(temp.name);
 				}
-				console.log("DONE");
 
 				// return cost (fuel needed in total)
 				return path;

@@ -7,7 +7,7 @@ module.exports = {
 		let immediatePark = !options.active;
 
 		if(immediatePark) {
-			loggerShip.info("Parking at nearby landable by command.");
+			ship.log("info", "Parking at nearby landable by command.");
 			await ship.parkAtNearbyLandable();
 			if(ship.getLocation() != LOCATION_SYSTEM) {
 				ship.setParked(true);
@@ -15,57 +15,87 @@ module.exports = {
 			return;
 		}
 
-		/*if(!ship.getCurrentSystem()) {
-			await ship.safeEscape();
-		}*/
-
 		let systemName = SYSTEM_PI1_PEGASI;
-		let planetName = "Thides G1";
+		let from = "Poaruta";
+		let to = "Droebos";
 
-		//await ship.safeMove(-7396.254953606307, 3048.83791980718);
-
-		//await ship.safeGrab("0107610da5");
-
-		if(ship.getLocationName() == planetName) {
-			let scanned = await ship.safeScan(planetName);
-			ship.setPlanetDeals(scanned);
-			console.log(scanned.nodes.filter(node => node.body.type == "MINERALS"));
-			/*let deals = scanned.body.deals;
-			console.log(scanned.body.deals);
-			if(deals.length > 0) {
-				let deal = deals[0];
-				await ship.safeAccept(deal.uuid);
-			}*/
-
-			let equipID = "c41ec8b250";
-			let slot = "weapon1";
-			await ship.safeEquip(slot, equipID);
-		}
-
-		//return;
-
-		/*if(!ship.getCurrentSystem()) {
-			await ship.safeEscape();
-		}
-
-		if(ship.getBalance() != 1000 && ship.getCurrentSystem() == SYSTEM_SCHEAT) {
-			await ship.operateMoney(1000);
-		}
-
-		else if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != systemName) {
+		if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != systemName && ship.findInhabitedLandables().length > 0) {
 			await ship.parkAtNearbyLandable();
-			await ship.safeFuel();
+			return;
 		}
 
-		else {
-			if(ship.getCurrentSystem() != systemName) {
+		
+		if(ship.uuid == "ddd16ba792") {
+			let uuid = "cb8d3135a9";
+			//await ship.safeTransfer("5beb3e8f85", "out");
+			//await ship.safeTransfer("4b281f38ac", "out");
+			//await ship.warpToSystem(SYSTEM_PI1_PEGASI);
+			//await ship.parkAtSpecifiedPlanet("Droebos");
+			//await ship.warpToSystem(SYSTEM_SCHEAT);
+			//await ship.safeMove(700, 700);
+			//await ship.safeLanding("Dominion");
+				//await ship.safeApply("CHANGE_HULL", "cb8d3135a9");
+			//return;
+			//await ship.parkAtSpecifiedPlanet("Droebos");
+
+			//await ship.warpToSystem(SYSTEM_IOTA_PEGASI);
+			//await ship.parkAtSpecifiedPlanet("Oagawa");
+			//await ship.createModuleOnPlanet("Oagawa", "ENGINE", 8);
+			//await ship.safeTransfer("d69ce012f4", "in");
+			//await ship.safeEquip("engine", "d69ce012f4");
+		} else {
+			//await ship.warpToSystem(SYSTEM_IOTA_PEGASI);
+			//await ship.createModuleOnPlanet("Tilia", "TANK", 6);
+			//await ship.createModuleOnPlanet("Droebos", "DROID", 8);
+			//await ship.createModuleOnPlanet("Thailara", "WEAPON", 8);
+
+			//await ship.clearPlanetBalance("Droebos");
+
+			//await ship.createModuleOnPlanet("Thides G1", "WEAPON", 8);
+
+			/*await ship.safeTransfer("f7a72d4ea1", "in");
+			await ship.safeEquip("tank", "f7a72d4ea1");
+			await ship.safeEscape();
+			await ship.safeDrop("fcb079b033");
+			await ship.safeAttack("fcb079b033", [1]);*/
+		}
+
+		let exchangeItems = false;
+		if(exchangeItems) {
+			if(!ship.getCurrentSystem()) {
 				await ship.safeEscape();
-				await ship.warpToSystem(systemName);
 			}
-			else {
-				//await ship.parkAtNearbyLandable();
-				await ship.parkAtSpecifiedPlanet(planetName)
+			if(ship.getCurrentSystem() == SYSTEM_SCHEAT) {
+				await ship.safeEscape();
+				await ship.safeMove(0, 3500);
+				let itemUuid = "d4e72cab74";
+
+				//await ship.safeAttack(itemUuid, [1]);
+
+				if(ship.uuid == "ddd16ba792") {
+					await ship.safeDrop(itemUuid);
+				} else {
+					await ship.safeGrab(itemUuid);
+				}
 			}
+		}
+
+		//let requiredMinerals = ship.getMaxHold() * 0.6 - ship.getHold();
+		//await ship.clearPlanetBalance("Oagawa");
+		//await ship.createModuleOnPlanet("Tilia", "ENGINE", 8);
+		//await ship.transferMineralsFromPlanets(from, to, ship.getMaxHold() * 0.6 - ship.getHold());
+
+		//await ship.createModuleOnPlanet("Poaruta", "WEAPON", 8);
+		//await ship.safeTransfer("b1334b8f1b", "in");
+		//await ship.safeEquip("weapon3", "b1334b8f1b");
+		//await ship.safeTransfer("c3fe42eb37", "in");
+
+		/*if(returningBack) {
+			await ship.transferAllMineralsToPlanet(to);
+			return;
+		} else {
+			await ship.getMineralsFromPlanet(from, requiredMinerals);
 		}*/
+
 	}
 }

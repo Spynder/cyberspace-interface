@@ -18,18 +18,14 @@ module.exports = {
 		var radarData = ship.radarData; // Get all objects in current system
 		var details = ship.details; // Get details of our ship
 		var memory = ship.memory;
-		console.log("COLONIZER");
-		console.log("COLONIZER");
-		console.log("COLONIZER");
 
-		let buyVirus = false;
+		let buyVirus = true;
 
 		var immediatePark = !options.active;
 		
 		if(immediatePark) {
-			loggerShip.info("Parking at nearby landable by command.");
+			ship.log("info", "Parking at nearby landable by command.");
 			await ship.parkAtNearbyLandable();
-			console.log(ship.getLocation());
 			if(ship.getLocation() != LOCATION_SYSTEM) {
 				ship.setParked(true);
 			}
@@ -37,8 +33,9 @@ module.exports = {
 		}
 
 		var home = SYSTEM_SCHEAT;
-		var dest = SYSTEM_IOTA_PEGASI;
-		var planetName = "Thailara";
+		var dest = SYSTEM_MARKAB;
+		var planetName = "Induna";
+		let fuelMoney = 10600;
 
 		// Stopped working with patch v0.19-Alpha (14.05.2021)
 		/*if(ship.hasCargo("embryo")) {
@@ -49,12 +46,18 @@ module.exports = {
 		}*/
 
 		//var currLocation = mafs.findWarpDestination(ship.getCurrentSystem(), dest);
-		if(ship.getLocation() != LOCATION_SYSTEM && ship.getCurrentSystem() == dest && ship.getLocationName() != planetName) {
+		//ship.log("info", ship.getLocation())
+		//ship.log("info", ship.getCurrentSystem())
+		//ship.log("info", ship.getLocationName())
+
+		
+
+		if(ship.getLocation() != LOCATION_SYSTEM && ship.getCurrentSystem() != dest || ship.getLocationName() != planetName) {
 			await ship.safeEscape();
 		}
 		/*console.log(ship.details.parent.uuid);*/
-		if(ship.getLocation() == LOCATION_SYSTEM && ship.getCurrentSystem() == dest) {
-			loggerShip.warn("Landing on owned");
+		if(ship.getLocation() == LOCATION_SYSTEM && ship.getCurrentSystem() == dest && ship.hasCargo("embryo")) {
+			ship.log("warn", "Flying to required planet");
 
 			var planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
 			var planet = planets.find((pla) => pla.uuid == planetName);
@@ -89,42 +92,42 @@ module.exports = {
 
 		if(ship.getLocationName() == planetName) {
 			await ship.safeFuel();
-			var owned = await account.getPlanet(planetName);
+			/*var owned = await account.getPlanet(planetName);
 			var ownedDetails = await owned.explore();
-			console.log(ownedDetails);
-			console.log(ownedDetails.nodes);
-			owned.dispose();
-			return;
+			ship.log("info", ownedDetails);
+			ship.log("info", ownedDetails.nodes);
+			owned.dispose();*/
+			//return;
 		}
 
 		if(!ship.getCurrentSystem()) {
-			loggerShip.info("Escaping the atmosphere to understand, where am I.");
+			ship.log("info", "Escaping the atmosphere to understand, where am I.");
 			await ship.safeEscape();
 		}
 
-		else if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != dest && HIGH_SEC_SYSTEMS.includes(ship.getCurrentSystem())) {
-			loggerShip.warn("Landing on closest planet to refuel")
-			await ship.parkAtNearbyLandable();
+		else if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != dest) {
+			ship.log("warn", "Landing on closest planet to refuel")
+			let landable = await ship.findInhabitedLandables()[0];
+			await ship.parkAtSpecifiedPlanet(landable.uuid);
+			//await ship.parkAtNearbyLandable();
 			await ship.safeFuel();
 			return;
 		}
 		if(!ship.hasCargo("embryo") && ship.getCurrentSystem() != HOME_SYSTEM) {
+			//console.log("Sitting")
 			await ship.warpToSystem(home);
 		}
 
-		else if(ship.hasCargo("embryo")/* && ship.hasCargo("virus")*/) {
+		else if(ship.hasCargo("embryo")) {
 			await ship.warpToSystem(dest);
 		}
 
 		if(((ship.getLocalMemory()).location == SYSTEM_SCHEAT || ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation") && !ship.hasCargo("embryo")) {
-			console.log("In");
-			console.log(details.body.balance);
-			var requiredMoney = 1000 + 10000 + (buyVirus ? 10000 : 0);
+			ship.log("info", "Getting artifacts");
+			var requiredMoney = fuelMoney + 10000 + (buyVirus ? 10000 : 0);
 			if(details.body.balance != requiredMoney) {
-				console.log("Operating");
 				await ship.operateMoney(requiredMoney);
 			} else {
-				console.log("Getting artifacts");
 				await ship.safeEscape();
 			    var sciStation = radarData.nodes.find((instance) => instance.type == "ScientificStation"); // replace to find
 				if(sciStation) {

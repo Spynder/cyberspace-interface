@@ -200,47 +200,6 @@ global.ALLY_IDS = [
 	"1c5b926242", // 1323ED5
 ];
 // not as constant but still
-global.WARPS = {};
-
-function addPath(from, to, coords) {
-	WARPS[from] = WARPS[from] || {};
-	WARPS[from][to] = coords;
-}
-
-addPath(SYSTEM_SCHEAT, SYSTEM_SADALBARI, {x: 5057, y: 6199});
-addPath(SYSTEM_SADALBARI, SYSTEM_SCHEAT, {x: -5057, y: -6199});
-
-addPath(SYSTEM_SCHEAT, SYSTEM_SADALPHERIS, {x: 5352, y: 5946});
-addPath(SYSTEM_SADALPHERIS, SYSTEM_SCHEAT, {x: -5352, y: -5946});
-
-addPath(SYSTEM_SADALBARI, SYSTEM_SADALPHERIS, {x: 6074, y: 5206});
-addPath(SYSTEM_SADALPHERIS, SYSTEM_SADALBARI, {x: -6074, y: -5206});
-
-addPath(SYSTEM_SADALPHERIS, SYSTEM_IOTA_PEGASI, {x: 7854, y: -1520});
-addPath(SYSTEM_IOTA_PEGASI, SYSTEM_SADALPHERIS, {x: -7854, y: 1520});
-
-addPath(SYSTEM_SCHEAT, SYSTEM_MATAR, {x: 7235, y: -3413});
-addPath(SYSTEM_MATAR, SYSTEM_SCHEAT, {x: -7235, y: 3413});
-
-addPath(SYSTEM_SCHEAT, SYSTEM_SALM, {x: -5527, y: 5784});
-addPath(SYSTEM_SALM, SYSTEM_SCHEAT, {x: 5527, y: -5784});
-
-addPath(SYSTEM_SCHEAT, SYSTEM_SIRRAH, {x: -7899, y: -1266});
-addPath(SYSTEM_SIRRAH, SYSTEM_SCHEAT, {x: 7899, y: 1266});
-
-addPath(SYSTEM_MATAR, SYSTEM_PI1_PEGASI, {x: 7499, y: -2788});
-addPath(SYSTEM_PI1_PEGASI, SYSTEM_MATAR, {x: -7499, y: 2788});
-
-addPath(SYSTEM_MATAR, SYSTEM_PI1_PEGASI, {x: 7499, y: -2788});
-addPath(SYSTEM_PI1_PEGASI, SYSTEM_MATAR, {x: -7499, y: 2788});
-
-addPath(SYSTEM_ALGENIB, SYSTEM_SALM, {x: 7059, y: -3765});
-addPath(SYSTEM_SALM, SYSTEM_ALGENIB, {x: -7059, y: 3765});
-
-addPath(SYSTEM_MARKAB, SYSTEM_SALM, {x: -2671, y: -7541});
-addPath(SYSTEM_SALM, SYSTEM_MARKAB, {x: 2671, y: 7541});
-
-
 
 global.ROLES = [
 	{
@@ -249,28 +208,28 @@ global.ROLES = [
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALBARI, // dead
+		homeSystem: SYSTEM_SADALBARI,
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SALM, // dead
-	},
-	// First time, ships are very slow, so we need many of them
-
-	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_MATAR, // dead
+		homeSystem: SYSTEM_MATAR,
 	},
 	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALPHERIS, // dead
+		role: ROLE_ATTACKER,
+		homeSystem: SYSTEM_IOTA_PEGASI, // sadalpheris as miner
+		homePlanet: "Oagawa",
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALPHERIS, // dead
+		homeSystem: SYSTEM_SALM,
 	},
 	{
-		role: ROLE_MANUAL,
+		role: ROLE_ATTACKER,
+		homeSystem: SYSTEM_PI1_PEGASI, // was in sadalpheris
+		homePlanet: "Droebos",
+	},
+	{
+		role: ROLE_MINER,
 		homeSystem: SYSTEM_SADALPHERIS,
 	},
 	{
@@ -279,15 +238,13 @@ global.ROLES = [
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SALM,
-	},
-	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALBARI,
-	},
-	{
-		role: ROLE_MINER,
 		homeSystem: SYSTEM_SADALPHERIS,
+		//homePlanet: "Thides G1",
+	},
+	{
+		role: ROLE_ATTACKER,
+		homeSystem: SYSTEM_PI1_PEGASI,
+		homePlanet: "Thides G1",
 	},
 	{
 		role: ROLE_SCOUT,
@@ -324,6 +281,8 @@ global.ROLES = [
 		homeSystem: SYSTEM_SALM,
 		scoutingPlanet: "Acapus",
 	},
+
+	// Default
 	{
 		role: ROLE_MINER,
 		homeSystem: HOME_SYSTEM,

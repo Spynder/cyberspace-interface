@@ -10,9 +10,9 @@ module.exports = {
 		};
 	},
 
-	getShipState: function(item) {
-		let parked = item.parked == undefined ? true : item.parked;  // Default: true
-		let active = item.active == undefined ? false : item.active; // Default: false
+	getObjectState: function(item) {
+		let parked = item.parked ?? true;
+		let active = item.active ?? false;
 		let state = (active) + (!parked)*2; // aka Bit operations...
 		return state;
 	},
@@ -66,7 +66,7 @@ module.exports = {
 	},
 
 	generateShipLabel: function(item) {
-		let state = this.getShipState(item);
+		let state = this.getObjectState(item);
 
 		switch(state) {
 			case SHIPSTATE.OFF:
@@ -123,7 +123,8 @@ module.exports = {
 	generatePlanetHtml: function(planetStruct) {
 		let roleImg = this.generateShipRole("Planet");
 		let ctznText = this.generatePlanetCtzn(planetStruct.body.ctzn, planetStruct.body.size);
-		return `<div class="ship" shipID=${planetStruct.ID}>
+		let redactedID = (planetStruct.ID).replace(/ /g, "_");
+		return `<div class="ship" shipID=${redactedID}>
 					<div class="iconBlock">
 						<span class="helper"></span>
 						${roleImg}
@@ -142,7 +143,8 @@ module.exports = {
 	generatePlanetMinerals: function(objectStruct) {
 		let text = `<span class="${STAT_UNKNOWN}">?</span>`;
 		if(objectStruct.hasOwnProperty("body")) {
-			text = `<span class="${STAT_GOOD}">${objectStruct.nodes.find(cargo => cargo.body.type == "MINERALS").body.size}</span>`;
+			let minerals = objectStruct.nodes.find(cargo => cargo.body.type == "MINERALS");
+			text = `<span class="${STAT_GOOD}">${minerals ? minerals.body.size : 0}</span>`;
 		}
 		
 		return `<p class="systemText">Minerals: <span class="${STAT_GOOD}">${text}</span></p>`;
@@ -180,7 +182,8 @@ module.exports = {
 		let roleImg = this.generateShipRole(objectStruct);
 		var labelImg = this.generateShipLabel(objectStruct);
 		let objectInfo = this.generateObjectInfo(objectStruct);
-		return `<div class="object" objID=${objectStruct.ID}>
+		let redactedID = (objectStruct.ID).replace(/ /g, "_");
+		return `<div class="object" objID=${redactedID}>
 					<div class="iconBlock">
 						<span class="helper"></span>
 						${roleImg}

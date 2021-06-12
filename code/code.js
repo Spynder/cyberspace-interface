@@ -1,11 +1,9 @@
-const logger = require("./libs/logger");
-var sdk = require("./libs/enhancer");
+const crypto = require('crypto');
+const fs = require("fs");
+const path = require("path");
 const delay = require("delay");
-const mafs = require("./libs/mafs");
-const config = require("./libs/config.js");
-const {ipcMain, webContents} = require("electron");
-var dbManager = sdk.dbManager;
 
+const {ipcMain, webContents} = require("electron");
 var web;
 if(webContents) web = webContents.getAllWebContents()[0];
 
@@ -28,16 +26,48 @@ global.multiLoop = {
 	attackerTargets: {},
 	radarMemory: [],
 	cycleDelta: undefined,
+	selectedShip: undefined,
 	connectedObjects: {},
 	profileInfo: {},
+	moduleHashes: {},
+	planetRequests: {},
 };
 
+global.requireModule = function(filepath) {
+	let fullpath = path.join(__dirname, filepath);
+	let resolve = require.resolve(fullpath);
+	const fileBuffer = fs.readFileSync(fullpath);
+	const hashSum = crypto.createHash('sha256');
+	hashSum.update(fileBuffer);
+	const hex = hashSum.digest('hex');
+
+	var requiredFile;
+	if(multiLoop.moduleHashes[fullpath] != hex) {
+		if(require.cache[resolve]) delete require.cache[resolve];
+		multiLoop.moduleHashes[fullpath] = hex;
+		console.log("Updated file " + fullpath + "!");
+		console.log(hex);
+	}
+	return require(fullpath);
+}
+
+
+
+const logger = requireModule("./libs/logger.js");
+var sdk = requireModule("./libs/enhancer.js");
+const mafs = requireModule("./libs/mafs.js");
+const config = requireModule("./libs/config.js");
+var dbManager = sdk.dbManager;
+
 ipcMain.on("objectActivity", (event, arg) => {
-	//console.log(arg);
 	var index = multiLoop.activeObjects.findIndex(item => item.ID == arg.ID);
 	if(index == -1) multiLoop.activeObjects.push(arg);
 	else multiLoop.activeObjects[index].active = arg.active;
-})
+});
+
+ipcMain.on("newSelectedShip", (event, arg) => {
+	multiLoop.selectedShip = arg;
+});
 
 const actionDelay = 200;
 var loop = async function(account, ships, planets) {
@@ -106,40 +136,6 @@ var loop = async function(account, ships, planets) {
 	loggerConsole.debug("Done the cycle, repeating.");
 }
 
-var planetLoop = async function(account, instance) {
-	const {uuid, quadrant} = instance;
-	sdk = require("./libs/enhancer");
-	const planet = await account.getPlanet(uuid, quadrant);
-
-	delete require.cache[require.resolve("./libs/enhancer")];
-
-	await planet.gatherInfo(account).catch((e) => {
-		console.log("Unexpected error at planet gathering! - " + e.message);
-		console.error(e);
-	});
-
-	await planet.dispose();
-}
-
-var shipLoop = async function(account, instance, options) {
-	const {uuid, quadrant} = instance;
-	sdk = require("./libs/enhancer");
-	let ship = multiLoop.connectedObjects[uuid];
-	if(!ship) {
-		ship = await account.getShip(uuid, quadrant);
-		multiLoop.connectedObjects[uuid] = ship;
-	}
-	loggerShip.addContext("Ship", ship.uuid);
-	console.log("\n\n\n");
-
-	delete require.cache[require.resolve("./libs/enhancer")];
-
-	await ship.execRole(account, options).catch((e) => {
-		loggerShip.error("Unhandled exception occured while executing ship role: " + e.message);
-		console.error(e);
-	});
-}
-
 global.isGUILaunched = function() {
 	return !!web;
 }
@@ -153,7 +149,11 @@ global.sendInfo = function(event, arg) {
 let standaloneLoop = async function(instance, account) {
 	while(true) {
 		try {
-			loggerShip.warn("standalone loop of instance " + instance.uuid);
+			const {uuid, quadrant} = instance;
+			let objectInstance = multiLoop.connectedObjects[uuid];
+			if(objectInstance) {
+				//objectInstance.log("warn", "standalone loop of instance " + instance.uuid);
+			}
 			let objObj = multiLoop.activeObjects.find(entry => entry.ID == instance.uuid);
 			// If we have entry, leave as is, otherwise get default value based on GUI presense.
 			let active = (objObj && objObj.hasOwnProperty("active")) ? objObj.active : (isGUILaunched() ? false : true);
@@ -161,39 +161,55 @@ let standaloneLoop = async function(instance, account) {
 			let options = {active: active};
 
 			if(active || !parked) {
-				const {uuid, quadrant} = instance;
-				sdk = require("./libs/enhancer");
-
-				let ship = multiLoop.connectedObjects[uuid];
-				if(!ship) {
-					ship = await account.getShip(uuid, quadrant);
-					multiLoop.connectedObjects[uuid] = ship;
+				sdk = requireModule("./libs/enhancer.js");
+				
+				if(!objectInstance) {
+					switch(instance.type) {
+						case "Ship":
+							objectInstance = await account.getShip(uuid, quadrant);
+							break;
+						case "Planet":
+							objectInstance = await account.getPlanet(uuid, quadrant);
+							break;
+					}
+					multiLoop.connectedObjects[uuid] = objectInstance;
 				}
 				loggerShip.addContext("Ship", uuid);
-				console.log("\n\n\n");
 
-				delete require.cache[require.resolve("./libs/enhancer")];
-
-				await ship.execRole(account, options).catch((e) => {
-					loggerShip.error("Unhandled exception occured while executing ship role: " + e.message);
+				try {
+					switch(instance.type) {
+						case "Ship":
+							await objectInstance.execRole(account, options);
+							break;
+						case "Planet":
+							await objectInstance.gatherInfo(account);
+							break;
+					}
+				} catch(e) {
+					objectInstance.log("error", "Unhandled exception occured while executing role: " + e.message);
 					console.error(e);
-				});
+				};
+
 				await delay(ACTION_DELAY);
 			} else {
 				let connectedObject = multiLoop.connectedObjects[instance.uuid];
 				if(connectedObject) {
-					connectedObject.dispose();
+					await connectedObject.dispose();
 					delete multiLoop.connectedObjects[instance.uuid];
 				}
-				let shipMemory = await sdk.dbManager.getMemory(instance);
-				var struct = {	type: "Ship",
-								ID: instance.uuid,
-								role: shipMemory.role,
-								memory: shipMemory};
 
-				sendInfo("shipInfo", struct);
+				let struct = {	type: instance.type,
+								ID: instance.uuid};
 
-				await delay(15000);
+				if(instance.type == "Ship") {
+					let shipMemory = await sdk.dbManager.getMemory(instance);
+					struct.role = shipMemory.role;
+					struct.memory = shipMemory;
+				}
+
+				sendInfo("objectInfo", struct);
+
+				await delay(5000);
 			}
 		} catch(e) {
 			loggerConsole.error("Error in standalone loop...");
@@ -208,10 +224,6 @@ var start = async function() {
 	await account.signin(config.accountUsername, config.accountPassword);
 	loggerConsole.trace("Login successful!");
 	await delay(actionDelay);
-	//global.quadrant = await sdk.Sector.connect(sdk.Quadrants.FEDERATION);
-	//await delay(actionDelay);
-
-
 
 	await dbManager.initDb();
 	while(true) {
@@ -220,29 +232,21 @@ var start = async function() {
 			multiLoop.profileInfo = await account.profile();
 			await delay(ACTION_DELAY);
 
-			var objects = await account.objects(9999); // all objects ever
+			let objects = await account.objects(9999); // all objects ever
 			
-			sendInfo("allObjects", objects);
+			sendInfo("allObjects", objects); // all objects info for graphics module
 
-			/*
 			var ships = objects.filter((instance) => instance.type === 'Ship');
-			var planets = objects.filter((instance) => instance.type === 'Planet');
-			await delay(actionDelay);
-			await loop(account, ships, planets).catch((e) => {
-				console.error(e);
-				loggerConsole.error("Error while looping, but it's okay! We're just restarting.");
-			});*/
-			var ships = objects.filter((instance) => instance.type === 'Ship');
-			// add planets later ig... TODO
+			await dbManager.cleanDeadEntries(ships);
 
-			for(let ship of ships) {
-				if(!multiLoop.functioningObjects.includes(ship.uuid)) {
-					multiLoop.functioningObjects.push(ship.uuid);
-					standaloneLoop(ship, account);
+			for(let object of objects) {
+				if(!multiLoop.functioningObjects.includes(object.uuid)) {
+					multiLoop.functioningObjects.push(object.uuid);
+					standaloneLoop(object, account);
 				}
 			}
 
-			await delay(15000);
+			await delay(5000);
 		} catch(e) {
 			loggerConsole.error("Error in while, but I think it'll just restart itself.");
 			console.error(e);

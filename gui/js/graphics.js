@@ -17,18 +17,23 @@ $(document).ready(function() {
 	var planets = [];
 	let objects = [];
 
-	var enabledShips = 0; // TODO replace to a function
+	function getSwitchedObjects() {
+		return objects.filter(item => item.active).length;
+	}
 
 	// TODO: replace all $("x") to pointers
 
 	var currSelectedSystem = "";
 	let currSelectedShip = undefined;
 
+	function setSelectedShip(id) {
+		currSelectedShip = id;
+		ipcRenderer.send("newSelectedShip", id);
+	}
+
 	var translation = {x: 0, y: 0};
 	var scaling = 1;
 
-
-	//let radarData = {"type":"System","uuid":"Scheat","owner":"","body":{"vector":{"x":217,"y":136,"a":0},"view":3},"nodes":[{"type":"ScientificStation","uuid":"Dominion","owner":"1","body":{"vector":{"x":700,"y":700,"a":0},"view":1},"nodes":[]},{"type":"BusinessStation","uuid":"Baker Plaza","owner":"1","body":{"vector":{"x":0,"y":4000,"a":0},"view":1},"nodes":[]},{"type":"Planet","uuid":"Mayvel","owner":"1","body":{"vector":{"x":-1726,"y":1010,"a":2.6123291622912217},"view":103},"nodes":[]},{"type":"Planet","uuid":"Drewsa","owner":"1","body":{"vector":{"x":2898,"y":1962,"a":0.5951616200810167},"view":114},"nodes":[]},{"type":"Planet","uuid":"Roebe","owner":"1","body":{"vector":{"x":511,"y":-4974,"a":4.814842848614438},"view":125},"nodes":[]},{"type":"Planet","uuid":"Headsbing","owner":"1","body":{"vector":{"x":6414,"y":-1054,"a":6.120335003372804},"view":212},"nodes":[]},{"type":"Cargo","uuid":"20633f671b","owner":"","body":{"vector":{"x":-1552.881,"y":-209.169,"a":1.068},"view":1,"type":"HULL"},"nodes":[]},{"type":"Cargo","uuid":"657be0bace","owner":"","body":{"vector":{"x":-32.728,"y":3069.377,"a":0.833},"view":1,"type":"HULL"},"nodes":[]},{"type":"Cargo","uuid":"5fd0c7a7a4","owner":"","body":{"vector":{"x":-3177.784,"y":-2402.863,"a":0.285},"view":1,"type":"HULL"},"nodes":[]},{"type":"Ship","uuid":"885023cf11","owner":"a678ea674c","body":{"vector":{"x":-7.715,"y":6868.684,"a":-1.574},"view":13},"nodes":[]},{"type":"Ship","uuid":"49c6db1f86","owner":"a678ea674c","body":{"vector":{"x":-40.07,"y":6948.772,"a":3.087},"view":39},"nodes":[]},{"type":"Cargo","uuid":"66734c40cd","owner":"","body":{"vector":{"x":28.462,"y":6829.162,"a":0},"view":204,"type":"MINERALS"},"nodes":[]},{"type":"Cargo","uuid":"0d047aba3d","owner":"","body":{"vector":{"x":3.35,"y":7025.154,"a":0},"view":206,"type":"MINERALS"},"nodes":[]},{"type":"Ship","uuid":"7e1375451c","owner":"a678ea674c","body":{"vector":{"x":32.538,"y":6829.873,"a":2.871},"view":20},"nodes":[]},{"type":"Ship","uuid":"fdabc07988","owner":"a678ea674c","body":{"vector":{"x":-6.185,"y":6865.651,"a":1.899},"view":17},"nodes":[]},{"type":"Ship","uuid":"d07f579a7a","owner":"a329b17604","body":{"vector":{"x":-1615.32,"y":83.092,"a":-1.449},"view":1},"nodes":[]},{"type":"Asteroid","uuid":"a8b2f435fe","owner":"","body":{"vector":{"x":5026.6,"y":4667.929,"a":0},"view":9},"nodes":[]},{"type":"Cargo","uuid":"5e69c4f55e","owner":"","body":{"vector":{"x":-46.302,"y":6947.742,"a":0},"view":201,"type":"MINERALS"},"nodes":[]}]};
 	let systemData = [];
 
 	ipcRenderer.on("systemInfo", (event, arg) => {
@@ -95,7 +100,7 @@ $(document).ready(function() {
 		canvas = document.getElementById(currScreen + "Canvas");
 		ctx = canvas.getContext("2d");
 		if(currScreen == SCREEN_CLUSTER) {
-			generateShipList();
+			generateObjectList();
 			canvas.addEventListener("click", checkSystemClicks, false);
 		} else if(currScreen == SCREEN_SYSTEM) {
 			canvas.addEventListener("click", checkPlanetClicks, false);
@@ -105,65 +110,29 @@ $(document).ready(function() {
 		draw();
 	}
 
-	function generateShipList() {
-		generateObjectList();
-		return;
-		if($("shipsContainer").children().length != ships.length) { // TODO: they might be different, but same value: [a, b] => [a] => [a, c]
-			$("#shipsContainer").empty();
-			planets.forEach(function(planet) {
-				var item = $(gh.generatePlanetHtml(planet));
-				$("#shipsContainer").append(item);
-				var planetStruct = ships.find(obj => obj.ID == item.attr("shipID"));
-				item.click(function() {
-					//currSelectedShip = item.attr("shipID");
-					//renderJson(ships[getShipIndexByID(planetStruct.ID)]);
-				});
-				var activityBtn = item.find(".indicators").find(".shipActivity");
-				/*activityBtn.click(function(event) {
-					event.stopPropagation();
-					shipStruct = ships.find(obj => obj.ID == item.attr("shipID")); // TODO: Since then element might have been updated
-					ships[ships.indexOf(shipStruct)].active = !shipStruct.active;
-					updateShipItem(shipStruct.ID);
-				});*/
-			});
-
-			ships.forEach(function(ship) {
-				var item = $(gh.generateShipHtml(ship));
-				$("#shipsContainer").append(item);
-				var shipStruct = ships.find(obj => obj.ID == item.attr("shipID"));
-				item.click(function() {
-					currSelectedShip = item.attr("shipID");
-					renderJson(ships[getShipIndexByID(shipStruct.ID)]);
-				});
-				var activityBtn = item.find(".indicators").find(".shipActivity");
-				activityBtn.click(function(event) {
-					event.stopPropagation();
-					shipStruct = ships.find(obj => obj.ID == item.attr("shipID")); // TODO: Since then element might have been updated
-					ships[ships.indexOf(shipStruct)].active = !shipStruct.active;
-					updateShipItem(shipStruct.ID);
-				});
-			});
-		}
+	function getIdFromDivItem(item) {
+		let id = item.attr("objID");
+		id = id.replace(/_/g, " "); // Replace all underscores (_) with spaces ( )
+		return id;
 	}
 
 	function generateObjectList() {
-		//console.log()
 		if($("#objectsContainer").children().length != objects.length) { // TODO: they might be different, but same value: [a, b] => [a] => [a, c]
 			$("#objectsContainer").empty();
 			objects.forEach(function(obj) {
 				var item = $(gh.generateObjectHtml(obj));
 				$("#objectsContainer").append(item);
-				var objStruct = objects.find(obj => obj.ID == item.attr("objID"));
+				var objStruct = objects.find(obj => obj.ID == getIdFromDivItem(item));
 				item.click(function() {
-					if(objStruct.type == "Ship") {
-						currSelectedShip = item.attr("objID");
-					}
+					playSound("objectClick");
+					console.log("Clicked object: " + getIdFromDivItem(item));
+					setSelectedShip(getIdFromDivItem(item));
 					renderJson(objects[getObjectIndexByID(objStruct.ID)]);
 				});
 				var activityBtn = item.find(".indicators").find(".objectActivity");
 				activityBtn.click(function(event) {
 					event.stopPropagation();
-					objStruct = objects.find(obj => obj.ID == item.attr("objID")); // TODO: Since then element might have been updated
+					objStruct = objects.find(obj => obj.ID == getIdFromDivItem(item)); // TODO: Since then element might have been updated
 					objects[objects.indexOf(objStruct)].active = !objStruct.active;
 					updateObjectItem(objStruct.ID);
 				});
@@ -193,10 +162,9 @@ $(document).ready(function() {
 		return planets.findIndex(planet => planet.ID == ID);
 	}
 
-
-
-	function findObjectItemByID(ID) {
-		return $(`.object[objID = '${ID}']`);
+	function findObjectItemByID(id) {
+		id = id.replace(/ /g, "_");
+		return $(`.object[objID = '${id}']`);
 	}
 
 	function getObjectIndexByID(ID) {
@@ -215,32 +183,7 @@ $(document).ready(function() {
 		return Math.floor(Math.random() * (max - min)) + min;
 	}
 
-	function updateShipItem(shipID, ignoreShipTextUpdate) {
-		var shipStruct = getShipStructByID(shipID);
-		if(shipStruct) {
-			var item = findShipItemByID(shipStruct.ID);
-
-			item.find(".fuelText").replaceWith(gh.generateShipFuel(shipStruct.fuel, shipStruct.fuelMax));
-			item.find(".balanceText").replaceWith(gh.generateShipBalance(shipStruct.balance));
-			item.find(".systemText").replaceWith(gh.generateShipSystem(shipStruct.system));
-
-			item.find(".shipIcon").replaceWith(gh.generateShipRole(shipStruct));
-			item.find(".label").replaceWith(gh.generateShipLabel(shipStruct));
-			
-			// Update label
-
-			var btn = item.find(".indicators").find(".shipActivity");
-			btn.removeClass(shipStruct.active ? SHIPACTIVITY_OFFLINE : SHIPACTIVITY_ONLINE);
-			btn.addClass(shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
-			ipcRenderer.send("shipActivity", {ID: shipStruct.ID, active: shipStruct.active});
-		}
-
-		if(!ignoreShipTextUpdate) {
-			updateShipText();
-		}
-	}
-
-	function updateObjectItem(objectID, ignoreShipTextUpdate) {
+	function updateObjectItem(objectID, ignoreObjTextUpdate) {
 		var objectStruct = getObjectStructByID(objectID);
 		if(objectStruct) {
 			var item = findObjectItemByID(objectStruct.ID);
@@ -259,8 +202,8 @@ $(document).ready(function() {
 			ipcRenderer.send("objectActivity", {ID: objectStruct.ID, active: objectStruct.active});
 		}
 
-		if(!ignoreShipTextUpdate) {
-			updateShipText();
+		if(!ignoreObjTextUpdate) {
+			updateObjectText();
 		}
 	}
 
@@ -283,82 +226,32 @@ $(document).ready(function() {
 			let filteredArg = {};
 			Object.keys(arg).filter(item => arg[item] != undefined).forEach(item => filteredArg[item] = arg[item]);
 			objects[itemID] = Object.assign({}, objects[itemID], filteredArg);
-			//copy = ships[itemID];
-			//ships[itemID] = arg;
-			//ships[itemID].active = copy.active;
-			//ships[itemID].parked = copy.parked;
 		}
 		updateObjectItem(id);
 	}
 
-	ipcRenderer.on("shipInfo", (event, arg) => {
+	ipcRenderer.on("objectInfo", (event, arg) => {
 		updateInfo(event, arg);
 		return;
-		var id = arg.ID;
-		var itemID = getShipIndexByID(id);
-		if(itemID == -1) {
-			arg.active = false;
-			ships.push(arg);
-			generateShipList();
-		} else {
-			let filteredArg = {};
-			Object.keys(arg).filter(item => arg[item] != undefined).forEach(item => filteredArg[item] = arg[item]);
-			ships[itemID] = Object.assign({}, ships[itemID], filteredArg);
-			//copy = ships[itemID];
-			//ships[itemID] = arg;
-			//ships[itemID].active = copy.active;
-			//ships[itemID].parked = copy.parked;
-		}
-		updateShipItem(id);
-	});
-
-	ipcRenderer.on("planetInfo", (event, arg) => {
-		updateInfo(event, arg);
-		return;
-		var id = arg.ID;
-		var itemID = getPlanetIndexByID(id);
-		if(itemID == -1) {
-			arg.active = false;
-			planets.push(arg);
-			generateShipList();
-		} else {
-			let filteredArg = {};
-			Object.keys(arg).filter(item => arg[item] != undefined).forEach(item => filteredArg[item] = arg[item]);
-			planets[itemID] = Object.assign({}, planets[itemID], filteredArg);
-			//copy = ships[itemID];
-			//ships[itemID] = arg;
-			//ships[itemID].active = copy.active;
-			//ships[itemID].parked = copy.parked;
-		}
-		updateShipItem(id);
 	});
 
 	ipcRenderer.on("allObjects", (event, arg) => {
-		var newShips = [];
+		var newObjects = [];
 		arg.forEach(function(object) {
-			if(object.type == "Ship") {
-				if(getShipIndexByID(object.uuid) == -1) {
-					newShips.push({ID: object.uuid});
-				} else {
-					newShips.push(getShipStructByID(object.uuid));
-				}
-			}	
-			else if(object.type == "Planet" && getPlanetIndexByID(object.uuid) == -1) {
-				planets.push({ID: object.uuid});
+			if(getObjectIndexByID(object.uuid) == -1) {
+				newObjects.push({ID: object.uuid, type: object.type});
+			} else {
+				newObjects.push(getObjectStructByID(object.uuid));
 			}
 		});
-		ships = newShips;
-		generateShipList();
+		objects = newObjects;
+		generateObjectList();
 	});
 
-	function updateShipText() {
-		enabledShips = ships.filter(item => item.active).length;
-		$("#disableAll").text(enabledShips == 0 ? SHIPS_DISABLED : SHIPS_ENABLED);
-		/*if($("shipsContainer").children().length != ships.length) {
-			generateShipList(); // TODO
-		}*/
-		let activatedShips = ships.filter(item => gh.getShipState(item) == SHIPSTATE.ON).length;
-		$("#shipsText").text(`${ships.length} ships (${activatedShips} active): `);
+	function updateObjectText() {
+		$("#disableAll").text(getSwitchedObjects() == 0 ? SHIPS_DISABLED : SHIPS_ENABLED);
+		let activatedObjects = objects.filter(item => gh.getObjectState(item) != SHIPSTATE.OFF).length;
+		$("#objectsText").text(`${objects.length} objects (${activatedObjects} active): `);
 
 	}
 
@@ -573,8 +466,8 @@ $(document).ready(function() {
 
 		for(shipStruct of gh.getShipsFromData(radarData)) { // Ships
 			if(gh.isInside(mousePos, gh.getShipHitbox(shipStruct))) {
-				currSelectedShip = shipStruct.uuid;
-				let advanced = ships.find(ship => ship.ID == currSelectedShip);
+				setSelectedShip(shipStruct.uuid);
+				let advanced = ships.find(ship => ship.ID == currSelectedShip); // deprecated, fix
 				if(advanced) {
 					let advancedStruct = shipStruct;
 					advancedStruct.advanced = advanced;
@@ -583,7 +476,7 @@ $(document).ready(function() {
 				return shipStruct;
 			}
 		}
-		currSelectedShip = undefined;
+		setSelectedShip(undefined);
 
 		for(cargoStruct of gh.getCargoFromData(radarData)) { // Cargo
 			if(gh.isInside(mousePos, gh.getCargoHitbox(cargoStruct))) {
@@ -799,7 +692,7 @@ $(document).ready(function() {
 				}
 				
 			}
-			else currSelectedShip = undefined;
+			else setSelectedShip(undefined);
 		}
 
 		// Draw delta time
@@ -819,13 +712,12 @@ $(document).ready(function() {
 	});
 
 	$("#disableAll").click(function() {
-		enabledShips = ships.filter(item => item.active).length;
-		ships.forEach(function(ship, i) {
-			ship.active = (enabledShips == 0);
-			ships[i] = ship;
-			updateShipItem(ship.ID, true);
+		objects.forEach(function(obj, i) {
+			obj.active = (getSwitchedObjects() == 0);
+			objects[i] = obj;
+			updateObjectItem(obj.ID, true);
 		});
-		updateShipText();
+		updateObjectText();
 	});
 
 	$("#goInside").click(function() {
@@ -850,10 +742,5 @@ $(document).ready(function() {
 
 	changeScreen(SCREEN_START);
 	updateGoInsideButton();
-	generateShipList();
 	drawingInterval = setInterval(draw, 1000/fps);
-
-	/*setInterval(function() {
-		updateShipText(10, getRandomInt(0, 3));
-	}, 500);*/
 });

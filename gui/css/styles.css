@@ -46,19 +46,12 @@ canvas {
 	top: calc(40% + 1px);
 }
 
-#fuckGoBack {
-	position: absolute;
-	top: 40%;
-	left: 50%;
-	transform: translate(-50%, 0);
-}
-
-#shipsBlock, canvas, .jsonViewer {
+#objectsBlock, canvas, .jsonViewer {
 	display: inline-block;
 	vertical-align: top;
 }
 
-#shipsBlock {
+#objectsBlock {
 	display: inline-flex;
 	flex-flow: column;
 	background: #555;
