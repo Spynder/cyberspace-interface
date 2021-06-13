@@ -29,11 +29,13 @@ module.exports = {
 				}
 			}
 
-			let cargo = planetDetails.nodes.filter(node => node.type == "Cargo" && node.body.type != "MINERALS");
-			//console.log(cargo);
+			if(planetDetails.nodes) {
+				let cargo = planetDetails.nodes.filter(node => node.type == "Cargo" && node.body.type != "MINERALS");
+				//console.log(cargo);
 
-			if(cargo.length == 0) {
-				//await planet.make("HULL", 3);
+				if(cargo.length == 0) {
+					//await planet.make("HULL", 3);
+				}
 			}
 
 

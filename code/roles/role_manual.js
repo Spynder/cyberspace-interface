@@ -16,7 +16,7 @@ module.exports = {
 		}
 
 		let systemName = SYSTEM_PI1_PEGASI;
-		let from = "Poaruta";
+		let from = "Thides G1";
 		let to = "Droebos";
 
 		if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != systemName && ship.findInhabitedLandables().length > 0) {
@@ -79,6 +79,8 @@ module.exports = {
 				}
 			}
 		}
+		//await ship.transferMineralsFromPlanets(from, to, ship.getMaxHold() * 0.6 - ship.getHold());
+		//await ship.createModuleOnPlanet("Droebos", "PROTECTOR", 8);
 
 		//let requiredMinerals = ship.getMaxHold() * 0.6 - ship.getHold();
 		//await ship.clearPlanetBalance("Oagawa");
@@ -86,9 +88,12 @@ module.exports = {
 		//await ship.transferMineralsFromPlanets(from, to, ship.getMaxHold() * 0.6 - ship.getHold());
 
 		//await ship.createModuleOnPlanet("Poaruta", "WEAPON", 8);
-		//await ship.safeTransfer("b1334b8f1b", "in");
-		//await ship.safeEquip("weapon3", "b1334b8f1b");
+		//await ship.safeTransfer("5018e48dfc", "in");
+		//await ship.safeEquip("protector", "5018e48dfc");
 		//await ship.safeTransfer("c3fe42eb37", "in");
+
+		//await ship.warpToSystem(SYSTEM_IOTA_PEGASI);
+
 
 		/*if(returningBack) {
 			await ship.transferAllMineralsToPlanet(to);

@@ -20,8 +20,8 @@ global.STAT_UNKNOWN = "unknown";
 global.BALANCE_WARNING = 4000;
 global.BALANCE_CRITICAL = 50000;
 
-global.SHIPS_ENABLED = "Park all ships (Safe exit)";
-global.SHIPS_DISABLED = "Activate all ships";
+global.SHIPS_ENABLED = "Disable all objects (Safe exit)"; // Todo: replace these with OBJECTS_ENABLED and OBJECTS_DISABLED
+global.SHIPS_DISABLED = "Activate all objects (Dangerous!)";
 
 global.SHIPSTATE = {
 	OFF: 0,
@@ -204,7 +204,7 @@ global.ALLY_IDS = [
 global.ROLES = [
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SCHEAT,
+		homeSystem: SYSTEM_SCHEAT, // dead
 	},
 	{
 		role: ROLE_MINER,
@@ -230,21 +230,25 @@ global.ROLES = [
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALPHERIS,
-	},
-	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_MATAR,
+		homeSystem: SYSTEM_SADALPHERIS, // dead
 	},
 	{
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SADALPHERIS,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALPHERIS, // dead
 		//homePlanet: "Thides G1",
 	},
 	{
 		role: ROLE_ATTACKER,
 		homeSystem: SYSTEM_PI1_PEGASI,
 		homePlanet: "Thides G1",
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SCHEAT,
 	},
 	{
 		role: ROLE_SCOUT,

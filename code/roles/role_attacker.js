@@ -20,7 +20,10 @@ module.exports = {
 
 		//return;
 
-		if(!ship.getCurrentSystem()) await ship.safeEscape();
+		if(!ship.getCurrentSystem()) {
+			await ship.safeEscape();
+			return;
+		}
 
 		//console.log(ship.getBestTradeInConstellation("WEAPON", 1, true));
 

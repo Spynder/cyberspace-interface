@@ -69,6 +69,10 @@ module.exports = {
 		}
 		let planet = ship.getPlanetToUpdateDealsFor();
 
+		let requiredParts = [{part: "HULL", gen: 3}, {part: "ENGINE", gen: 3}, {part: "GRIPPER", gen: 6}];
+		let upgradeResult = await ship.upgradeBodyPartList(requiredParts);
+		if(upgradeResult < 0) return;
+
 		let sortedCargos = mafs.sortByDistance(new mafs.Pos(details.body.vector.x, details.body.vector.y), cargos);
 		let asteroids = radarData.nodes.filter((node) => node.type == "Asteroid" && mafs.isSafeSpot(new mafs.Pos(node.body.vector.x, node.body.vector.y)));
 		let closestAsteroid = mafs.sortByDistance(new mafs.Pos(details.body.vector.x, details.body.vector.y), asteroids)[0];
@@ -106,9 +110,7 @@ module.exports = {
 			ship.setPlanetDeals(planetInfo);
 			return;
 		}
-		let requiredParts = [{part: "HULL", gen: 3}, {part: "ENGINE", gen: 3}, {part: "GRIPPER", gen: 6}];
-		let upgradeResult = await ship.upgradeBodyPartList(requiredParts);
-		if(upgradeResult < 0) return;
+		
 
 		if(ship.getBalance() != KEEP_MINIMUM && ship.getCurrentSystem() == SYSTEM_SCHEAT && memory.homeSystem != SYSTEM_SCHEAT) {
 			ship.log("info", "Operating " + KEEP_MINIMUM + " for safe warping.");
