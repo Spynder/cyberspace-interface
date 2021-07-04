@@ -5,13 +5,13 @@ var mafs = require("./../code/libs/mafs");
 var _ = require("lodash");
 
 $(document).ready(function() {
-	var canvas = document.getElementById("startCanvas");
-	var ctx = canvas.getContext("2d");
+	let canvas = document.getElementById("startCanvas");
+	let ctx = canvas.getContext("2d");
 
-	var currScreen = SCREEN_START;
+	let currScreen = SCREEN_START;
 
-	var width = canvas.width; // Width of the canvas
-	var height = canvas.height; // Height of the canvas
+	let width = canvas.width; // Width of the canvas
+	let height = canvas.height; // Height of the canvas
 
 	var ships = [];
 	var planets = [];
@@ -23,16 +23,17 @@ $(document).ready(function() {
 
 	// TODO: replace all $("x") to pointers
 
-	var currSelectedSystem = "";
+	let currSelectedSystem = "";
 	let currSelectedShip = undefined;
+	let currSelectedMarker = undefined;
 
 	function setSelectedShip(id) {
 		currSelectedShip = id;
 		ipcRenderer.send("newSelectedShip", id);
 	}
 
-	var translation = {x: 0, y: 0};
-	var scaling = 1;
+	let translation = {x: 0, y: 0};
+	let scaling = 1;
 
 	let systemData = [];
 
@@ -249,7 +250,7 @@ $(document).ready(function() {
 	});
 
 	function updateObjectText() {
-		$("#disableAll").text(getSwitchedObjects() == 0 ? SHIPS_DISABLED : SHIPS_ENABLED);
+		$("#disableAll").text(getSwitchedObjects() == 0 ? OBJECTS_DISABLED : OBJECTS_ENABLED);
 		let activatedObjects = objects.filter(item => gh.getObjectState(item) != SHIPSTATE.OFF).length;
 		$("#objectsText").text(`${objects.length} objects (${activatedObjects} active): `);
 
@@ -464,7 +465,7 @@ $(document).ready(function() {
 		var mousePos = gh.getMousePos(canvas, event, translation, scaling);
 		let radarData = getCurrentSystemData();
 
-		for(shipStruct of gh.getShipsFromData(radarData)) { // Ships
+		/*for(shipStruct of gh.getShipsFromData(radarData)) { // Ships
 			if(gh.isInside(mousePos, gh.getShipHitbox(shipStruct))) {
 				setSelectedShip(shipStruct.uuid);
 				let advanced = ships.find(ship => ship.ID == currSelectedShip); // deprecated, fix
@@ -476,40 +477,53 @@ $(document).ready(function() {
 				return shipStruct;
 			}
 		}
-		setSelectedShip(undefined);
+		setSelectedShip(undefined);*/
 
-		for(cargoStruct of gh.getCargoFromData(radarData)) { // Cargo
-			if(gh.isInside(mousePos, gh.getCargoHitbox(cargoStruct))) {
-				return cargoStruct;
-			}
-		}
+		const objectsToClickCheck = [
+			{name: "Ship", radius: SYSTEM_SHIP_SIZE},
+			{name: "Cargo", radius: SYSTEM_CARGO_RADIUS},
+			{name: "Asteroid", radius: SYSTEM_ASTEROID_RADIUS},
+			{name: "Planet", radius: SYSTEM_PLANET_RADIUS},
+			{name: "Station", radius: SYSTEM_STATION_RADIUS},
+		];
 
-		for(asteroidStruct of gh.getAsteroidsFromData(radarData)) { // Cargo
-			if(gh.isInside(mousePos, gh.getAsteroidHitbox(asteroidStruct))) {
-				return asteroidStruct;
-			}
-		}
-
-		for(planetStruct of gh.getPlanetsFromData(radarData)) { // Planets
-			if(gh.isInside(mousePos, gh.getPlanetHitbox(planetStruct))) {
-				let info = planetStruct;
-				if(radarData.allDeals && radarData.allDeals[planetStruct.uuid]) {
-					info.deals = radarData.allDeals[planetStruct.uuid];
+		for(let objectConst of objectsToClickCheck) {
+			for(let objectStruct of gh.getTypedObjectsFromData(radarData, objectConst.name)) { // Cargo
+				if(gh.isInside(mousePos, gh.getObjectHitbox(mafs.Pos(objectStruct), objectConst.radius))) {
+					switch(objectConst.name) {
+						case "Planet":
+							if(radarData.allDeals && radarData.allDeals[objectStruct.uuid]) {
+								objectStruct.deals = radarData.allDeals[objectStruct.uuid];
+							}
+							break;
+						case "Ship":
+							setSelectedShip(objectStruct.uuid);
+							break;
+					}
+					return objectStruct;
 				}
-				return info;
 			}
 		}
 
-		for(stationStruct of gh.getStationsFromData(radarData)) { // Stations
-			if(gh.isInside(mousePos, gh.getStationHitbox(stationStruct))) {
-				return stationStruct;
+		for(let systemObj of SYSTEMS) {
+			if(systemObj.name != currSelectedSystem) {
+				let coords = mafs.getWarpCoords(currSelectedSystem, systemObj.name);
+				if(gh.isInside(mousePos, gh.getObjectHitbox(mafs.Pos(coords.x, coords.y), SYSTEM_WARPPOINT_RADIUS))) {
+					currSelectedMarker = systemObj.name;
+					return {
+						name: systemObj.name,
+						fuelRequired: Math.ceil(mafs.fuelNeededToWarp(currSelectedSystem, systemObj.name)),
+					};
+				}
 			}
 		}
 
-		if(gh.isInside(mousePos, {x: -SYSTEM_SUN_RADIUS, y: -SYSTEM_SUN_RADIUS, width: SYSTEM_SUN_RADIUS*2, height: SYSTEM_SUN_RADIUS*2})) { // Sun
+		if(gh.isInside(mousePos, gh.getObjectHitbox(mafs.Pos(0, 0), SYSTEM_SUN_RADIUS))) { // Sun
 			return radarData;
 		}
-		
+
+		setSelectedShip(undefined);
+		currSelectedMarker = undefined;
 		return false;
 	}
 
@@ -563,10 +577,6 @@ $(document).ready(function() {
 		drawShipWarpPath();
 
 	}
-
-	var systemScan = {planets: [{name: "Planet1", radius: 50, x: 1000, y: 1000},
-								{name: "Planet2", radius: 70, x: 500, y: 1500}]};
-
 	
 	function drawImage(image, x, y, scale, rotation) {
 		ctx.setTransform(scaling, 0, 0, scaling, translation.x + (x * scaling), translation.y + (y * scaling)); // sets scale and origin
@@ -605,45 +615,43 @@ $(document).ready(function() {
 		drawCircle(0, 0, SYSTEM_SUN_RADIUS, COLOR_SYSTEM_STROKE, true, 10);
 
 		let radarData = getCurrentSystemData();
-		// Planets
-		gh.getPlanetsFromData(radarData).forEach(function(planet) {
 
-			// Planet's trail
-			var angle = gh.getPlanetAngleOnOrbit(planet.body.vector.x, planet.body.vector.y);
-			var arcRad = gh.getPlanetOrbitRadius(planet);
-			ctx.beginPath();
-			ctx.arc(0, 0, arcRad, angle, angle - (Math.PI * 0.75), true);
-			ctx.strokeStyle = COLOR_SYSTEM_PLANET_TRAIL;
-			ctx.stroke();
-			ctx.closePath();
+		const objectsToDraw = [
+			{name: "Planet", 	radius: SYSTEM_PLANET_RADIUS, 	color1: COLOR_SYSTEM_PLANET,																					size: 7	},
+			{name: "Station", 	radius: SYSTEM_STATION_RADIUS, 	color1: COLOR_SYSTEM_STATION_BUSINESS,	color2: COLOR_SYSTEM_STATION_SCIENTIFIC, 	type: "BusinessStation"				},
+			{name: "Cargo", 	radius: SYSTEM_CARGO_RADIUS, 	color1: COLOR_SYSTEM_MINERAL,			color2: COLOR_SYSTEM_BODYPART, 				type: "MINERALS"					},
+			{name: "Asteroid", 	radius: SYSTEM_ASTEROID_RADIUS, color1: COLOR_SYSTEM_ASTEROID																							},
+		];
 
-			// Planet itself
-			var planetRadius = planet.radius ? planet.radius : SYSTEM_PLANET_RADIUS;
-			drawCircle(planet.body.vector.x, planet.body.vector.y, planetRadius, COLOR_SYSTEM_PLANET);
-			drawCircle(planet.body.vector.x, planet.body.vector.y, planetRadius, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 7);
-		});
+		for(let objectConst of objectsToDraw) {
+			gh.getTypedObjectsFromData(radarData, objectConst.name).forEach(function(spacebody) {
+				if(objectConst.name == "Planet") {
+					let angle = gh.getPlanetAngleOnOrbit(spacebody.body.vector.x, spacebody.body.vector.y);
+					let arcRad = gh.getPlanetOrbitRadius(spacebody);
+					ctx.beginPath();
+					ctx.arc(0, 0, arcRad, angle, angle - (Math.PI * 0.75), true);
+					ctx.strokeStyle = COLOR_SYSTEM_PLANET_TRAIL;
+					ctx.stroke();
+					ctx.closePath();
+				}
 
-		gh.getStationsFromData(radarData).forEach(function(station) {
-			drawCircle(station.body.vector.x, station.body.vector.y, SYSTEM_STATION_RADIUS, station.type == "BusinessStation" ? COLOR_SYSTEM_STATION_BUSINESS : COLOR_SYSTEM_STATION_SCIENTIFIC);
-			drawCircle(station.body.vector.x, station.body.vector.y, SYSTEM_STATION_RADIUS, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 5);
-		});
+				let condition = (!objectConst.hasOwnProperty("type") 		? true :
+								(objectConst.type == "MINERALS" 			? spacebody.body.type == "MINERALS" :
+								(objectConst.type == "BusinessStation" 		? spacebody.type == "BusinessStation" :
+								true)));
 
-		gh.getCargoFromData(radarData).forEach(function(cargo) { // Cargo
-			drawCircle(cargo.body.vector.x, cargo.body.vector.y, SYSTEM_CARGO_RADIUS, cargo.body.type == "MINERALS" ? COLOR_SYSTEM_MINERAL : COLOR_SYSTEM_BODYPART);
-			drawCircle(cargo.body.vector.x, cargo.body.vector.y, SYSTEM_CARGO_RADIUS, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 5);
-		});
+				drawCircle(spacebody.body.vector.x, spacebody.body.vector.y, objectConst.radius, condition ? objectConst.color1 : (objectConst.color2 ?? "#000"));
+				drawCircle(spacebody.body.vector.x, spacebody.body.vector.y, objectConst.radius, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, objectConst.size ?? 5);
+			});
+		}
 
-		gh.getAsteroidsFromData(radarData).forEach(function(asteroid) { // asteroid
-			drawCircle(asteroid.body.vector.x, asteroid.body.vector.y, SYSTEM_ASTEROID_RADIUS, COLOR_SYSTEM_ASTEROID);
-			drawCircle(asteroid.body.vector.x, asteroid.body.vector.y, SYSTEM_ASTEROID_RADIUS, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 5);
-		});
-
-		gh.getShipsFromData(radarData).forEach(function(ship) { // Ships
+		gh.getTypedObjectsFromData(radarData, "Ship").forEach(function(ship) { // Ships
 			let radAngle = ship.body.vector.a + (Math.PI * 1.5);
+			let shipPos = mafs.Pos(ship);
 			
-			let forwardPoint = 		gh.getPointOnCircle(ship.body.vector.x, ship.body.vector.y, SYSTEM_SHIP_SIZE, -radAngle);
-			let bottomRightPoint = 	gh.getPointOnCircle(ship.body.vector.x, ship.body.vector.y, SYSTEM_SHIP_SIZE, -radAngle + (Math.PI * 0.75));
-			let bottomLeftPoint = 	gh.getPointOnCircle(ship.body.vector.x, ship.body.vector.y, SYSTEM_SHIP_SIZE, -radAngle - (Math.PI * 0.75));
+			let forwardPoint = 		gh.getPointOnCircle(shipPos.x, shipPos.y, SYSTEM_SHIP_SIZE, -radAngle);
+			let bottomRightPoint = 	gh.getPointOnCircle(shipPos.x, shipPos.y, SYSTEM_SHIP_SIZE, -radAngle + (Math.PI * 0.75));
+			let bottomLeftPoint = 	gh.getPointOnCircle(shipPos.x, shipPos.y, SYSTEM_SHIP_SIZE, -radAngle - (Math.PI * 0.75));
 
 			ctx.beginPath();
 			ctx.moveTo(forwardPoint.x, forwardPoint.y);
@@ -659,7 +667,7 @@ $(document).ready(function() {
 			ctx.fill();
 			ctx.closePath();
 			
-			drawCircle(ship.body.vector.x, ship.body.vector.y, SYSTEM_SHIP_SIZE, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 4);
+			drawCircle(shipPos.x, shipPos.y, SYSTEM_SHIP_SIZE, COLOR_SYSTEM_ASTRAL_BODY_RIM, true, 4);
 		});
 
 		// Warp ring
@@ -667,13 +675,25 @@ $(document).ready(function() {
 		drawCircle(0, 0, SYSTEM_WARP_RING_RADIUS, COLOR_SYSTEM_WARP_RING, true, 10);
 		ctx.setLineDash([]); // Back to solid lines
 
+		SYSTEMS.forEach(function(system) { // points for warp
+			if(currSelectedSystem != system.name) {
+				let coords = mafs.getWarpCoords(currSelectedSystem, system.name);
+				if(currSelectedMarker == system.name) {
+					drawCircle(coords.x, coords.y, SYSTEM_WARPPOINT_RADIUS, COLOR_SYSTEM_WARPPOINT_FILL);
+					drawText(SYSTEM_TEXT_SIZE_MEDIUM, COLOR_TEXT_SECONDARY, system.name, coords.x, coords.y - 150, "center");
+				}
+				drawCircle(coords.x, coords.y, SYSTEM_WARPPOINT_RADIUS, COLOR_SYSTEM_WARPPOINT, true, 5);
+			}
+		});
+
+		// Draw path
 		if(currSelectedShip) {
 			let detailsStruct = objects.find(ship => ship.ID == currSelectedShip);
 			let objectStruct = gh.getShipsFromData(radarData).find(ship => ship.uuid == currSelectedShip); // objectStruct updates faster than detailsStruct
 			if(detailsStruct && detailsStruct.details) {
 				let target = detailsStruct.details.body.target;
 				if(target) {
-					let p1 = {x: objectStruct.body.vector.x, y: objectStruct.body.vector.y};
+					let p1 = mafs.Pos(objectStruct);
 					let p2 = {x: target.x, y: target.y};
 					drawMarker(p2.x, p2.y, SYSTEM_MARKER_RADIUS);
 					p2 = mafs.extendLine({p1: p1, p2: p2}, -SYSTEM_MARKER_RADIUS).p2;
@@ -692,7 +712,29 @@ $(document).ready(function() {
 				}
 				
 			}
-			else setSelectedShip(undefined);
+
+			if(!objectStruct) setSelectedShip(undefined);
+
+			else {
+				// Draw angled line (forward and backward vector)
+				let radAngle = objectStruct.body.vector.a + (Math.PI * 1.5);
+				let shipPos = mafs.Pos(objectStruct);
+				let forwardPoint = gh.getPointOnCircle(shipPos.x, shipPos.y, SYSTEM_SHIP_SIZE, -radAngle);
+				let line = mafs.Line(shipPos, forwardPoint);
+				let extendedForward = mafs.extendLine(line, 10000);
+				let reversedLine = mafs.Line(extendedForward.p2, extendedForward.p1);
+				let extendedBackward = mafs.extendLine(reversedLine, 10000);
+
+				ctx.beginPath();
+				ctx.moveTo(extendedBackward.p1.x, extendedBackward.p1.y);
+				ctx.lineTo(extendedBackward.p2.x, extendedBackward.p2.y);
+				ctx.strokeStyle = COLOR_SYSTEM_ROTATION_LINE;
+				ctx.lineWidth = 3;
+				ctx.setLineDash([150, 10]);
+				ctx.stroke();
+				ctx.closePath();
+				ctx.setLineDash([]);
+			}
 		}
 
 		// Draw delta time

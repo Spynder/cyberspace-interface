@@ -19,7 +19,7 @@ module.exports = {
 		var details = ship.details; // Get details of our ship
 		var memory = ship.memory;
 
-		let buyVirus = true;
+		let buyVirus = false;
 
 		var immediatePark = !options.active;
 		
@@ -33,24 +33,9 @@ module.exports = {
 		}
 
 		var home = SYSTEM_SCHEAT;
-		var dest = SYSTEM_MARKAB;
-		var planetName = "Induna";
-		let fuelMoney = 10600;
-
-		// Stopped working with patch v0.19-Alpha (14.05.2021)
-		/*if(ship.hasCargo("embryo")) {
-			await ship.safeEquip("artifact1", ship.hasCargo("embryo")[0].uuid);
-		}
-		if(ship.hasCargo("virus")) {
-			await ship.safeEquip("artifact2", ship.hasCargo("virus")[0].uuid);
-		}*/
-
-		//var currLocation = mafs.findWarpDestination(ship.getCurrentSystem(), dest);
-		//ship.log("info", ship.getLocation())
-		//ship.log("info", ship.getCurrentSystem())
-		//ship.log("info", ship.getLocationName())
-
-		
+		var dest = SYSTEM_IOTA_PEGASI;
+		var planetName = "Hephus";
+		let fuelMoney = 1000;
 
 		if(ship.getLocation() != LOCATION_SYSTEM && ship.getCurrentSystem() != dest || ship.getLocationName() != planetName) {
 			await ship.safeEscape();
@@ -62,9 +47,9 @@ module.exports = {
 			var planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
 			var planet = planets.find((pla) => pla.uuid == planetName);
 			if(planet) {
-				var vect = new mafs.Line(	new mafs.Pos(	ship.details.body.vector.x,
+				var vect = mafs.Line(	mafs.Pos(	ship.details.body.vector.x,
 															ship.details.body.vector.y),
-											new mafs.Pos(	planet.body.vector.x,
+											mafs.Pos(	planet.body.vector.x,
 															planet.body.vector.y)
 										);
 				var extended = mafs.extendLine(vect, 40);
@@ -79,25 +64,10 @@ module.exports = {
 			if(ship.hasCargo("embryo")) {
 				await ship.safeApply("COLONIZATION");
 			}
-			/*var planet = await account.getPlanet(OWNED_PLANETS[0]);
-			var planetDetails = await planet.explore();
-			//var uuidC = "3ffe3d0709";
-			//await ship.safeTransfer(uuidC, "out");
-
-			//console.log(planetDetails.nodes);
-			planet.dispose();*/
-
-			//console.log(ship.details.nodes);
 		}
 
 		if(ship.getLocationName() == planetName) {
 			await ship.safeFuel();
-			/*var owned = await account.getPlanet(planetName);
-			var ownedDetails = await owned.explore();
-			ship.log("info", ownedDetails);
-			ship.log("info", ownedDetails.nodes);
-			owned.dispose();*/
-			//return;
 		}
 
 		if(!ship.getCurrentSystem()) {
@@ -129,7 +99,7 @@ module.exports = {
 				await ship.operateMoney(requiredMoney);
 			} else {
 				await ship.safeEscape();
-			    var sciStation = radarData.nodes.find((instance) => instance.type == "ScientificStation"); // replace to find
+			    var sciStation = radarData.nodes.find((instance) => instance.type == "ScientificStation");
 				if(sciStation) {
 					await ship.safeMove(sciStation.body.vector.x, sciStation.body.vector.y);
 					await ship.safeLanding(sciStation.uuid);
@@ -148,9 +118,9 @@ module.exports = {
 		/*else if((ship.getLocation() == LOCATION_SYSTEM && ship.details.parent.uuid == SYSTEM_PI1_PEGASI) && details.body.artifact1.uuid && details.body.artifact2.uuid) {
 			var planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
 			var planet = planets.find((pla) => pla.uuid == "Droebos");
-			var vect = new mafs.Line(	new mafs.Pos(	ship.details.body.vector.x,
+			var vect = mafs.Line(	mafs.Pos(	ship.details.body.vector.x,
 														ship.details.body.vector.y),
-										new mafs.Pos(	planet.body.vector.x,
+										mafs.Pos(	planet.body.vector.x,
 														planet.body.vector.y)
 									);
 			var extended = mafs.extendLine(vect, 40);

@@ -17,11 +17,11 @@ global.STAT_WARNING = "warning";
 global.STAT_CRITICAL = "critical";
 global.STAT_UNKNOWN = "unknown";
 
-global.BALANCE_WARNING = 4000;
+global.BALANCE_WARNING = 5000;
 global.BALANCE_CRITICAL = 50000;
 
-global.SHIPS_ENABLED = "Disable all objects (Safe exit)"; // Todo: replace these with OBJECTS_ENABLED and OBJECTS_DISABLED
-global.SHIPS_DISABLED = "Activate all objects (Dangerous!)";
+global.OBJECTS_ENABLED = "Disable all objects (Safe exit)";
+global.OBJECTS_DISABLED = "Activate all objects (Dangerous!)";
 
 global.SHIPSTATE = {
 	OFF: 0,
@@ -63,6 +63,9 @@ global.COLOR_SYSTEM_MARKER = "#BBB";
 global.COLOR_SYSTEM_MARKER_LINE = "#AAA";
 global.COLOR_SYSTEM_STATION_BUSINESS = "#B97";
 global.COLOR_SYSTEM_STATION_SCIENTIFIC = "#789";
+global.COLOR_SYSTEM_WARPPOINT = "#009";
+global.COLOR_SYSTEM_WARPPOINT_FILL = "#333";
+global.COLOR_SYSTEM_ROTATION_LINE = "#444";
 
 global.SYSTEM_RADIUS = 10;
 global.SYSTEM_OFFSET = {xp: 0.1, yp: 0.1};
@@ -77,6 +80,7 @@ global.SYSTEM_STATION_RADIUS = 150;
 global.SYSTEM_SHIP_SIZE = 64;
 global.SYSTEM_WARP_RING_RADIUS = 8000;
 global.SYSTEM_MARKER_RADIUS = 100;
+global.SYSTEM_WARPPOINT_RADIUS = 50;
 global.SYSTEM_TIME_TEXT_MARGIN = 32;
 global.OWNER_ID = "a678ea674c";
 
@@ -91,6 +95,8 @@ global.TEXT_SIZE_BIG = 72;
 global.TEXT_SIZE_MEDIUM = 36;
 global.TEXT_SIZE_SMALL = 20;
 
+global.SYSTEM_TEXT_SIZE_MEDIUM = 36*5;
+
 
 
 
@@ -101,7 +107,7 @@ global.TEXT_SIZE_SMALL = 20;
 global.SUN_FAR_RADIUS = 450; // fly to
 global.SUN_CLOSE_RADIUS = 400; // if intersect
 
-global.KEEP_MINIMUM = 100;
+global.KEEP_MINIMUM = 500; // for fuel
 
 global.ACTION_DELAY = 300;
 
@@ -115,21 +121,9 @@ global.LOCATION_SCIENTIFIC_STATION = "ScientificStation";
 global.BUSINESS_STATION_NAME = "Baker Plaza";
 global.SCIENTIFIC_STATION_NAME = "Dominion";
 
-global.USELESS_MINER_ITEMS = /*[sdk.CargoType.DROID, sdk.CargoType.PROTECTOR, sdk.CargoType.TANK]*/ ["protector"];
+global.USELESS_MINER_ITEMS = ["protector"];
 
 // Systems
-global.SYSTEM_SCHEAT = "Scheat";
-global.SYSTEM_SADALBARI = "Sadalbari";
-global.SYSTEM_MATAR = "Matar";
-global.SYSTEM_SALM = "Salm";
-global.SYSTEM_SIRRAH = "Sirrah";
-global.SYSTEM_PI1_PEGASI = "Pi-1 Pegasi";
-global.SYSTEM_SADALPHERIS = "Sadalpheris";
-global.SYSTEM_ALGENIB = "Algenib";
-global.SYSTEM_IOTA_PEGASI = "Iota Pegasi";
-global.SYSTEM_MARKAB = "Markab";
-
-// System coordinates
 global.SYSTEM_SCHEAT 		= "Scheat";
 global.SYSTEM_MATAR 		= "Matar";
 global.SYSTEM_PI1_PEGASI 	= "Pi-1 Pegasi";
@@ -145,7 +139,7 @@ global.SYSTEM_HOMAM 		= "Homam";
 global.SYSTEM_BAHAM 		= "Baham";
 global.SYSTEM_ENIF 			= "Enif";
 
-
+// System coordinates
 global.SYSTEMS = [	{x: 217,	y: 136,		name: "Scheat"},
 					{x: 270, 	y: 111, 	name: "Matar"},
 					{x: 348, 	y: 82,		name: "Pi-1 Pegasi"},
@@ -169,10 +163,11 @@ global.HIGH_SEC_SYSTEMS = [
 	SYSTEM_SALM,
 ];
 
+// Scheat - Drewsa, Roebe, Mayvel, Headsbing
+// Matar - Caolia, Lozolia
 // Sadalbari - Bodion, Icypso, Niapra
 // Sadalpheris - Unkoinus, Grion A5,
 // Salm - Acapus
-// Matar - Caolia, Lozolia
 
 global.HOME_SYSTEM = SYSTEM_SCHEAT;
 
@@ -183,6 +178,7 @@ global.ROLE_FREIGHTER = "Freighter";
 global.ROLE_ATTACKER = "Attacker";
 global.ROLE_COLONIZER = "Colonizer";
 global.ROLE_SCOUT = "Scout";
+global.ROLE_BUYER = "Buyer";
 global.ROLE_MANUAL = "Manual";
 
 global.TRADE_EXPIRE_TIME = 1000 * 60 * 45; // 45 minutes
@@ -192,19 +188,48 @@ global.MINIMAL_BODY_COST = 1000;
 global.HULL_CHANGE_COST = 1000;
 global.HIGHEST_MINERAL_TRADE_COST = 50;
 
-global.MAX_RADARMEMORY_ELEMENTS = 5;
+global.MAXIMUM_MONEY_ONBOARD_MULTIPLIER = 5; // this should be equal or higher than MONEY_OPERATION_MULTIPLIER
+global.MONEY_OPERATION_MULTIPLIER = 4;
+
+global.MAX_RADARMEMORY_ELEMENTS = 10;
 
 global.ALLY_IDS = [
 	"e8be292de2", // Kosrotoff
 	"2c865b9658", // RAMZIK
 	"1c5b926242", // 1323ED5
 ];
-// not as constant but still
 
 global.ROLES = [
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SCHEAT, // dead
+		homeSystem: SYSTEM_SCHEAT,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_MATAR,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALBARI,
+	},
+	{
+		role: ROLE_MINER, // miner
+		homeSystem: SYSTEM_SADALPHERIS,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SALM,
+	},
+	/*{
+		role: ROLE_BUYER,
+	},*/
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SCHEAT,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_MATAR,
 	},
 	{
 		role: ROLE_MINER,
@@ -212,42 +237,24 @@ global.ROLES = [
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_MATAR,
+		homeSystem: SYSTEM_SADALPHERIS,
 	},
 	{
+		role: ROLE_MANUAL,
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Thailara",
+	},	
+	{
 		role: ROLE_ATTACKER,
-		homeSystem: SYSTEM_IOTA_PEGASI, // sadalpheris as miner
-		homePlanet: "Oagawa",
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Tilia",
 	},
 	{
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SALM,
 	},
 	{
-		role: ROLE_ATTACKER,
-		homeSystem: SYSTEM_PI1_PEGASI, // was in sadalpheris
-		homePlanet: "Droebos",
-	},
-	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALPHERIS, // dead
-	},
-	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALPHERIS,
-	},
-	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALPHERIS, // dead
-		//homePlanet: "Thides G1",
-	},
-	{
-		role: ROLE_ATTACKER,
-		homeSystem: SYSTEM_PI1_PEGASI,
-		homePlanet: "Thides G1",
-	},
-	{
-		role: ROLE_MINER,
+		role: ROLE_MANUAL,
 		homeSystem: SYSTEM_SCHEAT,
 	},
 	{
@@ -331,9 +338,11 @@ global.rcs = {
 	RESULT_OK: 001,
 
 	// warpToSystem
-	END_DESTINATION: 101,
-	NO_VALID_PATH: 102,
-	WARPING_TO_SYSTEM: -101,
+	WTS_END_DESTINATION: 101,
+	WTS_NO_VALID_PATH: 102,
+	WTS_NOT_ENOUGH_MONEY_FOR_FUEL: 103,
+	WTS_WARPING_TO_SYSTEM: -101,
+	WTS_REFUELING: -102,
 
 	// getClosestPlanet
 	NO_PLANETS_FOUND: 201,
@@ -357,9 +366,57 @@ global.rcs = {
 	CHANGING_BODY_PART: -502,
 
 	// operateMoney
-	BUSINESS_STATION_NOT_FOUND: 601,
-	FLYING_TO_BUSINESS_STATION: -601,
-	CURRENTLY_DEPOSITING: -602,
-	CLOSED_DEPOSIT: -603,
+	OM_BUSINESS_STATION_NOT_FOUND: 601,
+	OM_FLYING_TO_BUSINESS_STATION: -601,
+	OM_CURRENTLY_DEPOSITING: -602,
+	OM_CLOSED_DEPOSIT: -603,
 
+	// switchToBetterPart
+	STBP_NO_BODYPART_PASSED_TO_SWITCH: 701,
+	STBP_NO_BETTER_PARTS: 702,
+	STBP_CHANGING_HULL: -701,
+	STBP_OPERATING_MONEY: -702,
+	STBP_WARPING_TO_SCHEAT: -703,
+	STBP_CHANGING_BODYPART: -704,
+
+
+	// buyBodyPart
+	BBP_NO_DEALS: 801,
+	BBP_PRICE_TOO_HIGH: 802,
+	BBP_HULL_IS_LOW_LEVEL: 803,
+	BBP_WARPING_TO_SCHEAT: -801,
+	BBP_OPERATING_MONEY: -802,
+	BBP_WARPING_TO_DESTINATION: -803,
+	BBP_BUYING_BODY_PART: -804,
+	BBP_SELLING_MINERALS: -805,
+
+	// upgradeBodyPartNew
+	UBP_FINISHED: 801,
+	UBP_BUYING_BODYPART: -801,
+	UBP_SWITCHING_BODYPART: -802,
+
+	// upgradeBodyPartListNew
+	UBPL_NOT_ENOUGH_SCORE: 901,
+	UBPL_NOT_DONE_CHANGING_LIST: 902,
+	UBPL_LIST_ALL_CHANGED: 903,
+	UBPL_LIST_CHANGING_PART: -901,
+
+	// grabMineralsInSystem
+	GMIS_NO_MINERALS: 1001,
+	GMIS_LOCATION_NOT_SYSTEM: 1002,
+	GMIS_GRABBING_MINERAL: -1001,
+
+	// captureAsteroid
+	CA_INTERCEPTION_IMPOSSIBLE: 1101,
+	CA_REPAIRING_WITH_DRONE: -1101,
+	CA_INTERCEPTING_ASTEROID: -1102,
+
+	// sellMineralsToFederation
+	SMTF_NO_DEALS: 1201,
+	SMTF_SELLING_MINERALS: -1201,
+
+	// clearPlanetBalance
+	CPB_BALANCE_CLEARED: 1301,
+	CPB_FLYING_TO_PLANET: -1301,
+	CPB_EXECUTING_DEALS: -1302,
 };

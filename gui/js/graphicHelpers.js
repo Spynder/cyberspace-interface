@@ -247,6 +247,13 @@ module.exports = {
 				height: SYSTEM_STATION_RADIUS * 2};
 	},
 
+	getObjectHitbox: function(pos, radius) {
+		return {x: pos.x - radius,
+				y: pos.y - radius,
+				width: radius * 2,
+				height: radius * 2};
+	},
+
 	getSystemIconCircle: function(system, w, h) {
 		return {x: (system.x + (w * SYSTEM_OFFSET.xp)) * SYSTEM_DISTANCE_MULTIPLIER + SYSTEM_RADIUS,
 				y: (system.y + (h * SYSTEM_OFFSET.yp)) * SYSTEM_DISTANCE_MULTIPLIER + SYSTEM_RADIUS};
@@ -270,6 +277,11 @@ module.exports = {
 
 	getStationsFromData: function(radarData) {
 		return radarData.nodes.filter(item => item.type == "ScientificStation" || item.type == "BusinessStation");
+	},
+
+	getTypedObjectsFromData: function(radarData, type) {
+		if(type == "Station") 	return radarData.nodes.filter(item => item.type == "ScientificStation" || item.type == "BusinessStation");
+		else 					return radarData.nodes.filter(item => item.type == type);
 	},
 
 	getPlanetOrbitRadius: function(planet) {

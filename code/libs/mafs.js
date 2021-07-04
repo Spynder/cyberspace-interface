@@ -8,18 +8,24 @@ global.S_LEFT = 4,
 global.ERR_TOO_CLOSE_TO_SUN = -1;
 
 module.exports = {
-	Pos: class {
-		constructor(x, y) {
+	Pos: function(x, y) {
+		if(arguments.length == 2) {
 			this.x = Number(x);
 			this.y = Number(y);
+		} else if(typeof x == "object") {
+			if(	x.hasOwnProperty("body") 			&&
+				x.body.hasOwnProperty("vector") 	&&
+				x.body.vector.hasOwnProperty("x") 	&&
+				x.body.vector.hasOwnProperty("y")) 	{
+				this.x = x.body.vector.x;
+				this.y = x.body.vector.y;
+			}
 		}
+		return {x: this.x, y: this.y};
 	},
 
-	Line: class {
-		constructor(p1, p2) {
-			this.p1 = p1;
-			this.p2 = p2;
-		}
+	Line: function(p1, p2) {
+		return {p1: p1, p2: p2};
 	},
 
 	lineIntersect: function(line1, line2) {
@@ -45,26 +51,26 @@ module.exports = {
 		let x = pos1.x + ua * (pos2.x - pos1.x);
 		let y = pos1.y + ua * (pos2.y - pos1.y);
 
-		return new this.Pos(x, y);
+		return this.Pos(x, y);
 	},
 
 	getSquareLine: function(directionConstant, square1, square2) {
 		var sp1 = square1;
-		var sp2 = new this.Pos(square2.x, square1.y);
+		var sp2 = this.Pos(square2.x, square1.y);
 		var sp3 = square2;
-		var sp4 = new this.Pos(square1.x, square2.y);
+		var sp4 = this.Pos(square1.x, square2.y);
 		switch(directionConstant) {
 			case S_UP:
-				return new this.Line(sp1, sp2);
+				return this.Line(sp1, sp2);
 				break;
 			case S_RIGHT:
-				return new this.Line(sp2, sp3);
+				return this.Line(sp2, sp3);
 				break;
 			case S_DOWN:
-				return new this.Line(sp3, sp4);
+				return this.Line(sp3, sp4);
 				break;
 			case S_LEFT:
-				return new this.Line(sp4, sp1);
+				return this.Line(sp4, sp1);
 				break;
 		}
 	},
@@ -105,15 +111,15 @@ module.exports = {
 	},
 
 	sunDodge: function(shipPos, reqPos) {
-		sunPos1 = new this.Pos(SUN_CLOSE_RADIUS, SUN_CLOSE_RADIUS);
-		sunPos2 = new this.Pos(SUN_CLOSE_RADIUS * -1, SUN_CLOSE_RADIUS * -1);
-		var resultMap = this.squareIntersect(new this.Line(shipPos, reqPos), sunPos1, sunPos2);
+		sunPos1 = this.Pos(SUN_CLOSE_RADIUS, SUN_CLOSE_RADIUS);
+		sunPos2 = this.Pos(SUN_CLOSE_RADIUS * -1, SUN_CLOSE_RADIUS * -1);
+		var resultMap = this.squareIntersect(this.Line(shipPos, reqPos), sunPos1, sunPos2);
 		if(!this.isSafeSpot(reqPos)) {
 			return ERR_TOO_CLOSE_TO_SUN;
 		}
 
 		if(!this.isSafeSpot(shipPos)) {
-			return new this.Pos(Math.sign(shipPos.x) * SUN_FAR_RADIUS, Math.sign(shipPos.y) * SUN_FAR_RADIUS);
+			return this.Pos(Math.sign(shipPos.x) * SUN_FAR_RADIUS, Math.sign(shipPos.y) * SUN_FAR_RADIUS);
 		}
 
 		if(resultMap.size == 0) return reqPos; // If we're not intersecting with the sun
@@ -136,7 +142,7 @@ module.exports = {
 		} else {
 			finalPos = squareLine.p2;
 		}
-		correctedPos = new this.Pos(Math.sign(finalPos.x) * SUN_FAR_RADIUS, Math.sign(finalPos.y) * SUN_FAR_RADIUS);
+		correctedPos = this.Pos(Math.sign(finalPos.x) * SUN_FAR_RADIUS, Math.sign(finalPos.y) * SUN_FAR_RADIUS);
 		return correctedPos;
 	},
 
@@ -160,13 +166,13 @@ module.exports = {
 		var p1 = line.p1;
 		var p2 = line.p2;
 		lenAB = Math.sqrt(Math.pow(p1.x - p2.x, 2.0) + Math.pow(p1.y - p2.y, 2.0));
-		var extendedEnd = new this.Pos(	p2.x + (p2.x - p1.x) / lenAB * length, 
+		var extendedEnd = this.Pos(	p2.x + (p2.x - p1.x) / lenAB * length, 
 										p2.y + (p2.y - p1.y) / lenAB * length);
-		var extendedLine = new this.Line(p1, extendedEnd);
+		var extendedLine = this.Line(p1, extendedEnd);
 		return extendedLine;
 	},
 
-	findWarpDestination(current, destination) {
+	/*findWarpDestination(current, destination) {
 		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_PI1_PEGASI) 	return SYSTEM_MATAR;
 		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_MATAR) 		return SYSTEM_MATAR;
 		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_SALM) 			return SYSTEM_SALM;
@@ -220,6 +226,12 @@ module.exports = {
 
 		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_SIRRAH) 		return SYSTEM_SIRRAH;
 		if(current == SYSTEM_SIRRAH	 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
+	},*/
+
+	fuelNeededToWarp: function(from, to) {
+		let fromObj = SYSTEMS.find(sys => sys.name == from);
+		let toObj = SYSTEMS.find(sys => sys.name == to);
+		return Math.ceil(Math.hypot(fromObj.x - toObj.x, fromObj.y - toObj.y) / 10);
 	},
 
 	findWarpPath: function(start, end, maxFuel) {
@@ -229,6 +241,8 @@ module.exports = {
 		let openSet = [];
 		let closedSet = [];
 		let allSystems = [];
+
+		let mafsModule = this;
 
 		function systemSpot(x, y, systemName) {
 			this.x = x;
@@ -242,7 +256,8 @@ module.exports = {
 			this.previous = undefined;
 
 			this.fuelNeeded = function(spot) {
-				return Math.hypot(this.x - spot.x, this.y - spot.y) / 10;
+				return mafsModule.fuelNeededToWarp(this, spot);
+				//return Math.ceil(Math.hypot(this.x - spot.x, this.y - spot.y) / 10);
 			}
 
 			this.addNeighbors = function() {
@@ -303,7 +318,7 @@ module.exports = {
 				}
 
 				// return cost (fuel needed in total)
-				return path;
+				return {path: path, cost: currentSpot.f};
 			}
 
 			openSet.splice(openSet.findIndex(spot => spot == currentSpot), 1);
@@ -311,8 +326,10 @@ module.exports = {
 
 			let neighbors = currentSpot.neighbors;
 
+
 			for(let neighbor of neighbors) {
-				if(!systemInClosedSet(neighbor)) {
+				//console.log(neighbor.name, currentSpot.name, !systemInClosedSet(neighbor), HIGH_SEC_SYSTEMS.includes(currentSpot.name));
+				if(!systemInClosedSet(neighbor)/* && (HIGH_SEC_SYSTEMS.includes(currentSpot.name) || HIGH_SEC_SYSTEMS.includes(neighbor.name))*/) {
 					let tempG = currentSpot.g + currentSpot.fuelNeeded(neighbor); // heuristic function
 
 					let newPath = false;
@@ -350,5 +367,59 @@ module.exports = {
 	getPointOnCircle: function(dx, dy, rad, angle) {
 		return {x: dx + rad * Math.cos(angle),
 				y: dy + rad * Math.sin(angle)};
-	}
+	},
+
+	findInterceptionOfAsteroid: function(l1, v1, l2, s2) {
+		/*
+		 * Thanks to:
+		 * https://stackoverflow.com/questions/10358022/find-the-better-intersection-of-two-moving-objects
+		 *
+		 * l1 = current position of the asteroid
+		 * v1 = vector speed of the asteroid
+		 *
+		 * l2 = current position of our ship
+		 * s2 = scalar speed of our ship
+		 */
+
+		// Translating l1 so that l2 will be at [0,0]
+		l1 = this.Pos(l1.x - l2.x, l1.y - l2.y);
+
+		let a = (v1.x ** 2) + (v1.y ** 2) - (s2 ** 2); // * (t^2);
+		let b = (2 * l1.x * v1.x) + (2 * l1.y * v1.y); // * t
+		let c = (l1.x ** 2) + (l1.y ** 2);
+
+		let time;
+		if(a != 0) {
+			// Yay, discriminants!
+			let D = (b**2 - 4*a*c);
+			if(D < 0) {
+				time = NaN;
+			} else {
+				let t1 = (-b + Math.sqrt(D)) / (2 * a);
+				let t2 = (-b - Math.sqrt(D)) / (2 * a);
+				if(t1 < 0) time = t2;
+				else if(t2 < 0) time = t1;
+
+				// both are positive
+				else time = Math.min(t1, t2);
+			}
+		} else { // ...whole code collapses and we have to do workaround
+			if(b == 0 || c == 0) {
+				time = NaN;
+			}
+			else 					time = (-c / b);
+		}
+
+		if(isNaN(time) || time < 0) {
+			return NaN;
+		} else {
+			// Translating l1 back to its original place
+			l1 = this.Pos(l1.x + l2.x, l1.y + l2.y);
+
+			return this.Pos(
+				(l1.x + (v1.x * time)),
+				(l1.y + (v1.y * time))
+			);
+		}
+	},
 }

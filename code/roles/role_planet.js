@@ -17,7 +17,7 @@ module.exports = {
 			}
 		});
 
-		let activePlanet = "Poaruta";
+		let activePlanet = "Thailara";
 
 		if(activePlanet == "" || planet.uuid == activePlanet) {
 			let clearTrades = false;
@@ -36,6 +36,10 @@ module.exports = {
 				if(cargo.length == 0) {
 					//await planet.make("HULL", 3);
 				}
+			}
+
+			if(planetDetails.body.deals && planetDetails.body.deals.length != 2) {
+				//await sdk.createPlanetRequest("Thailara", {request: "sell", item: "minerals"});
 			}
 
 
