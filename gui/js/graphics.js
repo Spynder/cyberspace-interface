@@ -42,7 +42,7 @@ $(document).ready(function() {
 		if(i == -1) systemData.push(arg);
 		else systemData[i] = arg;
 
-		if(!HIGH_SEC_SYSTEMS.includes(arg.uuid)) {
+		/*if(!HIGH_SEC_SYSTEMS.includes(arg.uuid)) {
 			let shipsInSystem = gh.getShipsFromData(arg);
 			for(ship of shipsInSystem) {
 				if(ship.owner != OWNER_ID && !ALLY_IDS.includes(ship.owner)) {
@@ -53,13 +53,30 @@ $(document).ready(function() {
 					break;
 				}
 			}
-		}
+		}*/
 	});
+
+	function checkForEnemies() {
+		for(let dataPoint of systemData) {
+			if(!HIGH_SEC_SYSTEMS.includes(dataPoint.uuid)) {
+				let shipsInSystem = gh.getShipsFromData(dataPoint);
+				for(let ship of shipsInSystem) {
+					if(ship.owner != OWNER_ID && !ALLY_IDS.includes(ship.owner)) {
+						console.log("ENEMY SPOTTED WITH FUNC: ");
+						console.log("UUID: " + ship.uuid);
+						console.log("OWNER: " + ship.owner);
+						playSound("enemySpotted");
+						return;
+					}
+				}
+			}
+		}
+	}
 
 	function isMouseInsideSystemIcon(event) {
 		var mousePos = gh.getMousePos(canvas, event);
 
-		for(systemStruct of SYSTEMS) {
+		for(let systemStruct of SYSTEMS) {
 			if (gh.isInside(mousePos, gh.getSystemIconHitbox(systemStruct, width, height))) {
 				return systemStruct;
 			}
@@ -252,7 +269,7 @@ $(document).ready(function() {
 	function updateObjectText() {
 		$("#disableAll").text(getSwitchedObjects() == 0 ? OBJECTS_DISABLED : OBJECTS_ENABLED);
 		let activatedObjects = objects.filter(item => gh.getObjectState(item) != SHIPSTATE.OFF).length;
-		$("#objectsText").text(`${objects.length} objects (${activatedObjects} active): `);
+		$("#objectsText").text(`${objects.length} objects (${activatedObjects}/20 active): `);
 
 	}
 
@@ -785,4 +802,5 @@ $(document).ready(function() {
 	changeScreen(SCREEN_START);
 	updateGoInsideButton();
 	drawingInterval = setInterval(draw, 1000/fps);
+	setInterval(checkForEnemies, ENEMY_CHECK_UPDATE_TIME);
 });

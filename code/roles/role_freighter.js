@@ -33,9 +33,7 @@ module.exports = {
 		if(upgradeResult < 0) return;
 
 		let home = SYSTEM_SCHEAT;
-		//let dest = SYSTEM_IOTA_PEGASI;
 		let dest = memory.homeSystem;
-		//let planetName = "Oagawa";
 		let planetName = memory.homePlanet;
 
 		let returnToHome = false;
@@ -44,6 +42,7 @@ module.exports = {
 		let bestMineralTradeInSystem = ship.getBestMineralTrade();
 		let mineralAmount = ship.getMaxHold() * 0.7 - ship.getHold();
 		let requiredBalance = 15000 + ((ship.getMaxFuel() - ship.getFuel()) * 10);
+		let maxBalance = 500000;
 		ship.log(bestMineralTradeInConstellation);
 		ship.log(bestMineralTradeInSystem);
 		let sellingTo = "";
@@ -59,11 +58,11 @@ module.exports = {
 		ship.log(`Selling to: ${sellingTo}`);
 
 		let warpingTo;
-		if((ship.getBalance() >= 250000 && !ship.hasMinerals()) || returnToHome) 	warpingTo = home;
-		else if(returningBack && sellingTo) 										warpingTo = sellingTo;
-		else if(!returningBack) 													warpingTo = dest;
-		else 																		warpingTo = home;
-
+		if((ship.getBalance() >= maxBalance && !ship.hasMinerals()) || returnToHome) 	warpingTo = home;
+		else if(returningBack && sellingTo) 											warpingTo = sellingTo;
+		else if(!returningBack) 														warpingTo = dest;
+		else 																			warpingTo = home;
+	
 		if(!ship.getCurrentSystem() || (ship.getCurrentSystem() == dest && ship.getLocationName() != planetName)) {
 			await ship.safeEscape();
 		}
@@ -82,6 +81,12 @@ module.exports = {
 		else if(ship.getFuel() == ship.getMaxFuel() && ship.getLocation() != LOCATION_SYSTEM && ship.getCurrentSystem() != warpingTo) {
 			ship.log("info", "Escaping from atmosphere to fly to destination!");
 			await ship.safeEscape();
+		}
+
+		if(ship.getBalance() < 10000 && !ship.hasMinerals()) {
+			ship.log("Warping to Scheat for money, because I'm a dumdum and don't have enough!");
+			await ship.warpToSystem(HOME_SYSTEM);
+			return;
 		}
 
 		if(ship.getCurrentSystem() != warpingTo) {
@@ -112,26 +117,9 @@ module.exports = {
 			}
 			return;
 		}
-
-		if(ship.getBalance() < 10000 && !ship.hasMinerals()) {
-			ship.log("Warping to Scheat for money, because I'm a dumdum and don't have enough!");
-			await ship.warpToSystem(HOME_SYSTEM);
-			return;
-		}
 		
 		if(ship.getCurrentSystem() == dest && !returningBack && ship.getLocation() == LOCATION_SYSTEM) {
-			ship.log("warn", "Landing on " + planetName)
-			let planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
-			let planet = planets.find((pla) => pla.uuid == planetName);
-			let vect = mafs.Line(	mafs.Pos(	ship.details.body.vector.x,
-													ship.details.body.vector.y),
-									mafs.Pos(	planet.body.vector.x,
-													planet.body.vector.y)
-								);
-			let extended = mafs.extendLine(vect, 40);
-			await ship.safeLanding(planet.uuid);
-			await ship.safeMove(extended.p2.x, extended.p2.y);
-			await ship.safeFuel();
+			await ship.parkAtSpecifiedPlanet(planetName);
 			return;
 		}
 

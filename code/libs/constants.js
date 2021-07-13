@@ -87,6 +87,7 @@ global.OWNER_ID = "a678ea674c";
 global.SCALE_SENSITIVITY = 0.003;
 global.SYSTEM_START_ZOOM = 0.1;
 
+global.ENEMY_CHECK_UPDATE_TIME = 2 * 1000;
 
 global.TEXT_LINE_MARGIN_MEDIUM = 18;
 global.TEXT_LINE_MARGIN_SMALL = 4;
@@ -179,6 +180,7 @@ global.ROLE_ATTACKER = "Attacker";
 global.ROLE_COLONIZER = "Colonizer";
 global.ROLE_SCOUT = "Scout";
 global.ROLE_BUYER = "Buyer";
+global.ROLE_COLLECTOR = "Collector";
 global.ROLE_MANUAL = "Manual";
 
 global.TRADE_EXPIRE_TIME = 1000 * 60 * 45; // 45 minutes
@@ -198,6 +200,11 @@ global.ALLY_IDS = [
 	"2c865b9658", // RAMZIK
 	"1c5b926242", // 1323ED5
 ];
+
+// "a678ea674c" - Spynder
+// "eace9ac1bd" - ED2LIN
+// "01e68210c2" - Oktay
+
 
 global.ROLES = [
 	{
@@ -240,57 +247,66 @@ global.ROLES = [
 		homeSystem: SYSTEM_SADALPHERIS,
 	},
 	{
-		role: ROLE_MANUAL,
-		homeSystem: SYSTEM_IOTA_PEGASI,
-		homePlanet: "Thailara",
+		role: ROLE_ATTACKER,
+		homeSystem: SYSTEM_PI1_PEGASI,
+		homePlanet: "Poaruta",
 	},	
 	{
 		role: ROLE_ATTACKER,
 		homeSystem: SYSTEM_IOTA_PEGASI,
-		homePlanet: "Tilia",
+		homePlanet: "Tilia", // TILIA
 	},
 	{
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SALM,
 	},
 	{
-		role: ROLE_MANUAL,
-		homeSystem: SYSTEM_SCHEAT,
+		role: ROLE_COLLECTOR,
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Thailara",
+	},
+	{
+		role: ROLE_BUYER,
+	},
+	{
+		role: ROLE_COLLECTOR,
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Oagawa",
 	},
 	{
 		role: ROLE_SCOUT,
 		homeSystem: SYSTEM_SCHEAT,
-		scoutingPlanet: "Drewsa",
+		homePlanet: "Drewsa",
 	},
 	{
 		role: ROLE_SCOUT,
 		homeSystem: SYSTEM_SCHEAT,
-		scoutingPlanet: "Roebe",
+		homePlanet: "Roebe",
 	},
 	{
 		role: ROLE_SCOUT,
 		homeSystem: SYSTEM_SCHEAT,
-		scoutingPlanet: "Mayvel",
+		homePlanet: "Mayvel",
 	},
 	{
 		role: ROLE_SCOUT,
 		homeSystem: SYSTEM_SCHEAT,
-		scoutingPlanet: "Headsbing",
+		homePlanet: "Headsbing",
 	},
 	{
 		role: ROLE_SCOUT,
 		homeSystem: SYSTEM_SADALPHERIS,
-		scoutingPlanet: "Unkoinus",
+		homePlanet: "Unkoinus",
 	},
 	{
 		role: ROLE_SCOUT,
 		homeSystem: SYSTEM_SADALPHERIS,
-		scoutingPlanet: "Grion A5",
+		homePlanet: "Grion A5",
 	},
 	{
 		role: ROLE_SCOUT,
 		homeSystem: SYSTEM_SALM,
-		scoutingPlanet: "Acapus",
+		homePlanet: "Acapus",
 	},
 
 	// Default
@@ -378,6 +394,7 @@ global.rcs = {
 	STBP_OPERATING_MONEY: -702,
 	STBP_WARPING_TO_SCHEAT: -703,
 	STBP_CHANGING_BODYPART: -704,
+	STBP_DESTROYING_BODYPART: -705,
 
 
 	// buyBodyPart
@@ -419,4 +436,14 @@ global.rcs = {
 	CPB_BALANCE_CLEARED: 1301,
 	CPB_FLYING_TO_PLANET: -1301,
 	CPB_EXECUTING_DEALS: -1302,
+
+	// refuelAtNearbyLandable
+	RANL_TANK_IS_FULL: 1401,
+	RANL_NO_INHABITED_LANDABLES: 1402,
+	RANL_REFUELING: -1401,
+
+	// transferAllMineralsToPlanet
+	TAMTP_NO_MINERALS: 1501,
+	TAMTP_TRANSFERRING_MINERALS: -1501,
+	TAMTP_FLYING_TO_PLANET: -1502,
 };

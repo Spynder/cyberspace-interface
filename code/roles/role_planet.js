@@ -17,7 +17,7 @@ module.exports = {
 			}
 		});
 
-		let activePlanet = "Thailara";
+		let activePlanet = "Oagawa";
 
 		if(activePlanet == "" || planet.uuid == activePlanet) {
 			let clearTrades = false;
@@ -38,8 +38,9 @@ module.exports = {
 				}
 			}
 
-			if(planetDetails.body.deals && planetDetails.body.deals.length != 2) {
-				//await sdk.createPlanetRequest("Thailara", {request: "sell", item: "minerals"});
+			if(planetDetails.body.deals && (planetDetails.body.deals.length != 1 || true)) {
+				//await sdk.createPlanetRequest(activePlanet, {request: "close", uuid: planetDetails.body.deals[0].uuid})
+				//await sdk.createPlanetRequest("Tilia", {request: "sell", item: "minerals"});
 			}
 
 
@@ -100,14 +101,18 @@ module.exports = {
 
 
 						case "close":
-							// Close = {request: "close", uuid: planetUuid}
+							// Close = {request: "close", uuid: dealUuid}
 							if(!uuid) {
 								planet.log("error", "No \"uuid\" param! Destroying request.");
 								planet.finishTopRequest();
 								break;
 							}
 
-							await planet.close(uuid);
+							try {
+								await planet.close(uuid);
+							} catch(e) {
+								planet.log("error", "Error occured while closing deal on planet: " + e.message);
+							}
 							planet.finishTopRequest();
 							break;
 

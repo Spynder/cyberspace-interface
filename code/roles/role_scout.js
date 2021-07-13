@@ -18,9 +18,11 @@ module.exports = {
 
 		ship.setParked((ship.getLocation() != undefined) ? ship.getLocation() != LOCATION_SYSTEM : false);
 
+		let homePlanet = memory.homePlanet;
+
 		// Since major breakthrough, I can afford to don't care with these CPU cycles
-		if(sdk.hasPlanetDealsBeenScanned(memory.scoutingPlanet) && !sdk.isPlanetDealsExpired(memory.scoutingPlanet, true)) {
-			ship.log("info", memory.homeSystem + " - " + memory.scoutingPlanet + " is up-to-date with deals, so I'm sleeping.");
+		if(sdk.hasPlanetDealsBeenScanned(homePlanet) && !sdk.isPlanetDealsExpired(homePlanet, true)) {
+			ship.log("info", memory.homeSystem + " - " + homePlanet + " is up-to-date with deals, so I'm sleeping.");
 			return;
 		}
 
@@ -42,20 +44,20 @@ module.exports = {
 		}
 		else if(await ship.warpToSystem(dest) < 0) return;
 
-		let expired = sdk.isPlanetDealsExpired(memory.scoutingPlanet, true);
+		let expired = sdk.isPlanetDealsExpired(homePlanet, true);
 		
 		if(expired) {
 			if(!ship.getCurrentSystem()) {
 				await ship.safeEscape();
 				return;
 			}
-			if(ship.getLocationName() != memory.scoutingPlanet) {
-				await ship.parkAtSpecifiedPlanet(memory.scoutingPlanet);
+			if(ship.getLocationName() != homePlanet) {
+				await ship.parkAtSpecifiedPlanet(homePlanet);
 			}
-			var planetInfo = await ship.safeScan(memory.scoutingPlanet);
+			var planetInfo = await ship.safeScan(homePlanet);
 			if(planetInfo) {
 				ship.setPlanetDeals(planetInfo);
-				ship.log("info", "Updated planet deals for " + memory.homeSystem + " - " + memory.scoutingPlanet + ".");
+				ship.log("info", "Updated planet deals for " + memory.homeSystem + " - " + homePlanet + ".");
 			}
 		}
 	}

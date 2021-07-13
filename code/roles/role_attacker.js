@@ -11,7 +11,7 @@ module.exports = {
 		if(immediatePark) {
 			ship.log("info", "Parking at nearby landable by command.");
 			await ship.parkAtNearbyLandable();
-			console.log(ship.getLocation());
+			ship.log(ship.getLocation());
 			if(ship.getLocation() != LOCATION_SYSTEM) {
 				ship.setParked(true);
 			}
@@ -136,7 +136,7 @@ module.exports = {
 					await ship.safeMove(enemyPos.x, enemyPos.y); // Use standard movement
 				}
 				let attackResult = await ship.safeAttack(targetBody.uuid, [1,2,3,4,5]);
-				console.log(attackResult);
+				ship.log(attackResult);
 			}
 			return;
 		}

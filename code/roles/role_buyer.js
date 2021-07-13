@@ -21,12 +21,7 @@ module.exports = {
 			return;
 		}
 
-		if(ship.getFuel() < ship.getMaxFuel() && ship.getBalance() >= 100) {
-			ship.log("info", "Flying for fuel");
-			await ship.parkAtNearbyLandable();
-			await ship.safeFuel();
-			return;
-		}
+		if(await ship.refuelAtNearbyLandable() < 0) return;
 
 		let fullnessPercentage = ship.getHold() / ship.getMaxHold();
 
@@ -37,9 +32,13 @@ module.exports = {
 				if(ship.getBodyCargo("engine").body.gen > 1) {
 					if(await ship.upgradeBodyPartListNew([
 						{part: "hull", gen: 2, extra: {stopAtMinGen: false, doNotStop: true}},
-						{part: "engine", gen: 2, extra: {stopAtMinGen: false, doNotStop: true}},
-						{part: "tank", gen: 2, extra: {stopAtMinGen: false, doNotStop: true}},
-						{part: "droid", gen: 2, extra: {stopAtMinGen: false, doNotStop: true}},
+						{part: "engine", gen: 2, extra: {stopAtMinGen: false, doNotStop: true, dropPrevious: true, destroyPrevious: true}},
+						{part: "tank", gen: 2, extra: {stopAtMinGen: false, doNotStop: true, dropPrevious: true, destroyPrevious: true}},
+						{part: "gripper", gen: 2, extra: {stopAtMinGen: false, doNotStop: true, dropPrevious: true, destroyPrevious: true}},
+						{part: "droid", gen: 2, extra: {stopAtMinGen: false, doNotStop: true, dropPrevious: true, destroyPrevious: true}},
+						{part: "protector", gen: 2, extra: {stopAtMinGen: false, doNotStop: true, dropPrevious: true, destroyPrevious: true}},
+						{part: "radar", gen: 2, extra: {stopAtMinGen: false, doNotStop: true, dropPrevious: true, destroyPrevious: true}},
+						{part: "scanner", gen: 2, extra: {stopAtMinGen: false, doNotStop: true, dropPrevious: true, destroyPrevious: true}},
 					]) < 0) return;
 					// everything else lol!
 				}

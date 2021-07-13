@@ -43,19 +43,17 @@ module.exports = {
 		}
 		
 		let home = SYSTEM_SCHEAT;
-		let dest = memory.homeSystem;		
+		let dest = memory.homeSystem;
 
 		if(ship.getCurrentSystem() && ship.getLocation() == LOCATION_PLANET/* && ship.getPlanetsWithExpiredDeals().includes(ship.getLocationName())*/) {
 			let planetInfo = await ship.safeScan(ship.getLocationName());
 			ship.setPlanetDeals(planetInfo);
 		}
-		let planet = ship.getPlanetToUpdateDealsFor();	
-
-		let sortedCargos = mafs.sortByDistance(mafs.Pos(details), cargos);
+		let planet = ship.getPlanetToUpdateDealsFor();
 
 		let maxHold = ship.getMaxHold() - ship.getHold() < 15; // Less than 15 hold left\
 		if(ship.getBodyCargo("hull").body.gen != 1) maxHold = (ship.getHold() / ship.getMaxHold()) > 0.6; // More than 60% of storage filled up
-		if(ship.hasMinerals() && (maxHold || sortedCargos.length == 0)) {
+		if(ship.hasMinerals() && (maxHold || cargos.length == 0)) {
 			ship.log("Selling minerals to the federation!");
 			if(await ship.sellMineralsToFederation() < 0) return;
 		}
@@ -90,7 +88,7 @@ module.exports = {
 		// Warping to home system
 		if(await ship.warpToSystem(dest) < 0) return;
 
-		if((details.body.balance > 50000 || (details.body.balance > KEEP_MINIMUM && sortedCargos.length == 0)) && /*(memory.homeSystem == HOME_SYSTEM || ship.details.parent.uuid == SYSTEM_SCHEAT)*/ radarData.nodes.find((instance) => instance.type == "BusinessStation")) {
+		if((details.body.balance > 50000 || (details.body.balance > KEEP_MINIMUM && cargos.length == 0)) && /*(memory.homeSystem == HOME_SYSTEM || ship.details.parent.uuid == SYSTEM_SCHEAT)*/ radarData.nodes.find((instance) => instance.type == "BusinessStation")) {
 
 			var result = await ship.operateMoney();
 			switch(result) {
@@ -110,17 +108,17 @@ module.exports = {
 			return;
 		}
 
-		if(sortedCargos.length && !immediatePark && ship.getBestMineralTrade()) {
+		if(cargos.length && ship.getBestMineralTrade()) {
 			if(await ship.grabMineralsInSystem() < 0) return;
 		}
 
-		if(!immediatePark && !ship.getCurrentSystem()) {
+		if(!ship.getCurrentSystem()) {
 			ship.log("info", "Escaping the atmosphere to understand, where am I.");
 			await ship.safeEscape();
 			return;
 		}
 
-		else if(!immediatePark && ship.getBodyCargo("hull").body.gen > 1) {
+		else if(ship.getBodyCargo("hull").body.gen > 1) {
 			if(await ship.captureAsteroid() < 0) return;
 		}
 
