@@ -31,6 +31,7 @@ module.exports = {
 		let manualAttackDisable = false;
 		let flyTo = memory.homeSystem;
 		let planetName = memory.homePlanet;
+		let lockedToSystem = memory.lockedToSystem ?? true;
 
 
 		// TODO: Check for distance to safety. They might lure you away and shoot there. (3000 to nearby safe spot (planet/warp spot))
@@ -63,8 +64,7 @@ module.exports = {
 			return;
 		}*/
 
-		let target = ship.getAttackingTarget();
-
+		let target = ship.getAttackingTarget(lockedToSystem);
 		target = manualAttackDisable ? false : target;
 		if(target) {
 			if(target.system != ship.getCurrentSystem()) {
@@ -85,7 +85,8 @@ module.exports = {
 			}
 			let retreating = ship.getLocalMemory().retreating || false;
 			ship.log("info", "Retreating: " + retreating);
-			ship.log("info", "Health percentage: " + Math.round(healthPercentage * 1000000) / 10000 + "%");
+			ship.log("info", "Health percentage: " + (healthPercentage * 100).toFixed(2) + "%");
+			ship.log("Distance between: " + (mafs.lineLength(mafs.Line(mafs.Pos(ship.details), mafs.Pos(targetBody)))).toFixed(2));
 			if(injured || retreating) {
 				// Retreat ASAP
 				
@@ -136,6 +137,8 @@ module.exports = {
 					await ship.safeMove(enemyPos.x, enemyPos.y); // Use standard movement
 				}
 				let attackResult = await ship.safeAttack(targetBody.uuid, [1,2,3,4,5]);
+				//let scanned = await ship.safeScan(targetBody.uuid);
+				//ship.log(scanned.nodes[5].body)
 				ship.log(attackResult);
 			}
 			return;
@@ -152,7 +155,7 @@ module.exports = {
 				ship.setPlanetDeals(planetDetails);
 			}
 
-			await ship.parkAtSpecifiedPlanet(planetName);
+			await ship.parkAtSpecifiedLandable(planetName);
 			return;
 		}
 		// code

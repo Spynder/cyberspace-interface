@@ -199,6 +199,7 @@ global.ALLY_IDS = [
 	"e8be292de2", // Kosrotoff
 	"2c865b9658", // RAMZIK
 	"1c5b926242", // 1323ED5
+	"2e67533360", // Atsupak
 ];
 
 // "a678ea674c" - Spynder
@@ -207,32 +208,64 @@ global.ALLY_IDS = [
 
 
 global.ROLES = [
+	// 0-4
 	{
-		role: ROLE_MINER,
+		role: ROLE_MANUAL,
 		homeSystem: SYSTEM_SCHEAT,
 	},
 	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_MATAR,
+		role: ROLE_BUYER,
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Tilia",
 	},
 	{
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SADALBARI,
 	},
 	{
-		role: ROLE_MINER, // miner
+		role: ROLE_MINER,
 		homeSystem: SYSTEM_SADALPHERIS,
 	},
 	{
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SALM,
 	},
-	/*{
-		role: ROLE_BUYER,
-	},*/
+
+	// 5-9
+	{
+		role: ROLE_MANUAL,
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Tilia",
+	},	
+	{
+		role: ROLE_MANUAL,
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Tilia",
+	},
+	{
+		role: ROLE_MANUAL, // virus container
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Hephus",
+	},
+	{
+		role: ROLE_MANUAL,
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Hephus",
+	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_SCHEAT,
+		homeSystem: SYSTEM_MATAR,
+	},
+
+	// 10-14
+	{
+		role: ROLE_MANUAL,
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Tilia",
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALBARI,
 	},
 	{
 		role: ROLE_MINER,
@@ -246,16 +279,8 @@ global.ROLES = [
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SADALPHERIS,
 	},
-	{
-		role: ROLE_ATTACKER,
-		homeSystem: SYSTEM_PI1_PEGASI,
-		homePlanet: "Poaruta",
-	},	
-	{
-		role: ROLE_ATTACKER,
-		homeSystem: SYSTEM_IOTA_PEGASI,
-		homePlanet: "Tilia", // TILIA
-	},
+
+	// 15+
 	{
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SALM,
@@ -266,12 +291,12 @@ global.ROLES = [
 		homePlanet: "Thailara",
 	},
 	{
-		role: ROLE_BUYER,
-	},
-	{
 		role: ROLE_COLLECTOR,
 		homeSystem: SYSTEM_IOTA_PEGASI,
 		homePlanet: "Oagawa",
+	},
+	{
+		role: ROLE_BUYER,
 	},
 	{
 		role: ROLE_SCOUT,
@@ -352,6 +377,8 @@ global.NOT_ENOUGH_SCORE = 3;
 // If x<0, return (shortcut is in action)
 global.rcs = {
 	RESULT_OK: 001,
+	RESULT_FAILED: -001,
+	RESULT_BLOCKED: -002,
 
 	// warpToSystem
 	WTS_END_DESTINATION: 101,
@@ -396,7 +423,6 @@ global.rcs = {
 	STBP_CHANGING_BODYPART: -704,
 	STBP_DESTROYING_BODYPART: -705,
 
-
 	// buyBodyPart
 	BBP_NO_DEALS: 801,
 	BBP_PRICE_TOO_HIGH: 802,
@@ -407,12 +433,12 @@ global.rcs = {
 	BBP_BUYING_BODY_PART: -804,
 	BBP_SELLING_MINERALS: -805,
 
-	// upgradeBodyPartNew
+	// upgradeBodyPart
 	UBP_FINISHED: 801,
 	UBP_BUYING_BODYPART: -801,
 	UBP_SWITCHING_BODYPART: -802,
 
-	// upgradeBodyPartListNew
+	// upgradeBodyPartList
 	UBPL_NOT_ENOUGH_SCORE: 901,
 	UBPL_NOT_DONE_CHANGING_LIST: 902,
 	UBPL_LIST_ALL_CHANGED: 903,
@@ -427,6 +453,7 @@ global.rcs = {
 	CA_INTERCEPTION_IMPOSSIBLE: 1101,
 	CA_REPAIRING_WITH_DRONE: -1101,
 	CA_INTERCEPTING_ASTEROID: -1102,
+	CA_ACKNOWLEDGING_SYSTEM: -1103,
 
 	// sellMineralsToFederation
 	SMTF_NO_DEALS: 1201,
@@ -446,4 +473,21 @@ global.rcs = {
 	TAMTP_NO_MINERALS: 1501,
 	TAMTP_TRANSFERRING_MINERALS: -1501,
 	TAMTP_FLYING_TO_PLANET: -1502,
+
+	// parkAtSpecifiedLandable
+	PASL_AT_THE_PLANET: 1601,
+	PASL_CANT_FIND_PLANET: 1602,
+	PASL_ESCAPING: -1601,
+	PASL_FLYING_TO_PLANET: -1602,
+
+	// pathFind
+	PF_TOO_CLOSE_TO_SUN: -1701,
+	PF_TOO_FAR_FROM_SUN: -1702,
+
+	// acknowledgeSystem
+	AS_KNOWN: 1801,
+	AS_ACKNOWLEDGING: -1801,
+
+	// profileTime
+	PT_SHIP_IS_DEAD: -1901,
 };

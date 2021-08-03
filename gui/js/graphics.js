@@ -41,37 +41,47 @@ $(document).ready(function() {
 		let i = systemData.findIndex(sys => sys.uuid == arg.uuid);
 		if(i == -1) systemData.push(arg);
 		else systemData[i] = arg;
-
-		/*if(!HIGH_SEC_SYSTEMS.includes(arg.uuid)) {
-			let shipsInSystem = gh.getShipsFromData(arg);
-			for(ship of shipsInSystem) {
-				if(ship.owner != OWNER_ID && !ALLY_IDS.includes(ship.owner)) {
-					console.log("ENEMY SPOTTED: ");
-					console.log("UUID: " + ship.uuid);
-					console.log("OWNER: " + ship.owner);
-					playSound("enemySpotted");
-					break;
-				}
-			}
-		}*/
 	});
 
 	function checkForEnemies() {
 		for(let dataPoint of systemData) {
 			if(!HIGH_SEC_SYSTEMS.includes(dataPoint.uuid)) {
+				let hasOwnShips = false;
+				for(let obj of objects) {
+					if(obj.details && obj.details.owner == OWNER_ID && obj.system == dataPoint.uuid && obj.type === "Ship") {
+						console.log(`System ${dataPoint.uuid}, ship ${obj.uuid}`);
+						hasOwnShips = true;
+						break;
+					}
+				}
 				let shipsInSystem = gh.getShipsFromData(dataPoint);
-				for(let ship of shipsInSystem) {
-					if(ship.owner != OWNER_ID && !ALLY_IDS.includes(ship.owner)) {
-						console.log("ENEMY SPOTTED WITH FUNC: ");
-						console.log("UUID: " + ship.uuid);
-						console.log("OWNER: " + ship.owner);
-						playSound("enemySpotted");
-						return;
+				if(hasOwnShips) {
+					for(let ship of shipsInSystem) {
+						if(ship.owner != OWNER_ID && !ALLY_IDS.includes(ship.owner)) {
+							console.log("ENEMY SPOTTED WITH FUNC: ");
+							console.log("UUID: " + ship.uuid);
+							console.log("OWNER: " + ship.owner);
+							playSound("enemySpotted");
+							return;
+						}
 					}
 				}
 			}
 		}
 	}
+
+	let isDisconnected = false;
+
+	ipcRenderer.on("receivedDisconnected", (event, arg) => {
+		isDisconnected = true;
+	});
+
+	setInterval(function(){
+		if(isDisconnected) {
+			playSound("disconnected");
+			console.log("Disconnected!!!");
+		}
+	}, 1000);
 
 	function isMouseInsideSystemIcon(event) {
 		var mousePos = gh.getMousePos(canvas, event);

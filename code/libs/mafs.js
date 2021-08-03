@@ -25,7 +25,7 @@ module.exports = {
 	},
 
 	Line: function(p1, p2) {
-		return {p1: p1, p2: p2};
+		return {p1, p2};
 	},
 
 	lineIntersect: function(line1, line2) {
@@ -81,12 +81,14 @@ module.exports = {
 
 	squareIntersect: function(line, square1, square2) {
 		var resultMap = new Map();
-		var buffer;
-		buffer = this.lineIntersect(line, this.getSquareLine(S_UP, square1, square2));
-		if(buffer) {
-			resultMap.set(S_UP, buffer);
-		}
-		buffer = this.lineIntersect(line, this.getSquareLine(S_RIGHT, square1, square2));
+		[S_UP, S_RIGHT, S_DOWN, S_LEFT].forEach(function(side) {
+			let intersection = module.exports.lineIntersect(line, module.exports.getSquareLine(side, square1, square2));
+			if(intersection) {
+				resultMap.set(side, intersection);
+			}
+		});
+		
+		/*buffer = this.lineIntersect(line, this.getSquareLine(S_RIGHT, square1, square2));
 		if(buffer) {
 			resultMap.set(S_RIGHT, buffer);
 		}
@@ -97,7 +99,7 @@ module.exports = {
 		buffer = this.lineIntersect(line, this.getSquareLine(S_LEFT, square1, square2));
 		if(buffer) {
 			resultMap.set(S_LEFT, buffer);
-		}
+		}*/
 		return resultMap;
 	},
 
@@ -115,7 +117,7 @@ module.exports = {
 		sunPos2 = this.Pos(SUN_CLOSE_RADIUS * -1, SUN_CLOSE_RADIUS * -1);
 		var resultMap = this.squareIntersect(this.Line(shipPos, reqPos), sunPos1, sunPos2);
 		if(!this.isSafeSpot(reqPos)) {
-			return ERR_TOO_CLOSE_TO_SUN;
+			return rcs.PF_TOO_CLOSE_TO_SUN;
 		}
 
 		if(!this.isSafeSpot(shipPos)) {
@@ -131,7 +133,7 @@ module.exports = {
 		resultMap.forEach(function(item, side) {
 			sortedMap.set(side, self.lineLength(new self.Line(shipPos, item)));
 		});
-		//console.log(resultMap);
+		
 		var finalMap = new Map([...sortedMap.entries()].sort((a, b) => a[1] - b[1]));
 		var side = Array.from(finalMap.keys())[0];
 		var squareLine = this.getSquareLine(side, sunPos1, sunPos2);
@@ -147,6 +149,7 @@ module.exports = {
 	},
 
 	pathFind: function(shipPos, reqPos) {
+		if(this.lineLength(this.Line(this.Pos(0, 0), reqPos)) > 20000) return rcs.PF_TOO_FAR_FROM_SUN;
 		return this.sunDodge(shipPos, reqPos);
 	},
 
@@ -171,62 +174,6 @@ module.exports = {
 		var extendedLine = this.Line(p1, extendedEnd);
 		return extendedLine;
 	},
-
-	/*findWarpDestination(current, destination) {
-		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_PI1_PEGASI) 	return SYSTEM_MATAR;
-		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_MATAR) 		return SYSTEM_MATAR;
-		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_SALM) 			return SYSTEM_SALM;
-		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_SADALBARI) 	return SYSTEM_SADALBARI;
-		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_SADALPHERIS) 	return SYSTEM_SADALBARI;
-		if(current == SYSTEM_MATAR 		&& destination == SYSTEM_PI1_PEGASI) 	return SYSTEM_PI1_PEGASI;
-		if(current == SYSTEM_PI1_PEGASI && destination == SYSTEM_SCHEAT) 		return SYSTEM_MATAR;
-		if(current == SYSTEM_PI1_PEGASI && destination == SYSTEM_MATAR) 		return SYSTEM_MATAR;
-		if(current == SYSTEM_MATAR 		&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
-		if(current == SYSTEM_SALM 		&& destination == SYSTEM_MATAR) 		return SYSTEM_SCHEAT;
-		if(current == SYSTEM_SALM 		&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
-		if(current == SYSTEM_SALM 		&& destination == SYSTEM_MATAR) 		return SYSTEM_SCHEAT;
-		if(current == SYSTEM_SADALBARI 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
-		if(current == SYSTEM_SADALBARI 	&& destination == SYSTEM_SADALPHERIS) 	return SYSTEM_SADALPHERIS;
-
-		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_ALGENIB) 		return SYSTEM_SALM;
-		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_ALGENIB) 		return SYSTEM_ALGENIB;
-		if(current == SYSTEM_ALGENIB 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SALM;
-		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
-
-		if(current == SYSTEM_SCHEAT		&& destination == SYSTEM_IOTA_PEGASI)	return SYSTEM_SADALBARI;
-		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_IOTA_PEGASI)	return SYSTEM_SADALPHERIS;
-		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_IOTA_PEGASI)	return SYSTEM_IOTA_PEGASI;
-		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SCHEAT)		return SYSTEM_SADALPHERIS;
-		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_SCHEAT)		return SYSTEM_SADALBARI;
-		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_SCHEAT)		return SYSTEM_SCHEAT;
-
-		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SCHEAT)		return SYSTEM_SADALPHERIS;
-		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_SCHEAT)		return SYSTEM_SADALBARI;
-		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_SCHEAT)		return SYSTEM_SCHEAT;
-		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_MATAR)			return SYSTEM_SADALPHERIS;
-		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_MATAR)			return SYSTEM_SADALBARI;
-		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_MATAR)			return SYSTEM_SCHEAT;
-		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SALM)			return SYSTEM_SADALPHERIS;
-		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_SALM)			return SYSTEM_SADALBARI;
-		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_SALM)			return SYSTEM_SCHEAT;
-		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SADALBARI)		return SYSTEM_SADALPHERIS;
-		if(current == SYSTEM_SADALPHERIS&& destination == SYSTEM_SADALBARI)		return SYSTEM_SADALBARI;
-		if(current == SYSTEM_IOTA_PEGASI&& destination == SYSTEM_SADALPHERIS)	return SYSTEM_SADALPHERIS;
-
-		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_IOTA_PEGASI) 	return SYSTEM_SCHEAT;
-		if(current == SYSTEM_MATAR	 	&& destination == SYSTEM_IOTA_PEGASI) 	return SYSTEM_SCHEAT;
-
-		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_SADALBARI) 	return SYSTEM_SCHEAT;
-		if(current == SYSTEM_SADALBARI	&& destination == SYSTEM_SALM) 			return SYSTEM_SCHEAT;
-
-		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_MARKAB) 		return SYSTEM_SALM;
-		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_MARKAB) 		return SYSTEM_MARKAB;
-		if(current == SYSTEM_MARKAB 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SALM;
-		if(current == SYSTEM_SALM	 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
-
-		if(current == SYSTEM_SCHEAT 	&& destination == SYSTEM_SIRRAH) 		return SYSTEM_SIRRAH;
-		if(current == SYSTEM_SIRRAH	 	&& destination == SYSTEM_SCHEAT) 		return SYSTEM_SCHEAT;
-	},*/
 
 	fuelNeededToWarp: function(from, to) {
 		let fromObj = SYSTEMS.find(sys => sys.name == from);
@@ -328,8 +275,17 @@ module.exports = {
 
 
 			for(let neighbor of neighbors) {
-				//console.log(neighbor.name, currentSpot.name, !systemInClosedSet(neighbor), HIGH_SEC_SYSTEMS.includes(currentSpot.name));
-				if(!systemInClosedSet(neighbor)/* && (HIGH_SEC_SYSTEMS.includes(currentSpot.name) || HIGH_SEC_SYSTEMS.includes(neighbor.name))*/) {
+				let disabledLine = {s1: SYSTEM_IOTA_PEGASI, s2: SYSTEM_PI1_PEGASI};
+
+				let isDisabled = 	((currentSpot.name == disabledLine.s1 && neighbor.name == disabledLine.s2) ||
+									 (currentSpot.name == disabledLine.s2 && neighbor.name == disabledLine.s1)) &&
+									!((start == disabledLine.s1 && end == disabledLine.s2) ||
+									 (start == disabledLine.s2 && end == disabledLine.s1));
+				/*if(isDisabled) {
+					console.log("This path d!");
+					console.log(((start == disabledLine.s1 && end == disabledLine.s2), (start == disabledLine.s2 && end == disabledLine.s1)));
+				}8*/
+				if(!systemInClosedSet(neighbor) && !isDisabled) {
 					let tempG = currentSpot.g + currentSpot.fuelNeeded(neighbor); // heuristic function
 
 					let newPath = false;

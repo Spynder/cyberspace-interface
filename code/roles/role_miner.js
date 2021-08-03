@@ -42,6 +42,8 @@ module.exports = {
 			await ship.safeDrop(minerals.uuid);
 		}
 		
+		if(await ship.acknowledgeSystem() < 0) return;
+
 		let home = SYSTEM_SCHEAT;
 		let dest = memory.homeSystem;
 
@@ -59,14 +61,14 @@ module.exports = {
 		}
 
 		let requiredParts = [{part: "hull", gen: 3}, {part: "engine", gen: 3}, {part: "gripper", gen: 6}];
-		let upgradeResult = await ship.upgradeBodyPartListNew(requiredParts);
+		let upgradeResult = await ship.upgradeBodyPartList(requiredParts);
 		if(upgradeResult < 0) return;
 
 		if(!immediatePark && planet) {
 			ship.log("debug", "Initiating \"No deals\".");
 			ship.setFlyingToPlanetToUpdateDealsFor(planet);
 			ship.log("debug", "Flying to no deal planet - " + planet + ".");
-			await ship.parkAtSpecifiedPlanet(planet);
+			await ship.parkAtSpecifiedLandable(planet);
 			var planetInfo = await ship.safeScan(ship.getLocationName());
 			ship.setPlanetDeals(planetInfo);
 			return;
@@ -134,7 +136,7 @@ module.exports = {
 
 		var result = await ship.parkAtNearbyLandable();
 		switch(result) {
-			case ALREADY_PARKED:
+			case rcs.PASL_AT_THE_PLANET:
 				ship.log("info", "I am currently parked at " + ship.getLocationName() + ".");
 				if(ship.getLocation() != LOCATION_SYSTEM) {
 					ship.setParked(true);
@@ -149,7 +151,7 @@ module.exports = {
 					await ship.operateMoney(KEEP_MINIMUM);
 				}
 				break;
-			case FLYING_TO_LANDABLE:
+			case rcs.PASL_FLYING_TO_PLANET:
 				ship.log("info", "I have nothing to do, so I'm parking to nearby planet.");
 				break;
 		}

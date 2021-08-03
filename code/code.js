@@ -146,6 +146,14 @@ global.sendInfo = function(event, arg) {
 	}
 }
 
+global.disconnectObject = async function(uuid) {
+	let connectedObject = multiLoop.connectedObjects[uuid];
+	if(connectedObject) {
+		await connectedObject.dispose();
+		delete multiLoop.connectedObjects[uuid];
+	}
+}
+
 let standaloneLoop = async function(instance, account) {
 	while(true) {
 		try {
@@ -192,11 +200,7 @@ let standaloneLoop = async function(instance, account) {
 
 				await delay(ACTION_DELAY);
 			} else {
-				let connectedObject = multiLoop.connectedObjects[instance.uuid];
-				if(connectedObject) {
-					await connectedObject.dispose();
-					delete multiLoop.connectedObjects[instance.uuid];
-				}
+				await disconnectObject(instance.uuid);
 
 				let struct = {	type: instance.type,
 								ID: instance.uuid};

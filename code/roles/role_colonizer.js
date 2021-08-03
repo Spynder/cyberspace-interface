@@ -35,13 +35,13 @@ module.exports = {
 		var home = SYSTEM_SCHEAT;
 		var dest = SYSTEM_IOTA_PEGASI;
 		var planetName = "Hephus";
-		let fuelMoney = 1000;
+		let fuelMoney = 15000;
 
 		if(ship.getLocation() != LOCATION_SYSTEM && ship.getCurrentSystem() != dest || ship.getLocationName() != planetName) {
 			await ship.safeEscape();
 		}
 		/*console.log(ship.details.parent.uuid);*/
-		if(ship.getLocation() == LOCATION_SYSTEM && ship.getCurrentSystem() == dest && ship.hasCargo("embryo")) {
+		if(ship.getLocation() == LOCATION_SYSTEM && ship.getCurrentSystem() == dest && ship.hasCargo("embryo").length) {
 			ship.log("warn", "Flying to required planet");
 
 			var planets = radarData.nodes.filter((instance => instance.type == "Planet")); // Get all planets
@@ -58,10 +58,10 @@ module.exports = {
 			}
 		}
 		else if(ship.getLocationName() == planetName) {
-			if(ship.hasCargo("virus")) {
+			if(ship.hasCargo("virus").length) {
 				await ship.safeApply("EXTERMINATION");
 			}
-			if(ship.hasCargo("embryo")) {
+			if(ship.hasCargo("embryo").length) {
 				await ship.safeApply("COLONIZATION");
 			}
 		}
@@ -69,6 +69,7 @@ module.exports = {
 		if(ship.getLocationName() == planetName) {
 			await ship.safeFuel();
 		}
+
 
 		if(!ship.getCurrentSystem()) {
 			ship.log("info", "Escaping the atmosphere to understand, where am I.");
@@ -78,21 +79,21 @@ module.exports = {
 		else if(ship.getFuel() < ship.getMaxFuel() && ship.getCurrentSystem() != dest) {
 			ship.log("warn", "Landing on closest planet to refuel")
 			let landable = await ship.findInhabitedLandables()[0];
-			await ship.parkAtSpecifiedPlanet(landable.uuid);
+			await ship.parkAtSpecifiedLandable(landable.uuid);
 			//await ship.parkAtNearbyLandable();
 			await ship.safeFuel();
 			return;
 		}
-		if(!ship.hasCargo("embryo") && ship.getCurrentSystem() != HOME_SYSTEM) {
+		if(!ship.hasCargo("embryo").length && ship.getCurrentSystem() != HOME_SYSTEM) {
 			//console.log("Sitting")
 			await ship.warpToSystem(home);
 		}
 
-		else if(ship.hasCargo("embryo")) {
+		else if(ship.hasCargo("embryo").length) {
 			await ship.warpToSystem(dest);
 		}
 
-		if(((ship.getLocalMemory()).location == SYSTEM_SCHEAT || ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation") && !ship.hasCargo("embryo")) {
+		if(((ship.getLocalMemory()).location == SYSTEM_SCHEAT || ship.getLocation() == "ScientificStation" || ship.getLocation() == "BusinessStation") && !ship.hasCargo("embryo").length) {
 			ship.log("info", "Getting artifacts");
 			var requiredMoney = fuelMoney + 10000 + (buyVirus ? 10000 : 0);
 			if(details.body.balance != requiredMoney) {

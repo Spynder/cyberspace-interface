@@ -52,7 +52,7 @@ module.exports = {
 				return;
 			}
 			if(ship.getLocationName() != homePlanet) {
-				await ship.parkAtSpecifiedPlanet(homePlanet);
+				await ship.parkAtSpecifiedLandable(homePlanet);
 			}
 			var planetInfo = await ship.safeScan(homePlanet);
 			if(planetInfo) {

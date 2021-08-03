@@ -4,7 +4,7 @@ const fs = require("fs");
 const retry = require("async-retry");
 const _ = require("lodash");
 
-var sdk = require("@cyberspace-dev/sdk"); // It's not our module that we update constantly, so it's requiring with standart function
+var sdk = require("@cyberspace-dev/sdk"); // It's not our module that we update constantly, so it's requiring with standard function
 var mafs = requireModule("./libs/mafs.js");
 
 sdk.dbManager = requireModule("./libs/dbmanager.js");
@@ -13,6 +13,11 @@ sdk.Ship.prototype.selfScan = async function(skipScans) {
 	if(!skipScans) {
 		this.details = await retry(async bail => {
 			var exp = await sdk.profileTime(this.explore.bind(this));
+			if(exp == rcs.PT_SHIP_IS_DEAD) {
+				console.log(`DISCONNECTING SHIP ${this.uuid}`);
+				//disconnectObject(this.uuid);
+				return undefined;
+			}
 			return exp;
 		}, {retries: 5});
 
@@ -94,40 +99,59 @@ sdk.Planet.prototype.gatherInfo = async function(account) {
 */
 sdk.profileTime = async function(profilingFunc) {
 	try {
-		var startTime = new Date().getTime();
-		var functionResult = await profilingFunc();
-		var deltaTime = (new Date().getTime()) - startTime;
-		var subtractedTime = ACTION_DELAY - deltaTime;
+		let startTime = new Date().getTime();
+		let functionResult = await profilingFunc();
+		let deltaTime = (new Date().getTime()) - startTime;
+		let subtractedTime = ACTION_DELAY - deltaTime;
 		if(subtractedTime > 0) {
 			await delay(subtractedTime);
 		}
 		return functionResult;
 	} catch(e) {
-		this.log("error", "Error occured when tried to profile time: " + e.message);
+		//console.log("First n characters: ", e.message.substring(1, 8), e.message.substring(10, 17));
+		//console.log(e.message.substring(1, 8) == "TIMEOUT", e.message.substring(10, 17) == "EXPLORE")
+		console.log(profilingFunc);
+
+		console.log("error", "Error occured when tried to profile time: " + e.message);
 		console.error(e)
+		if(e.message.substring(1, 8) == "TIMEOUT" && e.message.substring(10, 17) == "EXPLORE") {
+			// do smth, because our ship died
+			console.log("Ship has died!");
+			console.log("Ship has died!");
+			console.log("Ship has died!");
+			console.log("Ship has died!");
+			return rcs.PT_SHIP_IS_DEAD;
+		}
 	}
 }
 
 sdk.Account.prototype.safeAssemble = async function() {
-	await sdk.profileTime(async function() {
+	return await sdk.profileTime(async function() {
 		try {
 			await this.assemble();
 			loggerConsole.trace("Assembled new ship!");
 		} catch(e) {
+			if(e.message === "DISCONNECTED") {
+				sendInfo("disconnected", true);
+			} 
 			loggerConsole.debug("Error occured when tried to assemble: " + e.message);
 		}
 	}.bind(this));
 }
 
 sdk.Ship.prototype.safeMove = async function(x, y) {
-	await sdk.profileTime(async function() {
-		//if(this.getLocation() != LOCATION_SYSTEM) return;
+	if(this.getLocation() != LOCATION_SYSTEM) return;
+
+	return await sdk.profileTime(async function() {
 		let selfPos = mafs.Pos(this.details.body.vector.x, this.details.body.vector.y);
 		let destinationPos = mafs.Pos(x, y);
 		let pathFinder = mafs.pathFind(selfPos, destinationPos);
 		let target = this.details.body.target;
-		if(pathFinder == ERR_TOO_CLOSE_TO_SUN) {
+		if(pathFinder == rcs.PF_TOO_CLOSE_TO_SUN) {
 			this.log("error", "Can't move, destination is too close to sun!");
+			return;
+		} else if(pathFinder == rcs.PF_TOO_FAR_FROM_SUN) {
+			this.log("error", "Can't move, destination is too far from sun!");
 			return;
 		}
 		else if(target && pathFinder.x == target.x && pathFinder.y == target.y) {
@@ -145,7 +169,9 @@ sdk.Ship.prototype.safeMove = async function(x, y) {
 }
 
 sdk.Ship.prototype.safeDrop = async function(item) {
-	await sdk.profileTime(async function() {
+	if(this.getLocation() != LOCATION_SYSTEM) return;
+
+	return await sdk.profileTime(async function() {
 		// Getting uuid
 		var uuid;
 		var name;
@@ -175,7 +201,7 @@ sdk.Ship.prototype.safeDrop = async function(item) {
 }
 
 sdk.Ship.prototype.safeEquip = async function(slot, item) {
-	await sdk.profileTime(async function() {
+	return await sdk.profileTime(async function() {
 		try {
 			await this.equip(slot, item);
 			this.details.body[slot].uuid = item;
@@ -186,56 +212,44 @@ sdk.Ship.prototype.safeEquip = async function(slot, item) {
 }
 
 sdk.Ship.prototype.safeUnequip = async function(item) {
-	await sdk.profileTime(async function() {
-		await this.unequip(item).catch((e) => {
+	return await sdk.profileTime(async function() {
+		try {
+			await this.unequip(item);
+		} catch(e) {
 			this.log("debug", "Error occured when tried to unequip: " + e.message);
-		});
+		}
 	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeEscape = async function() {
 	if(this.getLocation() == LOCATION_SYSTEM) return;
 
-	await sdk.profileTime(async function() {
-
-		var result;
-
+	return await sdk.profileTime(async function() {
 		try {
 			await this.escape();
 			this.setLocalMemory("parked", false);
 			this.setParked(false);
-			result = RESULT_OK;
-			// experimental
+
+			this.details.parent.type = LOCATION_SYSTEM;
 		} catch(e) {
 			this.log("debug", "Error occured tried to escape: " + e.message);
-			result = -1;
-		}
-
-		if(result == RESULT_OK) {
-			this.details.parent.type = LOCATION_SYSTEM;
 		}
 	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeLanding = async function(planet) {
-	//if(this.getLocation() != LOCATION_SYSTEM) return;
+	if(this.getLocation() != LOCATION_SYSTEM) return;
 
-	await sdk.profileTime(async function() {
-
-		// check distance
-		var result;
+	return await sdk.profileTime(async function() {
+		let obj = this.radarData.nodes.find(node => node.uuid == planet);
+		let dist = mafs.lineLength(mafs.Line(mafs.Pos(this.details), mafs.Pos(obj)));
+		if(dist > 1000) return;
+		
 		try {
 			await this.landing(planet);
 			this.setLocalMemory("parked", true);
 			this.setParked(true);
-			result = RESULT_OK;
-		} catch(e) {
-			this.log("debug", "Error occured tried to land: " + e.message);
-			result = -1;
-		}
 
-		// experimental
-		if(result == RESULT_OK) {
 			if(planet == BUSINESS_STATION_NAME) {
 				this.details.parent.type = LOCATION_BUSINESS_STATION;
 			} else if(planet == SCIENTIFIC_STATION_NAME) {
@@ -244,16 +258,17 @@ sdk.Ship.prototype.safeLanding = async function(planet) {
 				this.details.parent.type = LOCATION_PLANET;
 			}
 			this.details.parent.uuid = planet;
+		} catch(e) {
+			this.log("debug", "Error occured tried to land: " + e.message);
 		}
 		// experimental
 	}.bind(this));
 } // enhance
 
 sdk.Ship.prototype.safeWarp = async function(uuid) {
-	//if(this.getLocation() != LOCATION_SYSTEM) return;
+	if(this.getLocation() != LOCATION_SYSTEM) return;
 
-	await sdk.profileTime(async function() {
-		
+	return await sdk.profileTime(async function() {
 		this.log("trace", "Safe warping: " + uuid);
 		await this.warp(uuid).catch((e) => { // if not in coords
 			this.log("debug", "Error occured tried to warp: " + e.message);
@@ -262,36 +277,34 @@ sdk.Ship.prototype.safeWarp = async function(uuid) {
 } // enhance
 
 sdk.Ship.prototype.safeRadar = async function() {
-	var result = await sdk.profileTime(async function() {
+	return await sdk.profileTime(async function() {
 		let radarResult = await this.radar().catch((e) => {
 			this.log("debug", "Error occured tried to radar: " + e.message);
+			console.error(e);
+			console.log("WOW\nWOW\nWOW\nWOW\nWOW\nWOW\nWOW\nWOW\nWOW\n");
 		});
 		this.setRadarMemory(radarResult);
 		return radarResult;
 	}.bind(this));
-	return result;
 } // enhance
 
 sdk.Ship.prototype.safeScan = async function(uuid) {
-	var result = await sdk.profileTime(async function() {
+	return await sdk.profileTime(async function() {
 		if(this.getLocation() == LOCATION_SYSTEM) {
 			let obj = this.radarData.nodes.find(node => node.uuid == uuid);
 			let dist = mafs.lineLength(mafs.Line(mafs.Pos(this.details), mafs.Pos(obj)));
-			//this.log(dist)
 			if(dist > 1000) return;
 		}
 		return await this.scan(uuid).catch((e) => {
 			this.log("debug", "Error occured tried to scan: " + e.message);
 		});
 	}.bind(this));
-	return result;
 } // enhance
 
 sdk.Ship.prototype.safeAccept = async function(uuid, count) {
 	if(this.getLocation() == LOCATION_SYSTEM) return;
 
-	await sdk.profileTime(async function() {
-
+	return await sdk.profileTime(async function() {
 		await this.accept(uuid, count).catch((e) => {
 			this.log("debug", "Error occured tried to accept: " + e.message);
 		});
@@ -299,9 +312,9 @@ sdk.Ship.prototype.safeAccept = async function(uuid, count) {
 } // enhance
 
 sdk.Ship.prototype.safeApply = async function(commandType, payload) {
-	//if(this.getLocation() == LOCATION_SYSTEM) return;
-	await sdk.profileTime(async function() {
-
+	if(this.getLocation() == LOCATION_SYSTEM) return;
+	
+	return await sdk.profileTime(async function() {
 		await this.apply(commandType, payload).catch((e) => {
 			this.log("debug", "Error occured tried to apply: " + e.message);
 		});
@@ -311,9 +324,12 @@ sdk.Ship.prototype.safeApply = async function(commandType, payload) {
 sdk.Ship.prototype.safeAttack = async function(target, weapons) {
 	if(this.getLocation() != LOCATION_SYSTEM) return;
 
-	await sdk.profileTime(async function() {
+	return await sdk.profileTime(async function() {
 
-		// check distance
+		let obj = this.radarData.nodes.find(node => node.uuid == target);
+		let dist = mafs.lineLength(mafs.Line(mafs.Pos(this.details), mafs.Pos(obj)));
+		if(dist > 3000) return;
+
 		this.log("warn", "Attacking target " + target + " with " + weapons.length + " weapon" + (weapons.length > 1 ? "s" : "") + ".");
 
 		let result = await this.attack(target, weapons).catch((e) => {
@@ -327,10 +343,13 @@ sdk.Ship.prototype.safeAttack = async function(target, weapons) {
 
 
 sdk.Ship.prototype.safeGrab = async function(uuid) {
-	//if(this.getLocation() != LOCATION_SYSTEM) return;
+	if(this.getLocation() != LOCATION_SYSTEM) return;
 
-	await sdk.profileTime(async function() {
-		// check distance
+	return await sdk.profileTime(async function() {
+		let obj = this.radarData.nodes.find(node => node.uuid == uuid);
+		let dist = mafs.lineLength(mafs.Line(mafs.Pos(this.details), mafs.Pos(obj)));
+		if(dist > 1500) return;
+
 		await this.grab(uuid).catch((e) => {
 			this.log("debug", "Error occured tried to grab: " + e.message);
 		});
@@ -341,7 +360,7 @@ sdk.Ship.prototype.safeFuel = async function() {
 	if(this.getLocation() == LOCATION_SYSTEM) return;
 	if(this.getFuel() == this.getMaxFuel()) return;
 
-	await sdk.profileTime(async function() {
+	return await sdk.profileTime(async function() {
 		await this.fuel().catch((e) => {
 			this.log("debug", "Error occured tried to fuel: " + e.message);
 		});
@@ -352,7 +371,7 @@ sdk.Ship.prototype.safeRepair = async function() {
 	if(this.getLocation() == LOCATION_SYSTEM) return;
 	if(this.getMaxHold() == this.getCurrentHP()) return;
 
-	await sdk.profileTime(async function() {
+	return await sdk.profileTime(async function() {
 		await this.repair().catch((e) => {
 			this.log("debug", "Error occured tried to repair: " + e.message);
 		});
@@ -364,7 +383,7 @@ sdk.Ship.prototype.safeTransfer = async function(uuid, type) {
 
 	// "out" MEANS TO THE PLANET
 	// "in" MEANS TO THE SHIP
-	await sdk.profileTime(async function() {
+	return await sdk.profileTime(async function() {
 		await this.transfer(uuid, type).catch((e) => {
 			this.log("debug", "Error occured tried to transfer: " + e.message);
 		});
@@ -691,7 +710,7 @@ sdk.Ship.prototype.getPlanetToUpdateDealsFor = function() {
 	}
 	return foundPlanet;
 	//this.log("debug", "Flying to no deal planet - " + sortedNoDeals[0].uuid + ".");
-	//await ship.parkAtSpecifiedPlanet(sortedNoDeals[0].uuid);
+	//await ship.parkAtSpecifiedLandable(sortedNoDeals[0].uuid);
 }
 
 sdk.Ship.prototype.setFlyingToPlanetToUpdateDealsFor = function(planet) {
@@ -902,8 +921,10 @@ sdk.isPlanetDealsExpired = function(planet, min) {
 	return time + expireTime <= new Date().getTime();
 }
 
-sdk.Ship.prototype.getAttackingTarget = function() {
+sdk.Ship.prototype.getAttackingTarget = function(lockedToSystem) {
 	if(!this.getCurrentSystem()) return undefined;
+
+	lockedToSystem ??= true;
 
 	let memorizedTarget = multiLoop.attackerTargets[this.getCurrentSystem()];
 	if(memorizedTarget) {
@@ -924,7 +945,7 @@ sdk.Ship.prototype.getAttackingTarget = function() {
 			this.log("info", "Found target in current system " + this.getCurrentSystem() + " in the system with radarData.");
 			this.setAttackingTarget(target.uuid);
 			return {system: this.getCurrentSystem(), target: target.uuid};
-		} else {
+		} else if(!lockedToSystem) {
 			let systems = Object.keys(multiLoop.attackerTargets);
 			if(systems.length > 0) {
 				let system = systems[0];
@@ -1070,60 +1091,60 @@ sdk.Ship.prototype.findPlanets = function() {
 sdk.Ship.prototype.parkAtNearbyObject = async function(landable) {
 	if(this.getLocation() != LOCATION_SYSTEM) {
 		this.setLocalMemory("parked", true);
+		await this.safeFuel();
+		return rcs.PASP_AT_THE_PLANET;
 	} else {
-		await this.parkAtSpecifiedPlanet(landable);
+		return await this.parkAtSpecifiedLandable(landable);
 	}
-	await this.safeFuel();
 }
 
 sdk.Ship.prototype.parkAtNearbyLandable = async function() {
-	await this.parkAtNearbyObject(this.findLandables()[0].uuid);
+	//return await this.parkAtNearbyObject(this.findLandables()[0].uuid);
+	return await this.parkAtSpecifiedLandable(this.findLandables()[0].uuid);
 }
 
 sdk.Ship.prototype.parkAtNearbyInhabitedLandable = async function() {
-	await this.parkAtNearbyObject(this.findInhabitedLandables()[0].uuid);
+	//return await this.parkAtNearbyObject(this.findInhabitedLandables()[0].uuid);
+	return await this.parkAtSpecifiedLandable(this.findInhabitedLandables()[0].uuid);
 }
 
 sdk.Ship.prototype.parkAtNearbyPlanet = async function() {
-	await this.parkAtNearbyObject(this.findPlanets()[0].uuid);
+	//return await this.parkAtNearbyObject(this.findPlanets()[0].uuid);
+	return await this.parkAtSpecifiedLandable(this.findPlanets()[0].uuid);
 }
 
-sdk.Ship.prototype.parkAtSpecifiedPlanet = async function(planetUuid) {
-	if(!planetUuid) {
-		return 0;
-	}
-	if(this.getLocation() != LOCATION_SYSTEM && this.getLocationName() == planetUuid) {
+sdk.Ship.prototype.parkAtSpecifiedLandable = async function(landableUuid) {
+	if(!landableUuid) return 0;
+
+	if(this.getLocation() != LOCATION_SYSTEM && this.getLocationName() == landableUuid) {
 		this.setLocalMemory("parked", true);
 		this.setParked(true);
+		await this.safeFuel();
+		return rcs.PASL_AT_THE_PLANET;
 	}
 
-	else if(this.getLocation() != LOCATION_SYSTEM && this.getLocationName() != planetUuid) {
+	else if(this.getLocation() != LOCATION_SYSTEM && this.getLocationName() != landableUuid) {
 		await this.safeEscape();
+		return rcs.PASL_ESCAPING;
 	}
 	else {
-		var planet = this.radarData.nodes.find((node) => node.uuid == planetUuid);
-		if(planet) {
-			var vect = mafs.Line(mafs.Pos(this.details), mafs.Pos(planet));
-			var extended = mafs.extendLine(vect, 40);
-			await this.safeLanding(planet.uuid);
+		var landable = this.radarData.nodes.find((node) => node.uuid == landableUuid);
+		if(landable) {
+			var vect = mafs.Line(mafs.Pos(this.details), mafs.Pos(landable));
+			let extendDelta = landable.type == "Planet" ? 40 : 0;
+			var extended = mafs.extendLine(vect, extendDelta);
+			await this.safeLanding(landable.uuid);
 			await this.safeMove(extended.p2.x, extended.p2.y);
+			return rcs.PASL_FLYING_TO_PLANET;
 		} else {
-			this.log("warn", "CANT FIND PLANET")
+			this.log("warn", "CANT FIND PLANET");
+			return rcs.PASL_CANT_FIND_PLANET;
 		}
-	}
-	if(this.getLocation() == LOCATION_PLANET) {
-		await this.safeFuel();
 	}
 }
 
 sdk.Ship.prototype.operateMoney = async function(keep) {
-	var keepMoney;
-	if(keep) {
-		keepMoney = keep;
-	} else {
-		keepMoney = KEEP_MINIMUM;
-	}
-
+	var keepMoney = keep ?? KEEP_MINIMUM;
 	// todo - add negative codes
 
 	var tradeStation = this.radarData.nodes.find((node) => node.type == "BusinessStation");
@@ -1146,7 +1167,9 @@ sdk.Ship.prototype.operateMoney = async function(keep) {
 			await this.safeApply("DEPOSIT_CLOSE");
 			result = rcs.OM_CLOSED_DEPOSIT;
 		}
-		await this.safeApply("DEPOSIT", this.getBalance() - keepMoney);
+		if(this.getBalance() != keep) {
+			await this.safeApply("DEPOSIT", this.getBalance() - keepMoney);
+		}
 	}
 	return result;
 }
@@ -1193,7 +1216,7 @@ sdk.Ship.prototype.switchToBetterPart = async function(bodypart, dropPrevious, d
 						} else {
 							this.log("Getting " + HULL_CHANGE_COST + " for hull change.");
 							await this.operateMoney(HULL_CHANGE_COST);
-							return rcs.STBP_OPERATING_MONEY
+							return rcs.STBP_OPERATING_MONEY;
 						}
 					} else {
 						this.log("Flying to Scheat to change hull!");
@@ -1207,19 +1230,16 @@ sdk.Ship.prototype.switchToBetterPart = async function(bodypart, dropPrevious, d
 				}
 			}
 
-		} else if(previousPart) {
-			this.log("??????")
+		} else if(previousPart && dropPrevious) {
 			if(this.getLocation() != LOCATION_SYSTEM) {
 				await this.safeEscape();
 			}
-			if(dropPrevious) {
-				this.log(`Dropping previous part ${previousPart.uuid}!`);
-				await this.safeDrop(previousPart.uuid);
-				if(destroyPrevious) {
-					this.log(`Destroying previous part ${previousPart.uuid}!`);
-					await this.safeAttack(previousPart.uuid, [1,2,3,4,5]);
-					return rcs.STBP_DESTROYING_BODYPART;
-				}
+			this.log(`Dropping previous part ${previousPart.uuid}!`);
+			await this.safeDrop(previousPart.uuid);
+			if(destroyPrevious) {
+				this.log(`Destroying previous part ${previousPart.uuid}!`);
+				await this.safeAttack(previousPart.uuid, [1,2,3,4,5]);
+				return rcs.STBP_DESTROYING_BODYPART;
 			}
 		} else if(destroyPrevious && partAround && mafs.lineLength(mafs.Line(mafs.Pos(this.details), mafs.Pos(partAround))) < 1000) {
 			await this.safeMove(partAround.body.vector.x, partAround.body.vector.y);
@@ -1256,7 +1276,7 @@ sdk.Ship.prototype.buyBodyPart = async function(bodypart, minGen, maxCost) {
 				}
 				else {
 					this.log("info", `Flying to ${bpTrade.planet} to buy ${bodypart}.`);
-					await this.parkAtSpecifiedPlanet(bpTrade.planet);
+					await this.parkAtSpecifiedLandable(bpTrade.planet);
 
 					var planetInfo = await this.safeScan(bpTrade.planet);
 					if(planetInfo) {
@@ -1272,8 +1292,8 @@ sdk.Ship.prototype.buyBodyPart = async function(bodypart, minGen, maxCost) {
 					return rcs.BBP_BUYING_BODY_PART;
 				}
 			} else if(this.getCurrentSystem() == SYSTEM_SCHEAT) {
-				this.log("info", `Operating ${requiredBalance * MONEY_OPERATION_MULTIPLIER} for hull change.`);
-				await this.operateMoney(requiredBalance * MONEY_OPERATION_MULTIPLIER);
+				this.log("info", `Operating ${requiredBalance < 50000 ? requiredBalance * MONEY_OPERATION_MULTIPLIER : requiredBalance} for a ${bodypart} change.`);
+				await this.operateMoney(requiredBalance < 50000 ? requiredBalance * MONEY_OPERATION_MULTIPLIER : requiredBalance);
 				return rcs.BBP_OPERATING_MONEY;
 			} else {
 				await this.warpToSystem(HOME_SYSTEM);
@@ -1288,7 +1308,7 @@ sdk.Ship.prototype.buyBodyPart = async function(bodypart, minGen, maxCost) {
 	}
 }
 
-sdk.Ship.prototype.upgradeBodyPartNew = async function(bodypart, minGen, extra) { // todo - support weapons
+sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, extra) { // todo - support weapons
 	bodypart = bodypart.toLowerCase();
 	//this.log(`Upgrading part ${bodypart}!`);
 	extra ??= {};
@@ -1309,15 +1329,16 @@ sdk.Ship.prototype.upgradeBodyPartNew = async function(bodypart, minGen, extra) 
 	if(await this.buyBodyPart(bodypart, minGen, extra.maxCost) < 0) return rcs.UBP_SWITCHING_BODYPART;
 
 	return rcs.UBP_FINISHED;
-
 }
 
-sdk.Ship.prototype.upgradeBodyPartListNew = async function(list, maxCost) {
+sdk.Ship.prototype.upgradeBodyPartList = async function(list, maxCost) {
 	maxCost ??= MINIMAL_BODY_COST;
 	if((multiLoop.profileInfo).score + this.getBalance() < maxCost * 3) return rcs.UBPL_NOT_ENOUGH_SCORE;
 	for(let partStruct of list) {
 		partStruct.part = partStruct.part.toLowerCase();
-		let result = await this.upgradeBodyPartNew(partStruct.part, partStruct.gen, partStruct.extra);
+		partStruct.extra ??= {};
+		partStruct.extra.maxCost = maxCost;
+		let result = await this.upgradeBodyPart(partStruct.part, partStruct.gen, partStruct.extra);
 		//this.log(`Important: ${partStruct.part}, ${result}`);
 		if(result < 0) return rcs.UBPL_LIST_CHANGING_PART;
 		else if(result != rcs.UBP_FINISHED) return rcs.UBPL_NOT_DONE_CHANGING_LIST;
@@ -1379,7 +1400,7 @@ sdk.Ship.prototype.warpToSystem = async function(systemName) {
 		if(this.getFuel() < mafs.fuelNeededToWarp(this.getCurrentSystem(), dest)) {
 			let landables = this.findInhabitedLandables();
 			if(landables.length) {
-				await this.parkAtSpecifiedPlanet(landables[0].uuid);
+				await this.parkAtSpecifiedLandable(landables[0].uuid);
 				this.log("Landing at inhabited landable to refuel!");
 				return rcs.WTS_REFUELING;
 			}
@@ -1427,7 +1448,7 @@ sdk.Ship.prototype.clearPlanetBalance = async function(planetUuid) {
 		}
 	} else {
 		this.log("info", "Flying to " + planetUuid + " to clear planet balance.");
-		await this.parkAtSpecifiedPlanet(planetUuid);
+		await this.parkAtSpecifiedLandable(planetUuid);
 		return rcs.CPB_FLYING_TO_PLANET;
 	}
 }
@@ -1463,7 +1484,7 @@ sdk.Ship.prototype.getMineralsFromPlanet = async function(planetUuid, count) {
 		}
 	} else {
 		this.log("info", "Flying to " + planetUuid + " to get " + count + " minerals.");
-		await this.parkAtSpecifiedPlanet(planetUuid);
+		await this.parkAtSpecifiedLandable(planetUuid);
 	}
 }
 
@@ -1503,7 +1524,7 @@ sdk.Ship.prototype.transferAllMineralsToPlanet = async function(planetUuid) {
 	}
 	else {
 		this.log("info", "Flying to " + planetUuid + " to sell minerals.");
-		await this.parkAtSpecifiedPlanet(planetUuid);
+		await this.parkAtSpecifiedLandable(planetUuid);
 		return rcs.TAMTP_FLYING_TO_PLANET;
 	}
 }
@@ -1511,6 +1532,7 @@ sdk.Ship.prototype.transferAllMineralsToPlanet = async function(planetUuid) {
 sdk.Ship.prototype.createModuleOnPlanet = async function(planetUuid, type, gen) {
 	//console.log(this.getLocationName())
 	if(this.getLocationName() == planetUuid) {
+		type = type.toUpperCase();
 		let requests = sdk.getPlanetRequests(planetUuid);
 		let scannedPlanet = await this.safeScan(planetUuid);
 		if(!scannedPlanet) return;
@@ -1521,7 +1543,7 @@ sdk.Ship.prototype.createModuleOnPlanet = async function(planetUuid, type, gen) 
 		}
 	} else {
 		this.log("info", "Flying to " + planetUuid + " to create module " + type + " with gen " + gen + ".");
-		await this.parkAtSpecifiedPlanet(planetUuid);
+		await this.parkAtSpecifiedLandable(planetUuid);
 	}
 }
 
@@ -1565,6 +1587,8 @@ sdk.Ship.prototype.grabMineralsInSystem = async function() {
 }
 
 sdk.Ship.prototype.captureAsteroid = async function() {
+	if(await this.acknowledgeSystem() < 0) return rcs.CA_ACKNOWLEDGING_SYSTEM;
+
 	if(this.getHPPercentage() < 0.8) {
 		this.log("info", "Repairing with drone to be able to go for asteroids!");
 		await this.safeEscape();
@@ -1621,7 +1645,7 @@ sdk.Ship.prototype.captureAsteroid = async function() {
 				if(isNaN(interception) && typeof interception != "object") {
 					//this.log("warn", "Collision is impossible!");
 					//return rcs.CA_INTERCEPTION_IMPOSSIBLE;
-				} else {
+				} else if(mafs.lineLength(mafs.Line(mafs.Pos(0, 0), interception)) < 10000) { // ships die after 30000 from sun
 					this.log("warn", "Found an asteroid with possible interception!");
 					interceptableAsteroid = {uuid: asteroid.uuid, interception: interception};
 					break;
@@ -1650,7 +1674,7 @@ sdk.Ship.prototype.sellMineralsToFederation = async function() {
 		this.log("I have minerals on the board, so I'm flying to planet and try to sell them.");
 		this.log("info", bestMineralTrade);
 
-		await this.parkAtSpecifiedPlanet(bestMineralTrade.planet);
+		await this.parkAtSpecifiedLandable(bestMineralTrade.planet);
 		let planetInfo = await this.safeScan(bestMineralTrade.planet);
 		if(planetInfo) {
 			this.setPlanetDeals(planetInfo);
@@ -1666,11 +1690,21 @@ sdk.Ship.prototype.sellMineralsToFederation = async function() {
 }
 
 sdk.Ship.prototype.refuelAtNearbyLandable = async function() {
+	if(this.acknowledgeSystem() < 0) return rcs.RANL_REFUELING;
 	if(this.getMaxFuel() == this.getFuel()) return rcs.RANL_TANK_IS_FULL;
 	if(this.findInhabitedLandables().length == 0) return rcs.RANL_NO_INHABITED_LANDABLES;
-	
+
+	this.log("Refueling...");
 	await this.parkAtNearbyInhabitedLandable();
-	return;
+	return rcs.RANL_REFUELING;
+}
+
+sdk.Ship.prototype.acknowledgeSystem = async function() {
+	if(this.getCurrentSystem()) return rcs.AC_KNOWN;
+	else {
+		await this.safeEscape();
+		return rcs.AS_ACKNOWLEDGING;
+	}
 }
 
 // End of shortcuts

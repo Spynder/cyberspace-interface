@@ -4,20 +4,16 @@ const delay = require("delay");
 module.exports = {
 	run: async function(planet, account, sdk) {
 		await delay(ACTION_DELAY);
-		let planetDetails = await planet.explore().catch(e => {
+		let planetDetails = await planet.explore().catch(async function() {
 			planet.log("error", "Error with planet at explore: " + e.message);
 			console.error(e);
 			if(e.message == "ACCESS_DENIED") {
 				planet.log("error", "Emergency shutdown of planet!");
-				delete multiLoop.connectedObjects[planet.uuid];
-				planet.dispose().catch(e => {
-					planet.log("error", "Error with planet at dispose?: " + e.message);
-					console.error(e);
-				});
+				await disconnectObject(planet.uuid);
 			}
 		});
 
-		let activePlanet = "Oagawa";
+		let activePlanet = "Tilia";
 
 		if(activePlanet == "" || planet.uuid == activePlanet) {
 			let clearTrades = false;
@@ -33,14 +29,16 @@ module.exports = {
 				let cargo = planetDetails.nodes.filter(node => node.type == "Cargo" && node.body.type != "MINERALS");
 				//console.log(cargo);
 
-				if(cargo.length == 0) {
-					//await planet.make("HULL", 3);
+				if(cargo.length == 1) {
+					//await planet.make("PROTECTOR", 5);
 				}
 			}
 
-			if(planetDetails.body.deals && (planetDetails.body.deals.length != 1 || true)) {
+			if(planetDetails.body.deals && (planetDetails.body.deals.length < 1)) {
 				//await sdk.createPlanetRequest(activePlanet, {request: "close", uuid: planetDetails.body.deals[0].uuid})
 				//await sdk.createPlanetRequest("Tilia", {request: "sell", item: "minerals"});
+				//await sdk.createPlanetRequest("Tilia", {request: "buy", type: "MINERALS", count: 500});
+				//await sdk.createPlanetRequest("Tilia", {request: "sell", item: "575139781b"});
 			}
 
 
@@ -72,6 +70,11 @@ module.exports = {
 								planet.finishTopRequest();
 								break;
 							}
+							if(!planetDetails.nodes.find(node => node.uuid == item) && item.toLowerCase() !== "minerals") {
+								planet.log("error", "Cargo doesn't exist! Destroying request.");
+								planet.finishTopRequest();
+								break;
+							}
 							if(item.toLowerCase() == "minerals") {
 								if(!minerals) {
 									planet.log("error", "No minerals on the planet, can't execute selling minerals request!");
@@ -81,7 +84,7 @@ module.exports = {
 								}
 							}
 
-							await planet.sell(item, cost);
+							await planet.sell(item, cost)
 							planet.finishTopRequest();
 							break;
 

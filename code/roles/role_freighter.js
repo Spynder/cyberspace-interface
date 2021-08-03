@@ -28,8 +28,10 @@ module.exports = {
 			return;
 		}
 
+		if(await ship.acknowledgeSystem() < 0) return;
+
 		let requiredParts = [{part: "HULL", gen: 5}, {part: "ENGINE", gen: 4}, {part: "TANK", gen: 4}];
-		let upgradeResult = await ship.upgradeBodyPartListNew(requiredParts);
+		let upgradeResult = await ship.upgradeBodyPartList(requiredParts);
 		if(upgradeResult < 0) return;
 
 		let home = SYSTEM_SCHEAT;
@@ -97,7 +99,7 @@ module.exports = {
 			ship.log("info", "I have minerals on the board, so I'm flying to planet and try to sell them.");
 
 			let deal = bestMineralTradeInSystem;
-			await ship.parkAtSpecifiedPlanet(deal.planet);
+			await ship.parkAtSpecifiedLandable(deal.planet);
 
 			ship.log(deal)
 
@@ -119,7 +121,7 @@ module.exports = {
 		}
 		
 		if(ship.getCurrentSystem() == dest && !returningBack && ship.getLocation() == LOCATION_SYSTEM) {
-			await ship.parkAtSpecifiedPlanet(planetName);
+			await ship.parkAtSpecifiedLandable(planetName);
 			return;
 		}
 

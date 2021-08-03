@@ -20,9 +20,14 @@ module.exports = {
 
 		if(await ship.refuelAtNearbyLandable() < 0) return;
 
+
 		let maxHold = (ship.getHold() / ship.getMaxHold()) > 0.5; // More than 50% of storage filled up
 
-		if(ship.getBalance() != 10000 && ship.getCurrentSystem() == SYSTEM_SCHEAT) {
+		if( (ship.getBalance() != 10000 && ship.getCurrentSystem() == SYSTEM_SCHEAT) ||
+			(ship.getBalance() <  5000  && ship.getCurrentSystem() != SYSTEM_SCHEAT)) {
+			if(ship.getCurrentSystem() != SYSTEM_SCHEAT) {
+				await ship.warpToSystem(SYSTEM_SCHEAT);
+			}
 			await ship.operateMoney(10000);
 			return;
 		}
@@ -44,8 +49,6 @@ module.exports = {
 
 		ship.log(`Parking at nearby landable...`);
 		await ship.parkAtNearbyLandable();
-
-		ship.log(await ship.safeScan("Tilia"));
 
 	}
 }
