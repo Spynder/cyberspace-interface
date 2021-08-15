@@ -48,7 +48,7 @@ $(document).ready(function() {
 			if(!HIGH_SEC_SYSTEMS.includes(dataPoint.uuid)) {
 				let hasOwnShips = false;
 				for(let obj of objects) {
-					if(obj.details && obj.details.owner == OWNER_ID && obj.system == dataPoint.uuid && obj.type === "Ship") {
+					if(obj.details && obj.details.owner == OWNER_ID && obj.system == dataPoint.uuid && obj.type === "Ship" && obj.active) {
 						console.log(`System ${dataPoint.uuid}, ship ${obj.uuid}`);
 						hasOwnShips = true;
 						break;

@@ -15,7 +15,7 @@ module.exports = {
 			return;
 		}
 
-		let systemName = SYSTEM_SCHEAT;
+		let systemName = SYSTEM_SADALBARI;
 		let from = "Poaruta";
 		let to = "Droebos";
 
@@ -42,73 +42,30 @@ module.exports = {
 			return;
 		}*/
 		/**/
-		if(!ship.hasMinerals()) {
-			await ship.getMineralsFromPlanet("Hephus", 1);
-			ship.log("Getting!");
-		} else {
-			ship.log("Flying!");
-			await ship.safeEscape();
-			ship.log("Dropping!");
-			await ship.safeDrop(ship.hasMinerals().uuid);
-		}
-		return;
+		//await ship.safeEscape();
 		let requiredMinerals = ship.getMaxHold() * 0.6 - ship.getHold();
 
 		if(ship.uuid == "fbb4f29d5b") {
-			//ship.log("Asteroid program");
-			//if(await ship.captureAsteroid() < 0) return;
-			//await ship.parkAtNearbyLandable();
-			//await ship.warpToSystem(SYSTEM_IOTA_PEGASI);
-			//await ship.parkAtSpecifiedLandable("Tilia");
-			await ship.safeEscape();
-			await ship.safeMove(0, -5000);
+
 		}
 
-		else if(ship.uuid == "9edbbdfcf1" || ship.uuid == "dfd7b6f31b") {
-			//await ship.parkAtSpecifiedLandable("Tilia");
-			//await ship.createModuleOnPlanet("Tilia", "ENGINE", 8);
-			
-			//await ship.safeTransfer("21f0d28c58", "in");
-			//await ship.safeEquip("engine", "21f0d28c58");
+		else if(ship.uuid == "68e1e5e6d4") {
 			//await ship.safeEscape();
-			//await ship.safeDrop("2306a2e7ce");
-			//await ship.safeAttack("2306a2e7ce", [1,2,3]);
-			//await ship.warpToSystem(SYSTEM_IOTA_PEGASI);
-			if(!ship.hasMinerals()) {
-				await ship.getMineralsFromPlanet("Hephus", 1);
-				ship.log("Getting!");
-			} else {
-				ship.log("Flying!");
-				await ship.safeEscape();
-				ship.log("Dropping!");
-				await ship.safeDrop(ship.hasMinerals().uuid);
-			}
+			await ship.parkAtSpecifiedLandable("Hephus");
+			await ship.upgradeBodyPart("weapon", 2, {slot: 3});
+			//await ship.createModuleOnPlanet("Hephus", "WEAPON", 7);
+			//await ship.safeTransfer("a044f342f4", "in");
+			//await ship.safeEquip("weapon2", "a044f342f4");
+			return;
 		}
 
-		else if(ship.uuid == "026d0cd8ea") {
-			//await ship.parkAtNearbyLandable();
-			//await ship.transferMineralsBetweenPlanets("Tilia", "Hephus", requiredMinerals);
-			if(ship.getBalance() < 2000) {
-				await ship.clearPlanetBalance("Hephus");
-			}
-			else if(!ship.hasMinerals()) {
-				await ship.getMineralsFromPlanet("Hephus", 1);
-				ship.log("Getting!");
-			} else {
-				ship.log("Flying!");
-				await ship.safeEscape();
-				ship.log("Dropping!");
-				await ship.safeDrop(ship.hasMinerals().uuid);
-			}
-		}
-
-		else if(ship.uuid == "d220a6f6bb") {
+		else if(ship.uuid == "47335975eb") {
 			let virusesRequired = 1;
 			if(ship.getCurrentSystem() == SYSTEM_SCHEAT || ship.hasCargo("virus").length >= virusesRequired) {
 				if(ship.hasCargo("virus").length >= virusesRequired) {
 					ship.log("Done!!!!!");
-					await ship.warpToSystem(SYSTEM_MARKAB);
-					let planetName = "Brutoclite";
+					await ship.warpToSystem(SYSTEM_IOTA_PEGASI);
+					let planetName = "Hephus";
 					await ship.parkAtSpecifiedLandable(planetName);
 					if(ship.getLocationName() == planetName) {
 						let scanned = await ship.safeScan(planetName);
@@ -117,9 +74,9 @@ module.exports = {
 						if(scanned) {
 							ship.setPlanetDeals(scanned);
 						}
-						if(ship.findInhabitedLandables().length === 2) {
+						if(ship.findInhabitedLandables().length === 1) {
 							await ship.safeApply("EXTERMINATION");
-						} else if(ship.findInhabitedLandables().length === 1) {
+						} else if(ship.findInhabitedLandables().length === 3) {
 							//await ship.safeApply("COLONIZATION");
 						}
 					}
@@ -133,11 +90,8 @@ module.exports = {
 						//await ship.safeApply("GET_EMBRYO");
 						await ship.safeApply("GET_VIRUS");
 						await ship.safeApply("GET_VIRUS");
-						await ship.safeApply("GET_VIRUS");
-						await ship.safeApply("GET_VIRUS");
-						await ship.safeApply("GET_VIRUS");
-						await ship.safeApply("GET_VIRUS");
-						await ship.safeApply("GET_VIRUS");
+						await ship.safeApply("GET_EMBRYO");
+						await ship.safeApply("GET_EMBRYO");
 					}
 				}
 			} else {
@@ -152,10 +106,10 @@ module.exports = {
 			}
 			if(ship.getCurrentSystem() == systemName) {
 				await ship.safeEscape();
-				await ship.safeMove(3000, 3000);
-				let itemUuid = "3ad41c762c";
+				await ship.safeMove(0, -2000);
+				let itemUuid = "18ae7f8dee";
 
-				/*if(ship.uuid == "d220a6f6bb") {
+				/*if(ship.uuid == "47335975eb") {
 					await ship.safeDrop(itemUuid);
 				} else {
 					let found = ship.radarData.nodes.find(node => node.uuid == itemUuid);
@@ -166,7 +120,7 @@ module.exports = {
 				}*/
 
 			} else {
-				//await ship.warpToSystem(systemName);
+				await ship.warpToSystem(systemName);
 			}
 		}
 	}

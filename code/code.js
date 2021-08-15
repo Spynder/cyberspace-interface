@@ -94,41 +94,35 @@ var loop = async function(account, ships, planets) {
 	
 	await dbManager.cleanDeadEntries(ships);
 	
-	let shipNumber = multiLoop.activeObjects.reduce(function(acc, val) {
-		let active = val.active != undefined ? val.active : (isGUILaunched() ? false : true);
-		let parked = val.parked != undefined ? val.parked : (isGUILaunched() ? true : false);
-		return (active || !parked ? 1 : 0) + acc;
-	}, 0);
-	if(shipNumber > 0 || true) { // TODO: fix || true
-		for(let ship of ships) {
-			let objObj = multiLoop.activeObjects.find(entry => entry.ID == ship.uuid);
-			// If we have entry, leave as is, otherwise get default value based on GUI presense.
-			let active = (objObj && objObj.hasOwnProperty("active")) ? objObj.active : (isGUILaunched() ? false : true);
-			let parked = (objObj && objObj.hasOwnProperty("parked")) ? objObj.parked : (isGUILaunched() ? true : false);
-			let options = {active: active}; 
-			if(active || !parked) {
-				await shipLoop(account, ship, options);
-			} else {
-				let connectedObject = multiLoop.connectedObjects[ship.uuid];
-				if(connectedObject) {
-					connectedObject.dispose();
-					delete multiLoop.connectedObjects[ship.uuid];
-				}
-				let shipMemory = await sdk.dbManager.getMemory(ship);
-				var struct = {	type: "Ship",
-								ID: ship.uuid,
-								role: shipMemory.role,
-								memory: shipMemory};
-
-				sendInfo("shipInfo", struct);
+	let hasActiveShips = false;
+	for(let ship of ships) {
+		let objObj = multiLoop.activeObjects.find(entry => entry.ID == ship.uuid);
+		// If we have entry, leave as is, otherwise get default value based on GUI presense.
+		//let active = objObj.active ?? (isGUILaunched() ? false : true);
+		//let parked = objObj.parked ?? (isGUILaunched() ? true : false);
+		let active = (objObj && objObj.hasOwnProperty("active")) ? objObj.active : (isGUILaunched() ? false : true);
+		let parked = (objObj && objObj.hasOwnProperty("parked")) ? objObj.parked : (isGUILaunched() ? true : false);
+		let options = {active: active}; 
+		if(active || !parked) {
+			hasActiveShips = true;
+			await shipLoop(account, ship, options);
+		} else {
+			let connectedObject = multiLoop.connectedObjects[ship.uuid];
+			if(connectedObject) {
+				connectedObject.dispose();
+				delete multiLoop.connectedObjects[ship.uuid];
 			}
+			let shipMemory = await sdk.dbManager.getMemory(ship);
+			var struct = {	type: "Ship",
+							ID: ship.uuid,
+							role: shipMemory.role,
+							memory: shipMemory};
+
+			sendInfo("shipInfo", struct);
 		}
-		if(shipNumber == 0) {
-			loggerConsole.info("No ships activated!");
-			await delay(5000);
-		}
-	} else {
-		loggerConsole.info("No ships activated!");
+	}
+	if(!hasActiveShips) {
+		loggerConsole.trace("No ships activated!");
 		await delay(5000);
 	}
 	multiLoop.cycleDelta = (new Date().getTime()) - start;
@@ -223,6 +217,7 @@ let standaloneLoop = async function(instance, account) {
 }
 
 var start = async function() {
+	logger.setupLogger();
 	loggerConsole.trace("Starting system, logging in the account.");
 	var account = await sdk.Account.connect();
 	await account.signin(config.accountUsername, config.accountPassword);
@@ -260,6 +255,4 @@ var start = async function() {
 	account.dispose();
 }
 
-
-logger.setupLogger();
 start();

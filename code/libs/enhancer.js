@@ -132,7 +132,7 @@ sdk.Account.prototype.safeAssemble = async function() {
 			loggerConsole.trace("Assembled new ship!");
 		} catch(e) {
 			if(e.message === "DISCONNECTED") {
-				sendInfo("disconnected", true);
+				sendInfo("receivedDisconnected", true);
 			} 
 			loggerConsole.debug("Error occured when tried to assemble: " + e.message);
 		}
@@ -1145,7 +1145,6 @@ sdk.Ship.prototype.parkAtSpecifiedLandable = async function(landableUuid) {
 
 sdk.Ship.prototype.operateMoney = async function(keep) {
 	var keepMoney = keep ?? KEEP_MINIMUM;
-	// todo - add negative codes
 
 	var tradeStation = this.radarData.nodes.find((node) => node.type == "BusinessStation");
 	if(!tradeStation) {
@@ -1170,6 +1169,20 @@ sdk.Ship.prototype.operateMoney = async function(keep) {
 		if(this.getBalance() != keep) {
 			await this.safeApply("DEPOSIT", this.getBalance() - keepMoney);
 		}
+	}
+	switch(result) {
+		case rcs.OM_BUSINESS_STATION_NOT_FOUND:
+			this.log("warn", "I can't find business station, I'm not in Scheat!");
+			break;
+		case rcs.OM_FLYING_TO_BUSINESS_STATION:
+			this.log("info", "I have some money on me, so I'm flying to business station to deposit it there!");
+			break;
+		case rcs.OM_CURRENTLY_DEPOSITING:
+			this.log("info", "I'm on business station and depositing my money there!");
+			break;
+		case rcs.OM_CLOSED_DEPOSIT:
+			this.log("warn", "Deposit closed, so be extra aware!");
+			break;
 	}
 	return result;
 }
@@ -1292,8 +1305,9 @@ sdk.Ship.prototype.buyBodyPart = async function(bodypart, minGen, maxCost) {
 					return rcs.BBP_BUYING_BODY_PART;
 				}
 			} else if(this.getCurrentSystem() == SYSTEM_SCHEAT) {
-				this.log("info", `Operating ${requiredBalance < 50000 ? requiredBalance * MONEY_OPERATION_MULTIPLIER : requiredBalance} for a ${bodypart} change.`);
-				await this.operateMoney(requiredBalance < 50000 ? requiredBalance * MONEY_OPERATION_MULTIPLIER : requiredBalance);
+				let operatingMoney = requiredBalance < 10000 ? requiredBalance * MONEY_OPERATION_MULTIPLIER : requiredBalance;
+				this.log("info", `Operating ${operatingMoney} for a ${bodypart} change.`);
+				await this.operateMoney(operatingMoney);
 				return rcs.BBP_OPERATING_MONEY;
 			} else {
 				await this.warpToSystem(HOME_SYSTEM);
@@ -1308,9 +1322,9 @@ sdk.Ship.prototype.buyBodyPart = async function(bodypart, minGen, maxCost) {
 	}
 }
 
-sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, extra) { // todo - support weapons
+sdk.Ship.prototype.upgradeBodyPart = async function(bodypart, minGen, extra) {
 	bodypart = bodypart.toLowerCase();
-	//this.log(`Upgrading part ${bodypart}!`);
+
 	extra ??= {};
 	extra.maxCost ??= MINIMAL_BODY_COST;
 	extra.stopAtMinGen ??= true;
@@ -1639,13 +1653,13 @@ sdk.Ship.prototype.captureAsteroid = async function() {
 				 * s2 = scalarShipSpeed
 				 */
 
-				// todo: sometimes ship is flying so far that asteroid is going to despawn sooner than destination, fix that (check distance from [0, 0])
+
 				let interception = mafs.findInterceptionOfAsteroid(currAsteroidPos, asteroidSpeed, currShipPos, scalarShipSpeed);
 
-				if(isNaN(interception) && typeof interception != "object") {
+				/*if(isNaN(interception) && typeof interception != "object") {
 					//this.log("warn", "Collision is impossible!");
 					//return rcs.CA_INTERCEPTION_IMPOSSIBLE;
-				} else if(mafs.lineLength(mafs.Line(mafs.Pos(0, 0), interception)) < 10000) { // ships die after 30000 from sun
+				} else*/if(mafs.lineLength(mafs.Line(mafs.Pos(0, 0), interception)) < 10000) { // ships die after 30000 from sun
 					this.log("warn", "Found an asteroid with possible interception!");
 					interceptableAsteroid = {uuid: asteroid.uuid, interception: interception};
 					break;

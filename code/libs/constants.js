@@ -210,13 +210,12 @@ global.ALLY_IDS = [
 global.ROLES = [
 	// 0-4
 	{
-		role: ROLE_MANUAL,
+		role: ROLE_MINER,
 		homeSystem: SYSTEM_SCHEAT,
 	},
 	{
-		role: ROLE_BUYER,
-		homeSystem: SYSTEM_IOTA_PEGASI,
-		homePlanet: "Tilia",
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_MATAR,
 	},
 	{
 		role: ROLE_MINER,
@@ -233,39 +232,9 @@ global.ROLES = [
 
 	// 5-9
 	{
-		role: ROLE_MANUAL,
-		homeSystem: SYSTEM_IOTA_PEGASI,
-		homePlanet: "Tilia",
-	},	
-	{
-		role: ROLE_MANUAL,
-		homeSystem: SYSTEM_IOTA_PEGASI,
-		homePlanet: "Tilia",
-	},
-	{
-		role: ROLE_MANUAL, // virus container
+		role: ROLE_ATTACKER,
 		homeSystem: SYSTEM_IOTA_PEGASI,
 		homePlanet: "Hephus",
-	},
-	{
-		role: ROLE_MANUAL,
-		homeSystem: SYSTEM_IOTA_PEGASI,
-		homePlanet: "Hephus",
-	},
-	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_MATAR,
-	},
-
-	// 10-14
-	{
-		role: ROLE_MANUAL,
-		homeSystem: SYSTEM_IOTA_PEGASI,
-		homePlanet: "Tilia",
-	},
-	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALBARI,
 	},
 	{
 		role: ROLE_MINER,
@@ -278,6 +247,32 @@ global.ROLES = [
 	{
 		role: ROLE_MINER,
 		homeSystem: SYSTEM_SADALPHERIS,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SALM,
+	},
+
+	// 10-14
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SCHEAT,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_MATAR,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALBARI,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SADALPHERIS,
+	},
+	{
+		role: ROLE_MINER,
+		homeSystem: SYSTEM_SALM,
 	},
 
 	// 15+
