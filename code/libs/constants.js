@@ -237,7 +237,7 @@ global.ROLES = [
 		homePlanet: "Hephus",
 	},
 	{
-		role: ROLE_MINER,
+		role: ROLE_MANUAL,
 		homeSystem: SYSTEM_MATAR,
 	},
 	{

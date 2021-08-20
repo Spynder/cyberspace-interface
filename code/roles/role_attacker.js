@@ -147,16 +147,23 @@ module.exports = {
 		if(await ship.warpToSystem(flyTo) < 0) return;
 
 		if(!target) {
-			ship.log("warn", "No targets, parking to specified planet: " + planetName);
+			if(ship.getHPPercentage() < 1) {
+				ship.log("I'm not 100% repaired and there is no one in the current system, so I'm repairing with drone!");
+				await ship.safeEscape();
+				let closestLandable = ship.findLandables()[0];
+				let landablePos = mafs.Pos(closestLandable);
+				await ship.safeMove(landablePos.x, landablePos.y);
+			} else {
+				ship.log("warn", "No targets, parking to specified planet: " + planetName);
 
-			let planetDetails = await ship.safeScan(planetName);
+				let planetDetails = await ship.safeScan(planetName);
 
-			if(planetDetails) {
-				ship.setPlanetDeals(planetDetails);
+				if(planetDetails) {
+					ship.setPlanetDeals(planetDetails);
+				}
+
+				await ship.parkAtSpecifiedLandable(planetName);
 			}
-
-			await ship.parkAtSpecifiedLandable(planetName);
-			return;
 		}
 		// code
 	}

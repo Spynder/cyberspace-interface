@@ -59,6 +59,14 @@ module.exports = {
 			return;
 		}
 
+		else if(ship.uuid == "6df841dcec") {
+			ship.log("wtf")
+			//await ship.warpToSystem(SYSTEM_IOTA_PEGASI);
+			await ship.safeEscape();
+			await ship.safeMove(10000, 10000);
+			return;
+		}
+
 		else if(ship.uuid == "47335975eb") {
 			let virusesRequired = 1;
 			if(ship.getCurrentSystem() == SYSTEM_SCHEAT || ship.hasCargo("virus").length >= virusesRequired) {

@@ -39,8 +39,6 @@ sdk.Ship.prototype.selfScan = async function(skipScans) {
 		this.setParked(false);
 		this.setLocalMemory("location", this.details.parent.uuid);
 	}
-
-	
 }
 
 sdk.Ship.prototype.execRole = async function(account, options) {
