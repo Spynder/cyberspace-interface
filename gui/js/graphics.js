@@ -108,7 +108,7 @@ $(document).ready(function() {
 		$("#goInside").text(text);
 	}
 
-	function checkSystemClicks(event) {
+	function checkClusterClicks(event) {
 		var result = isMouseInsideSystemIcon(event);
 		updateGoInsideButton(result.hasOwnProperty("name") ? result.name : "");
 	}
@@ -119,17 +119,20 @@ $(document).ready(function() {
 		$("#" + currScreen).css("display", "block");
 
 		if(currScreen != SCREEN_CLUSTER) { // We do it before we override canvas
-			canvas.removeEventListener("click", checkSystemClicks, false); // change to checkClusterClicks TODO
+			canvas.removeEventListener("click", checkClusterClicks, false);
 		}
 		if(currScreen != SCREEN_SYSTEM) {
 			canvas.removeEventListener("click", checkPlanetClicks, false);
+		}
+		if(currScreen != SCREEN_START) {
+			$("#showSettings").css("display", "block");
 		}
 
 		canvas = document.getElementById(currScreen + "Canvas");
 		ctx = canvas.getContext("2d");
 		if(currScreen == SCREEN_CLUSTER) {
 			generateObjectList();
-			canvas.addEventListener("click", checkSystemClicks, false);
+			canvas.addEventListener("click", checkClusterClicks, false);
 		} else if(currScreen == SCREEN_SYSTEM) {
 			canvas.addEventListener("click", checkPlanetClicks, false);
 		}
@@ -140,7 +143,7 @@ $(document).ready(function() {
 
 	function getIdFromDivItem(item) {
 		let id = item.attr("objID");
-		id = id.replace(/_/g, " "); // Replace all underscores (_) with spaces ( )
+		id = id.replace(/_/g, " "); // Replace all underscores '_' with spaces ' '.
 		return id;
 	}
 
@@ -174,22 +177,6 @@ $(document).ready(function() {
 		else 		return entry;
 	}
 
-	function findShipItemByID(ID) {
-		return $(`.ship[shipID = '${ID}']`);
-	}
-
-	function getShipStructByID(ID) {
-		return ships[getShipIndexByID(ID)];
-	}
-
-	function getShipIndexByID(ID) {
-		return ships.findIndex(ship => ship.ID == ID);
-	}
-
-	function getPlanetIndexByID(ID) {
-		return planets.findIndex(planet => planet.ID == ID);
-	}
-
 	function findObjectItemByID(id) {
 		id = id.replace(/ /g, "_");
 		return $(`.object[objID = '${id}']`);
@@ -202,8 +189,6 @@ $(document).ready(function() {
 	function getObjectStructByID(ID) {
 		return objects[getObjectIndexByID(ID)];
 	}
-
-
 
 	function getRandomInt(min, max) {
 		min = Math.ceil(min);
@@ -224,8 +209,8 @@ $(document).ready(function() {
 			// Update label
 
 			var btn = item.find(".indicators").find(".objectActivity");
-			btn.removeClass(objectStruct.active ? SHIPACTIVITY_OFFLINE : SHIPACTIVITY_ONLINE);
-			btn.addClass(objectStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE);
+			btn.removeClass(objectStruct.active ? SWITCH_OFF : SWITCH_ON);
+			btn.addClass(objectStruct.active ? SWITCH_ON : SWITCH_OFF);
 
 			ipcRenderer.send("objectActivity", {ID: objectStruct.ID, active: objectStruct.active});
 		}
@@ -798,15 +783,40 @@ $(document).ready(function() {
 		changeScreen(SCREEN_CLUSTER);
 	});
 
+	let settingsShown = false;
+	$("#showSettings").click(function() {
+		settingsShown = !settingsShown;
+		$("#settings").css("display", settingsShown ? "block" : "none");
+	});
+
+	$("#closeSettings").click(function() {
+		settingsShown = false;
+		$("#settings").css("display", "none");
+	});
+
+	let sounds = {enemySpotted: true, disconnected: true};
+	$("#settingSoundEnemies").click(function() {
+		sounds.enemySpotted = !sounds.enemySpotted;
+		$("#settingSoundEnemies").removeClass(sounds.enemySpotted ? SWITCH_OFF : SWITCH_ON);
+		$("#settingSoundEnemies").addClass(sounds.enemySpotted ? SWITCH_ON : SWITCH_OFF);
+	});
+	$("#settingSoundDisconnected").click(function() {
+		sounds.disconnected = !sounds.disconnected;
+		$("#settingSoundDisconnected").removeClass(sounds.disconnected ? SWITCH_OFF : SWITCH_ON);
+		$("#settingSoundDisconnected").addClass(sounds.disconnected ? SWITCH_ON : SWITCH_OFF);
+	});
+
 	function renderJson(json) {
 		var renderer = (currScreen == SCREEN_CLUSTER) ? $('#jsonClusterRenderer') : $('#jsonSystemRenderer')
 		renderer.jsonViewer(json, JSON_RENDER_OPTIONS);
 	}
 
 	function playSound(name, volume) {
-		let audio = new Audio("sounds/" + name + ".wav");
-		audio.volume = volume ? volume : 0.3;
-		audio.play();
+		if(!sounds.hasOwnProperty(name) || sounds[name]) {
+			let audio = new Audio("sounds/" + name + ".wav");
+			audio.volume = volume ? volume : 0.3;
+			audio.play();
+		}
 	}
 
 	changeScreen(SCREEN_START);

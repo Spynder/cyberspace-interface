@@ -12,8 +12,6 @@ function createWindow () {
 	});
 	win.loadFile('gui/index.html');
 	win.maximize();
-
-	require("./code/code.js");
 }
 
 app.whenReady().then(createWindow);

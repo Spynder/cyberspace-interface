@@ -1,1 +1,1 @@
-start powershell -Command "npm start"
+start powershell -NoExit -Command "npm start"

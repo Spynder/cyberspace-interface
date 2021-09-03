@@ -30,8 +30,8 @@ global.SHIPSTATE = {
 	ON: 3
 }
 
-global.SHIPACTIVITY_ONLINE = "shipOnline";
-global.SHIPACTIVITY_OFFLINE = "shipOffline";
+global.SWITCH_ON = "switchOn";
+global.SWITCH_OFF = "switchOff";
 
 global.GOINSIDE_OK = "Go inside the selected system";
 global.GOINSIDE_NULL = "No system selected";
@@ -237,7 +237,7 @@ global.ROLES = [
 		homePlanet: "Hephus",
 	},
 	{
-		role: ROLE_MANUAL,
+		role: ROLE_MINER,
 		homeSystem: SYSTEM_MATAR,
 	},
 	{
@@ -245,11 +245,12 @@ global.ROLES = [
 		homeSystem: SYSTEM_SADALBARI,
 	},
 	{
-		role: ROLE_MINER,
-		homeSystem: SYSTEM_SADALPHERIS,
+		role: ROLE_ATTACKER,
+		homeSystem: SYSTEM_IOTA_PEGASI,
+		homePlanet: "Hephus",
 	},
 	{
-		role: ROLE_MINER,
+		role: ROLE_MANUAL,
 		homeSystem: SYSTEM_SALM,
 	},
 
@@ -470,10 +471,10 @@ global.rcs = {
 	TAMTP_FLYING_TO_PLANET: -1502,
 
 	// parkAtSpecifiedLandable
-	PASL_AT_THE_PLANET: 1601,
-	PASL_CANT_FIND_PLANET: 1602,
+	PASL_AT_THE_LANDABLE: 1601,
+	PASL_CANT_FIND_LANDABLE: 1602,
 	PASL_ESCAPING: -1601,
-	PASL_FLYING_TO_PLANET: -1602,
+	PASL_FLYING_TO_LANDABLE: -1602,
 
 	// pathFind
 	PF_TOO_CLOSE_TO_SUN: -1701,

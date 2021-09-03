@@ -85,31 +85,7 @@ module.exports = {
 
 		return `<img class="label" src="img/labels/Label${label}.png">`;	
 	},
-
-	generateShipHtml: function(shipStruct) {
-		var fuelText = this.generateShipFuel(shipStruct.fuel, shipStruct.fuelMax);
-		var balanceText = this.generateShipBalance(shipStruct.balance);
-		var systemText = this.generateShipSystem(shipStruct.system);
-		var roleImg = this.generateShipRole(shipStruct.role);
-		var labelImg = this.generateShipLabel(shipStruct);
-		return `<div class="ship" shipID=${shipStruct.ID}>
-					<div class="iconBlock">
-						<span class="helper"></span>
-						${roleImg}
-					</div>
-					<div class="shipInfo">
-						<h2>${shipStruct.ID.toUpperCase()}</h2>
-						${fuelText}
-						${balanceText}
-						${systemText}
-					</div>
-					<div class="indicators">
-						${labelImg}
-						<button class="shipActivity ${shipStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE}"></button>
-					</div>
-				</div>`;
-	},
-
+	
 	generatePlanetCtzn: function(objectStruct) {
 		let text = `<span class="${STAT_UNKNOWN}">?</span>`;
 		if(objectStruct.hasOwnProperty("body")) {
@@ -135,7 +111,7 @@ module.exports = {
 					</div>
 					<div class="indicators">
 						
-						<button class="shipActivity ${planetStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE}"></button>
+						<button class="shipActivity ${planetStruct.active ? SWITCH_ON : SWITCH_OFF}"></button>
 					</div>
 				</div>`;
 	},
@@ -163,7 +139,7 @@ module.exports = {
 		if(objectStruct.type == "Ship") {
 			rows.push(this.generateShipFuel(objectStruct.fuel, objectStruct.fuelMax));
 			rows.push(this.generateShipBalance(objectStruct.balance));
-			rows.push(this.generateShipSystem(objectStruct.system));
+			rows.push(this.generateShipSystem(objectStruct.system)); // todo change
 		} else if(objectStruct.type == "Planet") {
 			rows.push(this.generatePlanetCtzn(objectStruct));
 			rows.push(this.generatePlanetBalance(objectStruct));
@@ -191,7 +167,7 @@ module.exports = {
 					${objectInfo}
 					<div class="indicators">
 						${(objectStruct.type == "Ship") ? labelImg : ""}
-						<button class="objectActivity ${objectStruct.active ? SHIPACTIVITY_ONLINE : SHIPACTIVITY_OFFLINE}"></button>
+						<button class="objectActivity ${objectStruct.active ? SWITCH_ON : SWITCH_OFF}"></button>
 					</div>
 				</div>`;
 	},

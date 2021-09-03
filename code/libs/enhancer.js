@@ -110,7 +110,7 @@ sdk.profileTime = async function(profilingFunc) {
 		//console.log(e.message.substring(1, 8) == "TIMEOUT", e.message.substring(10, 17) == "EXPLORE")
 		console.log(profilingFunc);
 
-		console.log("error", "Error occured when tried to profile time: " + e.message);
+		console.log("Error occured when tried to profile time: " + e.message);
 		console.error(e)
 		if(e.message.substring(1, 8) == "TIMEOUT" && e.message.substring(10, 17) == "EXPLORE") {
 			// do smth, because our ship died
@@ -119,6 +119,9 @@ sdk.profileTime = async function(profilingFunc) {
 			console.log("Ship has died!");
 			console.log("Ship has died!");
 			return rcs.PT_SHIP_IS_DEAD;
+		} else if(e.message == "DISCONNECTED") {
+			console.log("DISCONNECTED!");
+			sendInfo("receivedDisconnected", true);
 		}
 	}
 }
@@ -268,7 +271,7 @@ sdk.Ship.prototype.safeWarp = async function(uuid) {
 
 	return await sdk.profileTime(async function() {
 		this.log("trace", "Safe warping: " + uuid);
-		await this.warp(uuid).catch((e) => { // if not in coords
+		return await this.warp(uuid).catch((e) => { // if not in coords
 			this.log("debug", "Error occured tried to warp: " + e.message);
 		});
 	}.bind(this));
@@ -303,7 +306,7 @@ sdk.Ship.prototype.safeAccept = async function(uuid, count) {
 	if(this.getLocation() == LOCATION_SYSTEM) return;
 
 	return await sdk.profileTime(async function() {
-		await this.accept(uuid, count).catch((e) => {
+		return await this.accept(uuid, count).catch((e) => {
 			this.log("debug", "Error occured tried to accept: " + e.message);
 		});
 	}.bind(this));
@@ -313,7 +316,7 @@ sdk.Ship.prototype.safeApply = async function(commandType, payload) {
 	if(this.getLocation() == LOCATION_SYSTEM) return;
 	
 	return await sdk.profileTime(async function() {
-		await this.apply(commandType, payload).catch((e) => {
+		return await this.apply(commandType, payload).catch((e) => {
 			this.log("debug", "Error occured tried to apply: " + e.message);
 		});
 	}.bind(this));
@@ -1097,7 +1100,6 @@ sdk.Ship.prototype.parkAtNearbyObject = async function(landable) {
 }
 
 sdk.Ship.prototype.parkAtNearbyLandable = async function() {
-	//return await this.parkAtNearbyObject(this.findLandables()[0].uuid);
 	return await this.parkAtSpecifiedLandable(this.findLandables()[0].uuid);
 }
 
@@ -1118,7 +1120,7 @@ sdk.Ship.prototype.parkAtSpecifiedLandable = async function(landableUuid) {
 		this.setLocalMemory("parked", true);
 		this.setParked(true);
 		await this.safeFuel();
-		return rcs.PASL_AT_THE_PLANET;
+		return rcs.PASL_AT_THE_LANDABLE;
 	}
 
 	else if(this.getLocation() != LOCATION_SYSTEM && this.getLocationName() != landableUuid) {
@@ -1133,10 +1135,10 @@ sdk.Ship.prototype.parkAtSpecifiedLandable = async function(landableUuid) {
 			var extended = mafs.extendLine(vect, extendDelta);
 			await this.safeLanding(landable.uuid);
 			await this.safeMove(extended.p2.x, extended.p2.y);
-			return rcs.PASL_FLYING_TO_PLANET;
+			return rcs.PASL_FLYING_TO_LANDABLE;
 		} else {
-			this.log("warn", "CANT FIND PLANET");
-			return rcs.PASL_CANT_FIND_PLANET;
+			this.log("warn", "CANT FIND LANDABLE");
+			return rcs.PASL_CANT_FIND_LANDABLE;
 		}
 	}
 }

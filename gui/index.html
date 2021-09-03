@@ -8,7 +8,6 @@
 	<script src="js/jquery.json-viewer.js"></script>
 	<link rel="stylesheet" href="css/jquery.json-viewer.css">
 	<script type="text/javascript" src="js/graphics.js"></script>
-	<!--<script type="text/javascript" src="../code/libs/update.js"></script>-->
 
 	<link rel="stylesheet" href="css/styles.css">
 	<link rel="preconnect" href="https://fonts.gstatic.com">
@@ -42,7 +41,25 @@
 				<pre id="jsonSystemRenderer"></pre>
 			</div>
 			<button id="goBack">Return</button>
+		</div>
+		<button id="showSettings"></button>
+		<div id="settings">
+			<h2>Settings</h2>
+			<button id="closeSettings"></button>
+			<h3>Sound:</h3>
+			<div class="settingBlock">
+				<div class="setting">
+					<button id="settingSoundEnemies" class="objectActivity switchOn"></button>
+					<h4>Enemy spotted: </h4>
+				</div>
+				<div class="setting">
+					<button id="settingSoundDisconnected" class="objectActivity switchOn"></button>
+					<h4>Disconnected: </h4>
+				</div>
+			</div>
+		</div>
 	</div>
+	<!-- <div>Icons made by <a href="https://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div> -->
 </body>
 
 </html>

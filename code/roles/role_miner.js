@@ -134,7 +134,7 @@ module.exports = {
 
 		let result = await ship.parkAtNearbyLandable();
 		switch(result) {
-			case rcs.PASL_AT_THE_PLANET:
+			case rcs.PASL_AT_THE_LANDABLE:
 				ship.log("info", "I am currently parked at " + ship.getLocationName() + ".");
 				if(ship.getLocation() != LOCATION_SYSTEM) {
 					ship.setParked(true);
@@ -149,7 +149,7 @@ module.exports = {
 					await ship.operateMoney(KEEP_MINIMUM);
 				}
 				break;
-			case rcs.PASL_FLYING_TO_PLANET:
+			case rcs.PASL_FLYING_TO_LANDABLE:
 				ship.log("info", "I have nothing to do, so I'm parking to nearby planet.");
 				break;
 		}

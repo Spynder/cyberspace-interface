@@ -46,7 +46,17 @@ module.exports = {
 		let requiredMinerals = ship.getMaxHold() * 0.6 - ship.getHold();
 
 		if(ship.uuid == "fbb4f29d5b") {
+		}
 
+		else if(ship.uuid == "31e52dd377") {
+			await ship.warpToSystem(SYSTEM_SCHEAT);
+			await ship.parkAtSpecifiedLandable("Baker Plaza");
+			//await ship.safeApply("DEPOSIT_CLOSE");
+			//await ship.safeApply("DEPOSIT", 500000);
+			//await ship.safeApply("DEPOSIT", ship.getBalance());
+			let data = await ship.safeApply("INFO");
+			await delay(200);
+			ship.log(data);
 		}
 
 		else if(ship.uuid == "68e1e5e6d4") {

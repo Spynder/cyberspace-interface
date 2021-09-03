@@ -1,0 +1,413 @@
+$lightBackground: #555;
+$hoverBackground: #484848;
+$activeBackground: #444;
+
+$borderColor: #777;
+
+body {
+	padding: 0;
+	margin: 0;
+	user-select: none;
+	height: 100%;
+	overflow: hidden;
+}
+
+button {
+	outline: none;
+	z-index: 2;
+}
+
+canvas {
+	z-index: 1;
+}
+
+h1, h2, h3,
+h4, h5, h6 {
+	color: white;
+    font-family: 'Blinker', sans-serif;
+}
+
+#container {
+	height: 100%;
+	width: 100%;
+}
+
+#startButton {
+	position: absolute;
+	top: 40%;
+	left: 50%;
+	transform: translate(-50%, 0);
+
+	background-color: #44c767;
+	border-radius: 5px;
+	border: 1px solid #18ab29;
+	display: inline-block;
+	cursor: pointer;
+	color: #fff;
+	font-family: 'Blinker', sans-serif;
+	font-size: 28px;
+	padding: 20px 40px;
+	text-decoration: none;
+}
+
+#startButton:hover {
+	background-color: #5cbf2a;
+}
+
+#startButton:active {
+	top: calc(40% + 1px);
+}
+
+#objectsBlock, canvas, .jsonViewer {
+	display: inline-block;
+	vertical-align: top;
+}
+
+#objectsBlock {
+	display: inline-flex;
+	flex-flow: column;
+	background: $lightBackground;
+	width: 20%;
+	height: 100vh;
+}
+
+#objectsContainer {
+	flex: 1 1 auto;
+	overflow-y: scroll;
+}
+
+.jsonViewer {
+	display: inline-flex;
+	flex-flow: column;
+	background: $lightBackground;
+	width: 20%;
+	height: 100vh;
+	user-select: text;
+}
+
+h1, h2, p {
+	font-family: 'Blinker', sans-serif;
+	color: #EEE;
+	margin: 0;
+	padding: 0;
+}
+
+.object {
+	&:hover {
+		background: $hoverBackground;
+		cursor: pointer;
+	}
+
+	&:active {
+		background: $activeBackground;
+		position: relative;
+		top: 1px;
+	}
+
+	height: 100px;
+	margin: 5px;
+	border: 1px black solid;
+	border-radius: 10px;
+	font-family: 'Blinker', sans-serif;
+	background: $lightBackground;
+}
+
+h1 {
+	margin: 5px 10px;
+}
+
+h2 {
+	font-family: 'Share Tech Mono', monospace;
+	font-size: 20px;
+	margin-top: 5px;
+	margin-bottom: 10px;
+}
+
+.iconBlock {
+	height: 100%;
+	float: left;
+}
+
+.helper {
+	vertical-align: middle;
+	display: inline-block;
+    height: 100%;
+}
+
+.objectIcon {
+	vertical-align: middle;
+	margin: 9px;
+	width: 64px;
+	height: 64px;
+}
+
+.objectInfo {
+	float: left;
+	margin-left: 16px;
+	img {
+		display: inline-block;
+		float: right;
+	}
+}
+
+.indicators {
+	display: flex;
+	flex-flow: column;
+	align-items: flex-end;
+	height: 100%;
+}
+
+.indicators img {
+	float: right;
+	margin: 4px;
+}
+
+.objectActivity {
+	margin: 4px;
+	margin-top: auto;
+	height: 24px;
+	width: 72px;
+	border: 0;
+
+	&:hover { cursor: pointer; }
+	&:active { position: relative; top: 1px; }
+}
+
+$buttonPath: '../img/buttons/Button';
+.switchOn	 {
+	background: url($buttonPath + 'On.png');
+	&:hover  { background: url($buttonPath + 'OnHover.png'); }
+	&:active { background: url($buttonPath + 'OnPress.png'); }
+}
+.switchOff	 {
+	background: url($buttonPath + 'Off.png');
+	&:hover  { background: url($buttonPath + 'OffHover.png'); }
+	&:active { background: url($buttonPath + 'OffPress.png'); }
+}
+
+.good { color: #7D7; }
+.warning { color: #F4C430; }
+.critical { color: #E62014; }
+.unknown { color: #DF73FF; }
+
+#disableAll {
+	position: relative;
+	bottom: 0;
+	width: 100%;
+	border: 0;
+	display: inline-block;
+	background-color: $activeBackground;
+	border-top: 2px solid #888;
+	cursor: pointer;
+	color: #ffffff;
+	font-size: 24px;
+	padding: 5px 0;
+	text-decoration: none;
+	font-family: 'Blinker', sans-serif;
+	height: 40px;
+
+	&:hover {
+		background-color: #333;
+		border-top: 2px solid #777;
+	}
+
+	&:active {
+		background-color: #222;
+		border-top: 2px solid #777;
+		height: 39px;
+	}
+}
+
+.buttonContainer {
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+	text-align: center;
+}
+
+.jsonText {
+	text-align: center;
+}
+
+#jsonClusterRenderer, #jsonSystemRenderer {
+	flex: 1 1 auto;
+	background: $activeBackground;
+	margin: 10px;
+	border: 1px solid #666;
+	border-radius: 10px;
+	overflow: auto;
+}
+
+#goInside {
+	&:hover {
+		background-color: #333;
+		border: 2px solid #777;
+		border-bottom: 0;
+	}
+
+	&:active {
+		background-color: #222;
+		border: 2px solid #777;
+		border-bottom: 0;
+		height: 48px;
+	}
+
+	&:disabled {
+		background-color: #181818;
+		border: 2px solid $lightBackground;
+		border-bottom: 0;
+	}
+
+	position: absolute;
+	bottom: 0;
+	left: 50%;
+	transform: translate(-50%, 0);
+
+	height: 50px;
+	background-color: $activeBackground;
+	border: 2px solid #888;
+	border-bottom: 0;
+	border-radius: 5px 5px 0 0;
+	cursor: pointer;
+	color: #ffffff;
+	font-size: 24px;
+	padding: 0 10px;
+	text-decoration: none;
+	font-family: 'Blinker', sans-serif;
+}
+
+#goBack {
+	&:hover {
+		background-color: #333;
+		border: 2px solid #777;
+		border-top: 0;
+		border-left: 0;
+	}
+
+	&:active {
+		background-color: #222;
+		border: 2px solid #777;
+		border-top: 0;
+		border-left: 0;
+		height: 48px;
+	}
+
+	position: absolute;
+	top: 0;
+	left: 0;
+
+	height: 50px;
+	background-color: $activeBackground;
+	border: 2px solid #888;
+	border-top: 0;
+	border-left: 0;
+	border-radius: 0 0 5px 0;
+	cursor: pointer;
+	color: #ffffff;
+	font-size: 24px;
+	padding: 0 10px;
+	text-decoration: none;
+	font-family: 'Blinker', sans-serif;
+}
+
+#showSettings {
+	&:hover {
+		cursor: pointer;
+		filter: brightness(1);
+	}
+
+	&:active {
+		top: 13px;
+		filter: brightness(0.9);
+	}
+
+	position: absolute;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	top: 12px;
+	right: 12px;
+	width: 32px;
+	height: 32px;
+	background: url("../img/buttons/settings.png");
+	filter: brightness(0.8);
+}
+
+#settings {
+	position: absolute;
+	$settingsHeight: 20vh;
+	$settingsWidth: 15vw;
+	height: $settingsHeight;
+	width: $settingsWidth;
+	top: 50vh - $settingsHeight / 2;
+	left: 50vw - $settingsWidth / 2;
+	background-color: $lightBackground;
+	border: $borderColor 3px solid;
+	border-radius: 5px;
+	padding: 10px;
+
+	#closeSettings {
+		&:hover {
+			cursor: pointer;
+			filter: brightness(1);
+		}
+
+		&:active {
+			top: 13px;
+			filter: brightness(0.9);
+		}
+
+		position: absolute;
+		padding: 0;
+		margin: 0;
+		border: 0;
+		top: 12px;
+		right: 12px;
+		width: 32px;
+		height: 32px;
+		background: url("../img/buttons/close.png");
+		filter: brightness(0.8);
+	}
+
+	h2 {
+		font-family: 'Blinker', sans-serif;
+		text-align: center;
+		font-size: 32px;
+	}
+
+	h3 {
+		font-size: 24px;
+	}
+
+	.setting {
+		width: 15vw;
+		height: 30px;
+		h4 {
+			margin: 0;
+			color: #DDD;
+			display: inline-block;
+		}
+
+		.objectActivity {
+			float: right;
+			display: inline-block;
+		}
+		padding-bottom: 5px;
+
+		&:after {
+			content: '';
+			display: block;
+			width: 80%;
+			border-bottom: 1px solid $activeBackground;
+			margin: 0 auto;
+			padding-top: 10px;
+		}
+
+		&:last-child:after {
+			border: none;
+		}
+	}
+}
+
+/*font-family: 'Blinker', sans-serif;*/
+/*font-family: 'Share Tech Mono', monospace;*/
