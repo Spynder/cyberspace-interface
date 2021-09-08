@@ -51,10 +51,30 @@ module.exports = {
 		else if(ship.uuid == "31e52dd377") {
 			await ship.warpToSystem(SYSTEM_SCHEAT);
 			await ship.parkAtSpecifiedLandable("Baker Plaza");
-			//await ship.safeApply("DEPOSIT_CLOSE");
-			//await ship.safeApply("DEPOSIT", 500000);
-			//await ship.safeApply("DEPOSIT", ship.getBalance());
 			let data = await ship.safeApply("INFO");
+			/*if(data[0].amount != 900000) {
+				await ship.safeApply("DEPOSIT_CLOSE");
+				await ship.safeApply("DEPOSIT", 900000);
+			}
+			if(ship.getBalance() > 0) {
+				await ship.safeApply("DEPOSIT", ship.getBalance());
+			}*/
+			/*let stock = await sdk.Stock.connect(account.token);
+			await delay(200);
+			try {
+				//let data = await stock.history(10, 0);
+				let data = await stock.history(-2, -1);
+				console.log(stock)
+				//let data = await stock.cancel("FEDERATION");
+				//let data = await stock.bids("FEDERATION");
+				await delay(200);
+				console.log(data);
+			} catch(e) {
+				console.log("Error! ", e.message);
+				console.error(e);
+			}
+			await stock.dispose();*/
+			
 			await delay(200);
 			ship.log(data);
 		}

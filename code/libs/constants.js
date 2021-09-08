@@ -200,6 +200,7 @@ global.ALLY_IDS = [
 	"2c865b9658", // RAMZIK
 	"1c5b926242", // 1323ED5
 	"2e67533360", // Atsupak
+	"8e05deaa9b", // Monika
 ];
 
 // "a678ea674c" - Spynder

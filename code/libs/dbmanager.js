@@ -12,35 +12,67 @@ module.exports = {
 	},
 
 	getMemory: async function(ship) {
+		function getFreeRoleID(all) { // replacing roleIDs if ship is dead
+			let rolesInDB = all.map(item => JSON.parse(item.memory).roleID);
+			let missingRole = -1;
+			for (var i = 0; i < all.length; i++) {
+				if(rolesInDB.indexOf(i) == -1) {
+					missingRole = i;
+					break;
+				}
+			}
+			if(missingRole == -1) {
+				missingRole = all.length;
+			}
+			return missingRole;
+		}
+
+		function getFreeDisplayID(all) { // always adding on top, even if dead
+			let displaysInDB = all.map(item => JSON.parse(item.memory).displayID);
+			/*let missingDisplay = -1;
+			if(!displaysInDB.length) {
+				missingDisplay = all.length;
+			} else {
+				missingDisplay = Math.max(...displaysInDB) + 1;
+			}
+			return missingDisplay;*/
+			return Math.max(0, ...displaysInDB) + 1;
+		}
+
 		var entry = await db.prepare(`SELECT memory FROM ships WHERE "uuid" = ?`).get(ship.uuid);
+		var allMemories = await db.prepare(`SELECT memory FROM ships`).all();
 		var memory = {};
 		if(entry) {
 			memory = JSON.parse(entry.memory);
 		} else {
-			var allMemories = db.prepare(`SELECT memory FROM ships`).all();
 			var rolesInDB = allMemories.map(item => JSON.parse(item.memory).roleID);
-			var missing = -1;
+			var missingRole = -1;
 			for (var i = 0; i < allMemories.length; i++) {
 				if(rolesInDB.indexOf(i) == -1) {
-					missing = i;
+					missingRole = i;
 					break;
 				}
 			}
-			if(missing == -1) {
-				missing = allMemories.length;
-				//missing = ROLES.length - 1;
+			if(missingRole == -1) {
+				missingRole = allMemories.length;
 			}
-			memory.roleID = missing;
+			memory.roleID = missingRole;
 			await this.setMemory(ship, memory);
 		}
-		memory = Object.assign({roleID: memory.roleID}, ROLES[Math.min(memory.roleID, ROLES.length-1)]);
+		/*
+		memory = entry ? JSON.parse(entry.memory) : {};
+		memory.roleID ??= getFreeRoleID(allMemories);
+		memory.displayID ??= getFreeDisplayID(allMemories);
+		await this.setMemory(ship, memory);
+		*/
+		memory = Object.assign(memory, ROLES[Math.min(memory.roleID, ROLES.length-1)]);
 		return memory;
 	},
 
 	setMemory: async function(ship, memory) {
 		var redactedMemory = memory;
 		delete redactedMemory.ownMemory;
-		if(db.prepare(`SELECT 1 FROM ships WHERE "uuid" = ?`).get(ship.uuid)) {
+		if(await db.prepare(`SELECT 1 FROM ships WHERE "uuid" = ?`).get(ship.uuid)) {
 			await db.prepare(`UPDATE ships SET "memory" = ? WHERE "uuid" = ?`).run(JSON.stringify(redactedMemory), ship.uuid); // Entry was found and we updating one.
 		} else {
 			await db.prepare(`INSERT INTO ships ("uuid", "memory") VALUES (?, ?)`).run(ship.uuid, JSON.stringify(redactedMemory)); // Entry wasn't found and we creating one.
