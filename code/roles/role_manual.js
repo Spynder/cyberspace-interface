@@ -48,6 +48,22 @@ module.exports = {
 		if(ship.uuid == "fbb4f29d5b") {
 		}
 
+		else if(ship.uuid == "2db736ed7f") {
+			//await ship.warpToSystem(SYSTEM_SCHEAT);
+			//await ship.parkAtSpecifiedLandable("Baker Plaza");
+			//await ship.parkAtSpecifiedLandable("Dominion");
+			//await ship.safeApply("GET_VIRUS");
+			//await ship.safeApply("GET_EMBRYO");
+			//if(await ship.operateMoney(900000) < 0) return;
+			//await ship.safeApply("EXTERMINATION");
+			//await ship.safeApply("COLONIZATION");
+			await ship.warpToSystem(SYSTEM_PI1_PEGASI);
+			await ship.parkAtNearbyLandable();
+			//await ship.getMineralsFromPlanet("Thides G1", 1);
+			//await ship.safeAccept("bba4c9ccf8", 1);
+
+		}
+
 		else if(ship.uuid == "31e52dd377") {
 			await ship.warpToSystem(SYSTEM_SCHEAT);
 			await ship.parkAtSpecifiedLandable("Baker Plaza");
@@ -59,11 +75,11 @@ module.exports = {
 			if(ship.getBalance() > 0) {
 				await ship.safeApply("DEPOSIT", ship.getBalance());
 			}*/
-			/*let stock = await sdk.Stock.connect(account.token);
+			let stock = await sdk.Stock.connect(account.token);
 			await delay(200);
 			try {
 				//let data = await stock.history(10, 0);
-				let data = await stock.history(-2, -1);
+				//let data = await stock.history(-2, -1);
 				console.log(stock)
 				//let data = await stock.cancel("FEDERATION");
 				//let data = await stock.bids("FEDERATION");
@@ -73,7 +89,7 @@ module.exports = {
 				console.log("Error! ", e.message);
 				console.error(e);
 			}
-			await stock.dispose();*/
+			await stock.dispose();
 			
 			await delay(200);
 			ship.log(data);

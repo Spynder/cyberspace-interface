@@ -477,20 +477,6 @@ $(document).ready(function() {
 		var mousePos = gh.getMousePos(canvas, event, translation, scaling);
 		let radarData = getCurrentSystemData();
 
-		/*for(shipStruct of gh.getShipsFromData(radarData)) { // Ships
-			if(gh.isInside(mousePos, gh.getShipHitbox(shipStruct))) {
-				setSelectedShip(shipStruct.uuid);
-				let advanced = ships.find(ship => ship.ID == currSelectedShip); // deprecated, fix
-				if(advanced) {
-					let advancedStruct = shipStruct;
-					advancedStruct.advanced = advanced;
-					return advancedStruct;
-				}
-				return shipStruct;
-			}
-		}
-		setSelectedShip(undefined);*/
-
 		const objectsToClickCheck = [
 			{name: "Ship", radius: SYSTEM_SHIP_SIZE},
 			{name: "Cargo", radius: SYSTEM_CARGO_RADIUS},

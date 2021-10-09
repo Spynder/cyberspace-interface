@@ -201,6 +201,7 @@ global.ALLY_IDS = [
 	"1c5b926242", // 1323ED5
 	"2e67533360", // Atsupak
 	"8e05deaa9b", // Monika
+	"644cfd3a444e", // SMAY
 ];
 
 // "a678ea674c" - Spynder
@@ -233,7 +234,7 @@ global.ROLES = [
 
 	// 5-9
 	{
-		role: ROLE_ATTACKER,
+		role: ROLE_MANUAL,
 		homeSystem: SYSTEM_IOTA_PEGASI,
 		homePlanet: "Hephus",
 	},
@@ -407,6 +408,7 @@ global.rcs = {
 
 	// operateMoney
 	OM_BUSINESS_STATION_NOT_FOUND: 601,
+	OM_OPERATING_NOT_REQUIRED: 602,
 	OM_FLYING_TO_BUSINESS_STATION: -601,
 	OM_CURRENTLY_DEPOSITING: -602,
 	OM_CLOSED_DEPOSIT: -603,

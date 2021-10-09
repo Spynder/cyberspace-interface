@@ -1145,32 +1145,38 @@ sdk.Ship.prototype.parkAtSpecifiedLandable = async function(landableUuid) {
 
 sdk.Ship.prototype.operateMoney = async function(keep) {
 	var keepMoney = keep ?? KEEP_MINIMUM;
-
 	var tradeStation = this.radarData.nodes.find((node) => node.type == "BusinessStation");
-	if(!tradeStation) {
-		return rcs.OM_BUSINESS_STATION_NOT_FOUND;
+	let result;
+	if(this.getBalance() == keep) {
+		result = rcs.OM_OPERATING_NOT_REQUIRED;
 	}
-	if(this.getLocation() != LOCATION_BUSINESS_STATION) {
-		await this.safeEscape();
-	}
-	var result;
-	if(this.getLocation() == LOCATION_SYSTEM) {
-		result = rcs.OM_FLYING_TO_BUSINESS_STATION;
-		await this.safeLanding(tradeStation.uuid);
-		await this.safeMove(tradeStation.body.vector.x, tradeStation.body.vector.y);
-	}
-	if(this.getLocation() == LOCATION_BUSINESS_STATION) {
-		result = rcs.OM_CURRENTLY_DEPOSITING;
-		await this.safeFuel();
-		if(keep && this.getBalance() < keep) {
-			await this.safeApply("DEPOSIT_CLOSE");
-			result = rcs.OM_CLOSED_DEPOSIT;
+	else if(!tradeStation) {
+		result = rcs.OM_BUSINESS_STATION_NOT_FOUND;
+	} else {
+		if(this.getLocation() != LOCATION_BUSINESS_STATION) {
+			await this.safeEscape();
 		}
-		if(this.getBalance() != keep) {
-			await this.safeApply("DEPOSIT", this.getBalance() - keepMoney);
+		if(this.getLocation() == LOCATION_SYSTEM) {
+			result = rcs.OM_FLYING_TO_BUSINESS_STATION;
+			await this.safeLanding(tradeStation.uuid);
+			await this.safeMove(tradeStation.body.vector.x, tradeStation.body.vector.y);
+		}
+		if(this.getLocation() == LOCATION_BUSINESS_STATION) {
+			result = rcs.OM_CURRENTLY_DEPOSITING;
+			await this.safeFuel();
+			if(keep && this.getBalance() < keep) {
+				await this.safeApply("DEPOSIT_CLOSE");
+				result = rcs.OM_CLOSED_DEPOSIT;
+			}
+			if(this.getBalance() != keep) {
+				await this.safeApply("DEPOSIT", this.getBalance() - keepMoney);
+			}
 		}
 	}
 	switch(result) {
+		case rcs.OM_OPERATING_NOT_REQUIRED:
+			this.log("info", "I already have required amount of money on me!");
+			break;
 		case rcs.OM_BUSINESS_STATION_NOT_FOUND:
 			this.log("warn", "I can't find business station, I'm not in Scheat!");
 			break;

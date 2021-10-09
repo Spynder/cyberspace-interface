@@ -13,7 +13,7 @@ module.exports = {
 			}
 		});
 
-		let activePlanet = "Tilia";
+		let activePlanet = "Thides G1";
 
 		if(activePlanet == "" || planet.uuid == activePlanet) {
 			let clearTrades = false;
@@ -35,6 +35,7 @@ module.exports = {
 			}
 
 			if(planetDetails.body.deals && (planetDetails.body.deals.length < 1)) {
+				await sdk.createPlanetRequest(activePlanet, {request: "buy", type: "MINERALS", cost: 900000});
 				//await sdk.createPlanetRequest(activePlanet, {request: "close", uuid: planetDetails.body.deals[0].uuid})
 				//await sdk.createPlanetRequest("Tilia", {request: "sell", item: "minerals"});
 				//await sdk.createPlanetRequest("Tilia", {request: "buy", type: "MINERALS", count: 500});
@@ -54,12 +55,15 @@ module.exports = {
 				request.request = request.request.toLowerCase();
 				try {
 					planet.log("info", "Executing planet request \"" + request.request + "\"!");
-					let item = request.item;
+					/*let item = request.item;
 					let type = request.type;
 					let cost = request.cost ?? 1;
 					let count = request.count ?? 1;
 					let gen = request.gen;
-					let uuid = request.uuid;
+					let uuid = request.uuid;*/
+					let {item, type, cost, count, gen, uuid} = request;
+					cost ??= 1;
+					count ??= 1;
 					let minerals = planetDetails.nodes.find(node => node.body.type == "MINERALS");
 					switch(request.request) {
 
