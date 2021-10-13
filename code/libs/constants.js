@@ -100,8 +100,6 @@ global.SYSTEM_TEXT_SIZE_MEDIUM = 36*5;
 
 
 
-
-
 // TECHNICAL
 
 // Sun collision and pathfinder
@@ -123,6 +121,19 @@ global.BUSINESS_STATION_NAME = "Baker Plaza";
 global.SCIENTIFIC_STATION_NAME = "Dominion";
 
 global.USELESS_MINER_ITEMS = ["protector"];
+global.ATTACKER_FIT = [
+	{part: "hull", gen: 6},
+	{part: "engine", gen: 6},
+	{part: "protector", gen: 6},
+	{part: "droid", gen: 6},
+	{part: "gripper", gen: 6},
+	{part: "tank", gen: 6},
+	{part: "weapon", gen: 6, extra: {slot: 2}},
+	{part: "weapon", gen: 6, extra: {slot: 1}},
+	{part: "weapon", gen: 6, extra: {slot: 3}},
+	{part: "weapon", gen: 6, extra: {slot: 4}},
+	{part: "weapon", gen: 6, extra: {slot: 5}},
+];
 
 // Systems
 global.SYSTEM_SCHEAT 		= "Scheat";
@@ -207,6 +218,7 @@ global.ALLY_IDS = [
 // "a678ea674c" - Spynder
 // "eace9ac1bd" - ED2LIN
 // "01e68210c2" - Oktay
+// "a678ea674c" - Cern
 
 
 global.ROLES = [
@@ -234,13 +246,13 @@ global.ROLES = [
 
 	// 5-9
 	{
-		role: ROLE_MANUAL,
-		homeSystem: SYSTEM_IOTA_PEGASI,
-		homePlanet: "Hephus",
+		role: ROLE_ATTACKER,
+		homeSystem: SYSTEM_PI1_PEGASI,
+		homePlanet: "Droebos",
 	},
 	{
 		role: ROLE_MINER,
-		homeSystem: SYSTEM_MATAR,
+		homeSystem: SYSTEM_SCHEAT,
 	},
 	{
 		role: ROLE_MINER,
@@ -252,7 +264,7 @@ global.ROLES = [
 		homePlanet: "Hephus",
 	},
 	{
-		role: ROLE_MANUAL,
+		role: ROLE_MINER,
 		homeSystem: SYSTEM_SALM,
 	},
 

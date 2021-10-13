@@ -26,94 +26,13 @@ module.exports = {
 			return;
 		}
 
-		/*if(ship.uuid == "9c91fc62fc") {
-			if(await ship.upgradeBodyPartList([
-				{part: "weapon", gen: 7, extra: {slot: 1}},
-				{part: "weapon", gen: 7, extra: {slot: 2}},
-				{part: "weapon", gen: 7, extra: {slot: 3}},
-				{part: "weapon", gen: 7, extra: {slot: 4}},
-				{part: "weapon", gen: 7, extra: {slot: 5}},
-			]) < 0) return;
+		if(ship.uuid == "b1487f3f415") {
+			if(await ship.upgradeBodyPartList(ATTACKER_FIT) < 0) return;
 			await ship.parkAtNearbyLandable();
 			return;
-		} else if(ship.uuid == "75f5bb50bd") {
-			await ship.safeEscape();
-			await ship.safeMove(50000, 50000);
-			return;
-		}*/
-		/**/
-		//await ship.safeEscape();
-		let requiredMinerals = ship.getMaxHold() * 0.6 - ship.getHold();
-
-		if(ship.uuid == "fbb4f29d5b") {
 		}
 
-		else if(ship.uuid == "2db736ed7f") {
-			//await ship.warpToSystem(SYSTEM_SCHEAT);
-			//await ship.parkAtSpecifiedLandable("Baker Plaza");
-			//await ship.parkAtSpecifiedLandable("Dominion");
-			//await ship.safeApply("GET_VIRUS");
-			//await ship.safeApply("GET_EMBRYO");
-			//if(await ship.operateMoney(900000) < 0) return;
-			//await ship.safeApply("EXTERMINATION");
-			//await ship.safeApply("COLONIZATION");
-			await ship.warpToSystem(SYSTEM_PI1_PEGASI);
-			await ship.parkAtNearbyLandable();
-			//await ship.getMineralsFromPlanet("Thides G1", 1);
-			//await ship.safeAccept("bba4c9ccf8", 1);
-
-		}
-
-		else if(ship.uuid == "31e52dd377") {
-			await ship.warpToSystem(SYSTEM_SCHEAT);
-			await ship.parkAtSpecifiedLandable("Baker Plaza");
-			let data = await ship.safeApply("INFO");
-			/*if(data[0].amount != 900000) {
-				await ship.safeApply("DEPOSIT_CLOSE");
-				await ship.safeApply("DEPOSIT", 900000);
-			}
-			if(ship.getBalance() > 0) {
-				await ship.safeApply("DEPOSIT", ship.getBalance());
-			}*/
-			let stock = await sdk.Stock.connect(account.token);
-			await delay(200);
-			try {
-				//let data = await stock.history(10, 0);
-				//let data = await stock.history(-2, -1);
-				console.log(stock)
-				//let data = await stock.cancel("FEDERATION");
-				//let data = await stock.bids("FEDERATION");
-				await delay(200);
-				console.log(data);
-			} catch(e) {
-				console.log("Error! ", e.message);
-				console.error(e);
-			}
-			await stock.dispose();
-			
-			await delay(200);
-			ship.log(data);
-		}
-
-		else if(ship.uuid == "68e1e5e6d4") {
-			//await ship.safeEscape();
-			await ship.parkAtSpecifiedLandable("Hephus");
-			await ship.upgradeBodyPart("weapon", 2, {slot: 3});
-			//await ship.createModuleOnPlanet("Hephus", "WEAPON", 7);
-			//await ship.safeTransfer("a044f342f4", "in");
-			//await ship.safeEquip("weapon2", "a044f342f4");
-			return;
-		}
-
-		else if(ship.uuid == "6df841dcec") {
-			ship.log("wtf")
-			//await ship.warpToSystem(SYSTEM_IOTA_PEGASI);
-			await ship.safeEscape();
-			await ship.safeMove(10000, 10000);
-			return;
-		}
-
-		else if(ship.uuid == "47335975eb") {
+		else if(ship.uuid == "b1487f3f45") {
 			let virusesRequired = 1;
 			if(ship.getCurrentSystem() == SYSTEM_SCHEAT || ship.hasCargo("virus").length >= virusesRequired) {
 				if(ship.hasCargo("virus").length >= virusesRequired) {
@@ -136,16 +55,17 @@ module.exports = {
 					}
 					return;
 				}
-				if(ship.getBalance() != 85000) {
-					await ship.operateMoney(85000);
+				if(ship.getBalance() != virusesRequired*5 + 25000) {
+					await ship.operateMoney(virusesRequired*5 + 25000);
 				} else {
 					await ship.parkAtSpecifiedLandable("Dominion");
 					if(ship.getLocation() == LOCATION_SCIENTIFIC_STATION) {
 						//await ship.safeApply("GET_EMBRYO");
 						await ship.safeApply("GET_VIRUS");
 						await ship.safeApply("GET_VIRUS");
-						await ship.safeApply("GET_EMBRYO");
-						await ship.safeApply("GET_EMBRYO");
+						await ship.safeApply("GET_VIRUS");
+						await ship.safeApply("GET_VIRUS");
+						await ship.safeApply("GET_VIRUS");
 					}
 				}
 			} else {

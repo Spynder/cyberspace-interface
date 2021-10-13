@@ -6,8 +6,6 @@ function createWindow () {
 		height: 600,
 		webPreferences: {
 			nodeIntegration: true,
-			//contextIsolation: true,
-			//enableRemoteModule: true,
 		}
 	});
 	win.loadFile('gui/index.html');
@@ -19,13 +17,13 @@ function createWindow () {
 app.whenReady().then(createWindow);
 
 app.on('window-all-closed', () => {
-	if (process.platform !== 'darwin') {
+	if(process.platform !== 'darwin') {
 		app.quit();
 	}
 });
 
 app.on('activate', () => {
-	if (BrowserWindow.getAllWindows().length === 0) {
+	if(BrowserWindow.getAllWindows().length === 0) {
 		createWindow();
 	}
 });
